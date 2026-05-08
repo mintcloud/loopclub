@@ -103,15 +103,18 @@ export function App() {
     if (!smartWalletClient) return
     try {
       setBusy('Toggling cell…')
-      await smartWalletClient.sendTransaction({
-        to: config.loopchainAddress,
-        data: encodeFunctionData({
-          abi: loopchainAbi,
-          functionName: 'toggle',
-          args: [cellId, durationLoops, pitchIdx],
-        }),
-        chain: megaethMainnet,
-      })
+      await smartWalletClient.sendTransaction(
+        {
+          to: config.loopchainAddress,
+          data: encodeFunctionData({
+            abi: loopchainAbi,
+            functionName: 'toggle',
+            args: [cellId, durationLoops, pitchIdx],
+          }),
+          chain: megaethMainnet,
+        },
+        { uiOptions: { showWalletUIs: false } },
+      )
       flash(`Cell ${cellId} on for ${durationLoops}× ${LOOP_DURATION_SECONDS}s`)
       setOpenCellId(null)
       refresh()
