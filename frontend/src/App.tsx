@@ -4,8 +4,8 @@ import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256 } from 'viem'
 import { Grid } from './Grid'
 import { ToggleModal } from './ToggleModal'
-import { config, megaethTestnet, LOOP_DURATION_SECONDS } from './config'
-import { loopchainAbi, mockUsdmAbi } from './abi'
+import { config, megaethMainnet, LOOP_DURATION_SECONDS } from './config'
+import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient } from './viemClient'
 import { startAudio, stopAudio, audioRunning, setLiveState, onStep } from './audio'
 
@@ -41,13 +41,13 @@ export function App() {
         const [bal, allow] = await Promise.all([
           publicClient.readContract({
             address: config.paymentTokenAddress,
-            abi: mockUsdmAbi,
+            abi: usdmAbi,
             functionName: 'balanceOf',
             args: [smartAddress],
           }),
           publicClient.readContract({
             address: config.paymentTokenAddress,
-            abi: mockUsdmAbi,
+            abi: usdmAbi,
             functionName: 'allowance',
             args: [smartAddress, config.loopchainAddress],
           }),
@@ -79,25 +79,6 @@ export function App() {
     }, 4000)
   }
 
-  const onFaucet = async () => {
-    if (!smartWalletClient) {
-      flash('No smart wallet client — check Privy dashboard config', true)
-      return
-    }
-    try {
-      setBusy('Requesting test USDm…')
-      await smartWalletClient.sendTransaction({
-        to: config.paymentTokenAddress,
-        data: encodeFunctionData({ abi: mockUsdmAbi, functionName: 'faucet' }),
-        chain: megaethTestnet,
-      })
-      flash('Got 1000 test USDm')
-      refresh()
-    } catch (e: unknown) {
-      flash((e as Error).message ?? 'faucet failed', true)
-    }
-  }
-
   const onApprove = async () => {
     if (!smartWalletClient) return
     try {
@@ -105,11 +86,11 @@ export function App() {
       await smartWalletClient.sendTransaction({
         to: config.paymentTokenAddress,
         data: encodeFunctionData({
-          abi: mockUsdmAbi,
+          abi: usdmAbi,
           functionName: 'approve',
           args: [config.loopchainAddress, maxUint256],
         }),
-        chain: megaethTestnet,
+        chain: megaethMainnet,
       })
       flash('Approved')
       refresh()
@@ -129,7 +110,7 @@ export function App() {
           functionName: 'toggle',
           args: [cellId, durationLoops, pitchIdx],
         }),
-        chain: megaethTestnet,
+        chain: megaethMainnet,
       })
       flash(`Cell ${cellId} on for ${durationLoops}× ${LOOP_DURATION_SECONDS}s`)
       setOpenCellId(null)
@@ -167,7 +148,6 @@ export function App() {
                 {' · '}
                 {formatUnits(usdmBalance, 18).slice(0, 6)} USDm
               </span>
-              <button onClick={onFaucet}>faucet</button>
               {needsApproval && <button className="primary" onClick={onApprove}>approve</button>}
               <button onClick={logout}>logout</button>
             </>

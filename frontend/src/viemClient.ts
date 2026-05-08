@@ -1,7 +1,7 @@
 import { createPublicClient, http } from 'viem'
-import { megaethTestnet, config } from './config'
+import { megaethMainnet, config } from './config'
 
 export const publicClient = createPublicClient({
-  chain: megaethTestnet,
+  chain: megaethMainnet,
   transport: http(config.rpcUrl),
 })

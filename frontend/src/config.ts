@@ -9,13 +9,13 @@ export const config = {
   explorerUrl: import.meta.env.VITE_EXPLORER_URL as string,
 }
 
-export const megaethTestnet = defineChain({
+export const megaethMainnet = defineChain({
   id: config.chainId,
-  name: 'MegaETH Testnet',
+  name: 'MegaETH Mainnet',
   nativeCurrency: { name: 'MegaETH', symbol: 'ETH', decimals: 18 },
   rpcUrls: { default: { http: [config.rpcUrl] } },
   blockExplorers: { default: { name: 'Blockscout', url: config.explorerUrl } },
-  testnet: true,
+  testnet: false,
 })
 
 export const STEPS = 16

@@ -29,6 +29,30 @@ VITE_PAYMENT_TOKEN_ADDRESS=0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3
 
 Anyone can call `MockUsdm.faucet(amount)` to mint themselves test USDm — no allowlist. Use it before the first `toggle()` so the user has rent balance.
 
-## MegaETH mainnet
+## MegaETH mainnet (chain id 4326)
 
-Not deployed.
+| Contract | Address | Deploy block | Deploy tx |
+|---|---|---|---|
+| `Loopchain` | [`0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3`](https://megaeth.blockscout.com/address/0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3) | 15,477,967 | [`0x6c34334d…91b891f7`](https://megaeth.blockscout.com/tx/0x6c34334d65883ace156545f6c9f5ea4f2e48b3719263d6aba1f06d1a91b891f7) |
+| `USDm` (Ethena/MegaETH official, payment token) | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaeth.blockscout.com/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) | — | — |
+
+**Deployer / Owner / Treasury:** `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` (rotate treasury to multisig later via `setTreasury`)
+**Constructor args (Loopchain):** `(payment, treasury, owner) = (0xFAfD…79E7, 0x6cF2…0Ee3, 0x6cF2…0Ee3)`
+**RPC used:** `https://mainnet.megaeth.com/rpc`
+**Forge artifacts:** `contracts/broadcast/Deploy.s.sol/4326/run-latest.json`
+**Deploy date:** 2026-05-08
+**Total gas paid:** ~0.000110 ETH
+
+### Frontend wiring
+
+Set in your Vite env (`frontend/.env.local`):
+
+```
+VITE_CHAIN_ID=4326
+VITE_RPC_URL=https://mainnet.megaeth.com/rpc
+VITE_LOOPCHAIN_ADDRESS=0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3
+VITE_PAYMENT_TOKEN_ADDRESS=0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7
+VITE_EXPLORER_URL=https://megaeth.blockscout.com
+```
+
+USDm is real on mainnet (no faucet) — symbol `USDm`, name `MegaUSD`, 18 decimals. Users need to top up via Ethena/MegaETH onramp before they can rent cells.

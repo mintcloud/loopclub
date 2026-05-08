@@ -45,7 +45,7 @@ export const loopchainAbi = [
   },
 ] as const
 
-export const mockUsdmAbi = [
+export const usdmAbi = [
   {
     type: 'function',
     name: 'balanceOf',
@@ -67,5 +67,4 @@ export const mockUsdmAbi = [
     inputs: [{ type: 'address' }, { type: 'uint256' }],
     outputs: [{ type: 'bool' }],
   },
-  { type: 'function', name: 'faucet', stateMutability: 'nonpayable', inputs: [], outputs: [] },
 ] as const
