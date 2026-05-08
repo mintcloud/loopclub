@@ -1,0 +1,55 @@
+# Loopchain contracts
+
+Foundry project for the Loopchain v1 contracts. See `loopchain-progress.md` for status and the v1 spec.
+
+## Layout
+
+```
+src/
+  Loopchain.sol      # ERC-721 + ERC-2981 + USDm rent/mint/royalty
+  MockUsdm.sol       # open-mint test ERC-20 with EIP-2612 permit (testnet only)
+test/
+  Loopchain.t.sol    # rent, expiry, collision, mint distribution, royalty, treasury
+script/
+  Deploy.s.sol       # deploys MockUsdm (if no PAYMENT_TOKEN) then Loopchain
+```
+
+## Setup
+
+```bash
+# Install foundry deps (one-time, will register as git submodules)
+forge install OpenZeppelin/openzeppelin-contracts --no-commit
+forge install foundry-rs/forge-std --no-commit
+
+# Configure env + build
+cp .env.example .env  # fill in DEPLOYER_PRIVATE_KEY + MEGAETH_TESTNET_RPC
+forge build
+forge test -vv
+```
+
+## Deploy to MegaETH testnet
+
+```bash
+source .env
+forge script script/Deploy.s.sol \
+  --rpc-url $MEGAETH_TESTNET_RPC \
+  --broadcast \
+  --slow
+```
+
+Without `PAYMENT_TOKEN` set, the script deploys MockUsdm first, then Loopchain pointing at it. With `PAYMENT_TOKEN` set, it reuses that address (mainnet path → real USDm).
+
+## Verify
+
+```bash
+forge verify-contract <ADDRESS> src/Loopchain.sol:Loopchain \
+  --chain $CHAIN_ID \
+  --etherscan-api-key $MEGAETH_EXPLORER_KEY
+```
+
+## Known v1 limitations
+
+- **Marketplace royalty attribution.** ERC-2981 returns the contract address as receiver. Marketplaces transfer USDm to the contract without per-token context. A keeper (or the recorder) must call `depositRoyalty(tokenId, amount)` to attribute receipts. v2 candidates: per-token `Clones.clone(splitterImpl)` so the marketplace pays the splitter directly.
+- **Per-claim gas.** `claimRoyalty()` does a linear scan over `holders[]` (≤64). Fine. `record()` deduplication is also O(n²) over up to 64 cells; ~3300 ops worst case, comfortably under any sane gas limit.
+- **64 holders × `address[]` storage per mint.** ~1.4 KB per NFT. MegaETH-cheap.
+- **No `permit()` integration.** Frontend asks for a one-time `approve(MAX_UINT256)` against the Loopchain contract. v2 can wrap `toggle/record` with EIP-2612 permits if real USDm supports them.
