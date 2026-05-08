@@ -40,6 +40,17 @@ button.primary {
   color: white;
 }
 button.primary:hover { background: var(--accent-dim); }
+button.hot {
+  background: #ff2d1f;
+  border-color: #ff2d1f;
+  color: white;
+  box-shadow: 0 0 12px rgba(255, 45, 31, 0.55);
+}
+button.hot:hover {
+  background: #ff5436;
+  border-color: #ff5436;
+  box-shadow: 0 0 18px rgba(255, 84, 54, 0.75);
+}
 
 a { color: var(--accent); }
 

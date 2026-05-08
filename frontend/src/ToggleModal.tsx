@@ -47,6 +47,9 @@ export function ToggleModal({ cellId, onClose, onSubmit }: Props) {
         </div>
         <div className="row">
           <button onClick={onClose}>cancel</button>
+          <button className="hot" onClick={() => onSubmit(32, pitch)}>
+            max toggle
+          </button>
           <button className="primary" onClick={() => onSubmit(duration, pitch)}>
             toggle
           </button>

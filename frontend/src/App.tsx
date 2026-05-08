@@ -4,7 +4,7 @@ import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256 } from 'viem'
 import { Grid } from './Grid'
 import { ToggleModal } from './ToggleModal'
-import { config, megaethMainnet, LOOP_DURATION_SECONDS } from './config'
+import { config, megaethMainnet, LOOP_DURATION_SECONDS, SYNTH_CELL_START } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient } from './viemClient'
 import { startAudio, stopAudio, audioRunning, setLiveState, onStep } from './audio'
@@ -99,11 +99,27 @@ export function App() {
     }
   }
 
-  const onToggle = async (cellId: number, durationLoops: number, pitchIdx: number) => {
+  const onToggle = (cellId: number, durationLoops: number, pitchIdx: number) => {
     if (!smartWalletClient) return
-    try {
-      setBusy('Toggling cell…')
-      await smartWalletClient.sendTransaction(
+
+    // Close modal + optimistically light the cell + sound it before the userOp confirms.
+    // The 2s poll reconciles against chain truth; on revert the bit flips back.
+    setOpenCellId(null)
+    const bit = 1n << BigInt(cellId)
+    const optimisticPattern = pattern | bit
+    let optimisticPitches = pitches
+    if (cellId >= SYNTH_CELL_START) {
+      const offset = cellId - SYNTH_CELL_START
+      const mask = ~(0x7n << BigInt(offset * 3))
+      optimisticPitches = (pitches & mask) | (BigInt(pitchIdx & 0x7) << BigInt(offset * 3))
+      setPitches(optimisticPitches)
+    }
+    setPattern(optimisticPattern)
+    setLiveState(optimisticPattern, optimisticPitches)
+    flash(`Cell ${cellId} on for ${durationLoops}× ${LOOP_DURATION_SECONDS}s`)
+
+    smartWalletClient
+      .sendTransaction(
         {
           to: config.loopchainAddress,
           data: encodeFunctionData({
@@ -115,12 +131,11 @@ export function App() {
         },
         { uiOptions: { showWalletUIs: false } },
       )
-      flash(`Cell ${cellId} on for ${durationLoops}× ${LOOP_DURATION_SECONDS}s`)
-      setOpenCellId(null)
-      refresh()
-    } catch (e: unknown) {
-      flash((e as Error).message ?? 'toggle failed', true)
-    }
+      .then(() => refresh())
+      .catch((e: unknown) => {
+        flash((e as Error).message ?? 'toggle failed', true)
+        refresh()
+      })
   }
 
   const onAudioToggle = async () => {
