@@ -15,7 +15,7 @@ npm run dev                  # → http://localhost:5173
 
 All in `.env.example`. The defaults are wired to the deployed MegaETH testnet contracts (chain 6343):
 
-- `VITE_PRIVY_APP_ID` — `cmowozv13029v0clbx15g9wqb`
+- `VITE_PRIVY_APP_ID` — `cmoxau2fi00xd0clevvngoxzr`
 - `VITE_LOOPCHAIN_ADDRESS` — `0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`
 - `VITE_PAYMENT_TOKEN_ADDRESS` — `0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3` (MockUsdm)
 - `VITE_RPC_URL`, `VITE_CHAIN_ID`, `VITE_EXPLORER_URL`
