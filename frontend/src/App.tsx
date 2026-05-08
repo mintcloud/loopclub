@@ -80,7 +80,10 @@ export function App() {
   }
 
   const onFaucet = async () => {
-    if (!smartWalletClient) return
+    if (!smartWalletClient) {
+      flash('No smart wallet client — check Privy dashboard config', true)
+      return
+    }
     try {
       setBusy('Requesting test USDm…')
       await smartWalletClient.sendTransaction({
@@ -200,6 +203,44 @@ export function App() {
         <div className="muted" style={{ textAlign: 'center', paddingTop: '2rem' }}>
           Connect to rent cells. {userEmail ? `signed in as ${userEmail}` : ''}
         </div>
+      )}
+
+      {authenticated && (
+        <pre
+          style={{
+            position: 'fixed',
+            bottom: 8,
+            left: 8,
+            maxWidth: '40vw',
+            maxHeight: '40vh',
+            overflow: 'auto',
+            background: 'rgba(0,0,0,0.7)',
+            border: '1px solid #444',
+            color: '#0f0',
+            font: '10px ui-monospace, monospace',
+            padding: 8,
+            zIndex: 999,
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+{`ready=${ready}
+authenticated=${authenticated}
+smartWalletClient=${smartWalletClient ? 'present' : 'UNDEFINED'}
+smartAddress=${smartAddress ?? 'null'}
+chain=${config.chainId}
+linkedAccounts=
+${JSON.stringify(
+  user?.linkedAccounts?.map((a: Record<string, unknown>) => ({
+    type: a.type,
+    address: a.address,
+    chainType: a.chainType,
+    walletClientType: a.walletClientType,
+    smartWalletType: a.smartWalletType,
+  })),
+  null,
+  2,
+)}`}
+        </pre>
       )}
     </div>
   )
