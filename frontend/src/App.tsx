@@ -230,7 +230,7 @@ smartAddress=${smartAddress ?? 'null'}
 chain=${config.chainId}
 linkedAccounts=
 ${JSON.stringify(
-  user?.linkedAccounts?.map((a: Record<string, unknown>) => ({
+  user?.linkedAccounts?.map((a: any) => ({
     type: a.type,
     address: a.address,
     chainType: a.chainType,
