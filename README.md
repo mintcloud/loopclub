@@ -9,10 +9,10 @@ One global 16×4 grid drum machine on MegaETH. Cells rented in USDm, full loops 
 | v1 spec | locked — see [`docs/v1-spec.md`](docs/v1-spec.md) |
 | Economics | locked — see [`docs/economics.md`](docs/economics.md) |
 | Smart-account stack | Kernel via Privy + EIP-7702 — see [`docs/stack-and-7702.md`](docs/stack-and-7702.md) |
-| Contracts (`contracts/`) | written, not yet `forge test`-ed against installed deps |
+| Contracts (`contracts/`) | ✅ built + tested (15/15) on Foundry 1.7.1 |
 | Bundler / paymaster | configured in Privy dashboard (Kernel MegaETH testnet endpoints) |
-| Hot wallet funding | `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3`, awaiting ~0.005 ETH |
-| Testnet deploy | blocked on funding |
+| Hot wallet funding | ✅ `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` funded |
+| Testnet deploy | ✅ deployed to MegaETH testnet (chain 6343) — see [`docs/deployments.md`](docs/deployments.md) |
 | Frontend (`frontend/`) | not started |
 
 Detailed step-by-step status: [`docs/progress.md`](docs/progress.md).
