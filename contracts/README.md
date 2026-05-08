@@ -17,9 +17,9 @@ script/
 ## Setup
 
 ```bash
-# Install foundry deps (one-time, will register as git submodules)
-forge install OpenZeppelin/openzeppelin-contracts --no-commit
-forge install foundry-rs/forge-std --no-commit
+# Install foundry deps (one-time, registers as git submodules; Foundry 1.7+ skips auto-commit by default)
+forge install OpenZeppelin/openzeppelin-contracts
+forge install foundry-rs/forge-std
 
 # Configure env + build
 cp .env.example .env  # fill in DEPLOYER_PRIVATE_KEY + MEGAETH_TESTNET_RPC
