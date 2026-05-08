@@ -223,7 +223,8 @@ export function App() {
             whiteSpace: 'pre-wrap',
           }}
         >
-{`ready=${ready}
+{`privyAppId=${config.privyAppId ?? 'MISSING'}
+ready=${ready}
 authenticated=${authenticated}
 smartWalletClient=${smartWalletClient ? 'present' : 'UNDEFINED'}
 smartAddress=${smartAddress ?? 'null'}
