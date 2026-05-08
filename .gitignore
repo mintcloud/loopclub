@@ -20,6 +20,7 @@ contracts/.env.local
 **/.vite/
 **/.parcel-cache/
 **/.turbo/
+**/*.tsbuildinfo
 
 # logs
 *.log

@@ -1,0 +1,30 @@
+{
+  "name": "loopchain-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@privy-io/react-auth": "^3.23.1",
+    "permissionless": "^0.2.57",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tone": "^15.1.22",
+    "viem": "2.47.12"
+  },
+  "overrides": {
+    "viem": "2.47.12"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "typescript": "^5.7.2",
+    "vite": "^7.3.3"
+  }
+}
