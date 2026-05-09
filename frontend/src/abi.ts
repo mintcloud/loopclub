@@ -43,6 +43,40 @@ export const loopchainAbi = [
     inputs: [],
     outputs: [{ type: 'uint256' }],
   },
+  { type: 'function', name: 'nextTokenId', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'ownerOf',
+    stateMutability: 'view',
+    inputs: [{ type: 'uint256' }],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'loopOf',
+    stateMutability: 'view',
+    inputs: [{ type: 'uint256' }],
+    outputs: [
+      { name: 'pattern', type: 'uint64' },
+      { name: 'pitches', type: 'uint64' },
+      { name: 'mintedAtLoop', type: 'uint64' },
+      { name: 'holders', type: 'address[]' },
+      { name: 'cellsPerHolder', type: 'uint8[]' },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'RecordingMinted',
+    inputs: [
+      { name: 'tokenId', type: 'uint256', indexed: true },
+      { name: 'recorder', type: 'address', indexed: true },
+      { name: 'pattern', type: 'uint64', indexed: false },
+      { name: 'pitches', type: 'uint64', indexed: false },
+      { name: 'mintedAtLoop', type: 'uint64', indexed: false },
+      { name: 'holdersCount', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
 ] as const
 
 export const usdmAbi = [

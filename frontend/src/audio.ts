@@ -10,9 +10,23 @@ let seq: Tone.Sequence | null = null
 let livePattern = 0n
 let livePitches = 0n
 
+let snapshotPattern: bigint | null = null
+let snapshotPitches: bigint | null = null
+
 export function setLiveState(pattern: bigint, pitches: bigint) {
   livePattern = pattern
   livePitches = pitches
+}
+
+/// When set, the sequencer plays the snapshot instead of live state.
+/// Pass nulls to clear and resume live playback.
+export function setSnapshot(pattern: bigint | null, pitches: bigint | null) {
+  snapshotPattern = pattern
+  snapshotPitches = pitches
+}
+
+export function snapshotActive(): boolean {
+  return snapshotPattern !== null
 }
 
 let onStepListener: ((step: number) => void) | null = null
@@ -24,8 +38,8 @@ function bit(pattern: bigint, idx: number): boolean {
   return ((pattern >> BigInt(idx)) & 1n) === 1n
 }
 
-function pitchAt(synthCellOffset: number): string {
-  const idx = Number((livePitches >> BigInt(synthCellOffset * 3)) & 0x7n)
+function pitchAtFrom(pitches: bigint, synthCellOffset: number): string {
+  const idx = Number((pitches >> BigInt(synthCellOffset * 3)) & 0x7n)
   return `${PITCH_LABELS[idx % PITCH_LABELS.length]}4`
 }
 
@@ -45,14 +59,16 @@ export async function startAudio() {
   const steps = Array.from({ length: STEPS }, (_, i) => i)
   seq = new Tone.Sequence(
     (time, step) => {
+      const p = snapshotPattern ?? livePattern
+      const ps = snapshotPitches ?? livePitches
       // Track 0 (kick), 1 (snare), 2 (hat) — drums
-      if (bit(livePattern, step + 0 * STEPS)) kick?.triggerAttackRelease('C2', '16n', time)
-      if (bit(livePattern, step + 1 * STEPS)) snare?.triggerAttackRelease('16n', time)
-      if (bit(livePattern, step + 2 * STEPS)) hat?.triggerAttackRelease('C5', '32n', time)
+      if (bit(p, step + 0 * STEPS)) kick?.triggerAttackRelease('C2', '16n', time)
+      if (bit(p, step + 1 * STEPS)) snare?.triggerAttackRelease('16n', time)
+      if (bit(p, step + 2 * STEPS)) hat?.triggerAttackRelease('C5', '32n', time)
       // Track 3 (synth)
       const synthCellId = step + 3 * STEPS
-      if (synthCellId >= SYNTH_CELL_START && bit(livePattern, synthCellId)) {
-        const note = pitchAt(synthCellId - SYNTH_CELL_START)
+      if (synthCellId >= SYNTH_CELL_START && bit(p, synthCellId)) {
+        const note = pitchAtFrom(ps, synthCellId - SYNTH_CELL_START)
         synth?.triggerAttackRelease(note, '8n', time)
       }
       Tone.getDraw().schedule(() => onStepListener?.(step), time)
