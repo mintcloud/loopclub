@@ -32,9 +32,8 @@ function pitchAt(synthCellOffset: number): string {
 export async function startAudio() {
   if (seq) return
   await Tone.start()
-  Tone.Transport.bpm.value = 240
-  // 16 steps per 4-second loop = 240 BPM × 4 sixteenths/beat. Tone "16n" at 240 = 62.5ms,
-  // which gives 16 steps in 4s.
+  // 60 BPM × 16th-notes = 250ms/step, 16 steps = 4s — matches LOOP_DURATION_SECONDS.
+  Tone.Transport.bpm.value = 60
 
   kick = new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 4, envelope: { attack: 0.001, decay: 0.4, sustain: 0 } }).toDestination()
   snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 } }).toDestination()

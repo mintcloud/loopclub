@@ -10,6 +10,17 @@ interface GridProps {
 export function Grid({ pattern, pitches, playingStep, onCellClick }: GridProps) {
   return (
     <div className="grid">
+      <div className="label step-axis-label">step</div>
+      {Array.from({ length: STEPS }).map((_, step) => {
+        const cls = ['step-num']
+        if (step % 4 === 0) cls.push('downbeat')
+        if (playingStep === step) cls.push('playing')
+        return (
+          <div key={`hdr-${step}`} className={cls.join(' ')}>
+            {step + 1}
+          </div>
+        )
+      })}
       {Array.from({ length: TRACKS }).map((_, track) => (
         <Row
           key={track}

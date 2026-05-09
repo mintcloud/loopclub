@@ -31,16 +31,10 @@ export function ToggleModal({ cellId, onClose, onSubmit }: Props) {
           />
         </label>
         {isSynth && (
-          <label>
-            pitch
-            <select value={pitch} onChange={(e) => setPitch(Number(e.target.value))}>
-              {PITCH_LABELS.map((p, i) => (
-                <option key={i} value={i}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="pitch-picker">
+            <span className="pitch-label">pitch</span>
+            <Keyboard selected={pitch} onSelect={setPitch} />
+          </div>
         )}
         <div className="muted">
           cost: {(0.004 * duration).toFixed(3)} USDm · live for {duration * LOOP_DURATION_SECONDS}s
@@ -55,6 +49,66 @@ export function ToggleModal({ cellId, onClose, onSubmit }: Props) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Pentatonic scale (C, D, E, G, A) shown over a full-octave keyboard.
+// F and B are disabled to make the scale gap visible; black keys are decorative.
+const WHITE_KEYS: Array<{ note: string; pitchIdx: number | null }> = [
+  { note: 'C', pitchIdx: 0 },
+  { note: 'D', pitchIdx: 1 },
+  { note: 'E', pitchIdx: 2 },
+  { note: 'F', pitchIdx: null },
+  { note: 'G', pitchIdx: 3 },
+  { note: 'A', pitchIdx: 4 },
+  { note: 'B', pitchIdx: null },
+]
+
+// Black-key positions as fractional offsets across the 7-white-key row (0..7).
+const BLACK_KEYS: Array<{ note: string; offset: number }> = [
+  { note: 'C#', offset: 1 },
+  { note: 'D#', offset: 2 },
+  { note: 'F#', offset: 4 },
+  { note: 'G#', offset: 5 },
+  { note: 'A#', offset: 6 },
+]
+
+function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: number) => void }) {
+  return (
+    <div className="keyboard">
+      <div className="keyboard-whites">
+        {WHITE_KEYS.map((k, i) => {
+          const active = k.pitchIdx === selected
+          const disabled = k.pitchIdx === null
+          const cls = ['key', 'white']
+          if (active) cls.push('active')
+          if (disabled) cls.push('disabled')
+          return (
+            <button
+              key={i}
+              type="button"
+              className={cls.join(' ')}
+              disabled={disabled}
+              onClick={() => k.pitchIdx !== null && onSelect(k.pitchIdx)}
+              title={disabled ? `${k.note} (out of scale)` : `${k.note} (pitch ${k.pitchIdx})`}
+            >
+              <span className="key-label">{k.note}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div className="keyboard-blacks">
+        {BLACK_KEYS.map((k) => (
+          <span
+            key={k.note}
+            className="key black"
+            style={{ left: `calc(${k.offset} * (100% / 7) - (var(--black-w) / 2))` }}
+            aria-hidden
+          />
+        ))}
+      </div>
+      <div className="keyboard-caption muted">selected: {PITCH_LABELS[selected]}</div>
     </div>
   )
 }
