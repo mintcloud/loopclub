@@ -61,7 +61,7 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
 
 ## Economics (v1, in production)
 
-Prices are owner-tunable via `setPrices(rentPerLoop, basePrice, alpha, maxRentDurationLoops)`; the primary-sale split via `setSplit(holdersBps, treasuryBps)`. Treasury is rotatable via `setTreasury(addr)`.
+Prices are owner-tunable via `setPrices(rentPerLoop, basePrice, alpha, maxRentDurationLoops)`; the primary-sale split via `setSplit(holdersBps, treasuryBps)`. Treasury is rotatable via `setTreasury(addr)`, and accumulated rent is moved out with `sweepUnattributed(to, amount)` — see *Rent collection* below.
 
 | Param | Value | Why |
 |---|---|---|
@@ -98,6 +98,21 @@ Prices are owner-tunable via `setPrices(rentPerLoop, basePrice, alpha, maxRentDu
 4. Mints the edition to the presser and emits `SeriesPressed`.
 
 Co-creators are paid push-style on every record/press (USDm `safeTransfer`). Resale royalties are pull-style and **series-keyed**: marketplaces send the ERC-2981 5% to the contract, anyone calls `depositRoyalty(seriesId, amount)` to attribute it, and each original co-creator pulls their pro-rata share via `claimRoyalty(seriesId)` whenever they want. The frontend Library surfaces a claim button when you have an unclaimed balance.
+
+### Rent collection — accumulate, then sweep
+
+The contract takes in money from two streams, and they are handled differently on purpose.
+
+| Stream | Source | Routing |
+|---|---|---|
+| **Primary sale** | `record()` / `press()` | Split **immediately**, in the same tx — 70% `safeTransfer`'d to co-creators, 30% to `treasury`. Nothing lingers. |
+| **Rent** | `toggle()` | **Accumulates in the contract.** `toggle()` pulls `rentPerLoop × durationLoops` USDm in and leaves it there — it is *not* forwarded per toggle. |
+
+Rent is therefore an unattributed USDm balance that builds up on the contract over time. The **owner** drains it on whatever cadence suits them by calling `sweepUnattributed(to, amount)` — normally `to = treasury`, but the destination is chosen at sweep time, not hard-coded (treasury, a cold wallet, or a multisig — the owner decides each time).
+
+**Why rent isn't auto-routed to the treasury.** `toggle()` is the hot path — it fires on every cell click. Adding a second `safeTransfer` (rent → treasury) inside `toggle()` would charge *every player* extra gas on *every click*, forever, only to spare the owner an occasional sweep transaction. Letting rent pool and draining it with infrequent owner-initiated sweeps keeps the per-click cost minimal and shifts the gas of moving funds onto the operator, who pays it rarely. This is a deliberate gas trade-off, not an oversight.
+
+**Operator note.** `sweepUnattributed` is `onlyOwner` and transfers whatever `amount` is passed — it does *not* enforce the "unattributed" boundary on-chain. The safe-to-sweep balance is the contract's USDm balance **minus** still-unclaimed royalties (Σ `royaltyDepositedSeries` − Σ `royaltyClaimedSeries`). The operator must leave that royalty reserve in place; everything above it is rent plus primary-sale rounding dust.
 
 ---
 

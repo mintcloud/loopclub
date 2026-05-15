@@ -20,6 +20,7 @@ The deployed contract differs from the recommendations in the memo below. Curren
 - **Split is 70 / 30 co-creators / treasury.** No recorder or presser cut — whoever pays gets the NFT but no money. Owner-tunable via `setSplit()`.
 - **Co-creators are frozen at `record()` time** — the cell owners snapshotted into the Series. Presses pay that set pro-rata to cells contributed, even if they no longer hold the cells.
 - **Royalties are series-keyed** — `depositRoyalty(seriesId, amount)` / `claimRoyalty(seriesId)`; all editions of a series share one pool.
+- **Rent accrues in the contract; the owner sweeps it.** `toggle()` rent is *not* forwarded per toggle — it pools as an unattributed USDm balance, and the owner moves it out (normally to the treasury) via `sweepUnattributed(to, amount)`. Primary-sale proceeds, by contrast, are split and transferred inside `record()`/`press()`. Accumulating rent rather than auto-routing it keeps the hot-path `toggle()` cheap (no extra per-click `safeTransfer`); the README's *Rent collection* section documents the full flow.
 
 Why the change: a flat mint + 10% recorder kickback let a squatter record other people's loops and skim. Editions on a curve make the *loop itself* the asset — copies get more expensive as a loop proves popular — and routing all non-treasury proceeds to cell holders removes the skim. Full reasoning is in the 05-12 squatting analysis.
 
