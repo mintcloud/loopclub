@@ -25,3 +25,7 @@ export const SYNTH_CELL_START = 48
 export const TRACK_LABELS = ['kick', 'snare', 'hat', 'synth'] as const
 export const PITCH_LABELS = ['C', 'D', 'E', 'G', 'A'] as const
 export const LOOP_DURATION_SECONDS = 4
+
+// Toggle defaults — the cell popover opens pre-set to DEFAULT and the M hotkey jumps to MAX.
+export const DEFAULT_TOGGLE_LOOPS = 16
+export const MAX_TOGGLE_LOOPS = 32

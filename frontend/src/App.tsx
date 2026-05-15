@@ -3,7 +3,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256, decodeEventLog } from 'viem'
 import { Grid } from './Grid'
-import { ToggleModal } from './ToggleModal'
+import { CellPopover } from './CellPopover'
 import { Library, type LoopRecord } from './Library'
 import { config, megaethMainnet, LOOP_DURATION_SECONDS, SYNTH_CELL_START } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
@@ -21,7 +21,8 @@ export function App() {
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
   const [allowance, setAllowance] = useState<bigint>(0n)
   const [basePrice, setBasePrice] = useState<bigint>(1n * 10n ** 18n) // default 1 USDm; refreshed from chain
-  const [openCellId, setOpenCellId] = useState<number | null>(null)
+  const [openCell, setOpenCell] = useState<{ id: number; rect: DOMRect } | null>(null)
+  const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
@@ -35,6 +36,7 @@ export function App() {
   const smartAddress = (smartWalletClient?.account?.address ?? null) as `0x${string}` | null
   const playbackRef = useRef<LoopRecord | null>(null)
   playbackRef.current = playback
+  const fundPromptedRef = useRef(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -80,6 +82,19 @@ export function App() {
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
   }, [])
+
+  // Once the smart wallet resolves after connect, surface the deposit address so
+  // the user can copy it and fund the account fast. Shown once per connect.
+  useEffect(() => {
+    if (!authenticated) {
+      fundPromptedRef.current = false
+      return
+    }
+    if (smartAddress && !fundPromptedRef.current) {
+      fundPromptedRef.current = true
+      setShowFund(true)
+    }
+  }, [authenticated, smartAddress])
 
   // On first load, if URL has ?loop=<seriesId>, auto-load + enter playback for that series.
   useEffect(() => {
@@ -147,30 +162,33 @@ export function App() {
     }, 4000)
   }
 
-  const onApprove = async () => {
-    if (!smartWalletClient) return
-    try {
-      setBusy('Approving…')
-      await smartWalletClient.sendTransaction({
+  // Build the call list for a paid action, prepending a one-time max USDm
+  // approval when the smart wallet hasn't yet authorised the Loopchain contract
+  // to pull payment. Both calls land in a single UserOperation, so the user
+  // signs once — and a fresh wallet can press/record without a separate step.
+  const withApproval = (
+    price: bigint,
+    action: { to: `0x${string}`; data: `0x${string}` },
+  ): { to: `0x${string}`; data: `0x${string}` }[] => {
+    const calls: { to: `0x${string}`; data: `0x${string}` }[] = []
+    if (allowance < price) {
+      calls.push({
         to: config.paymentTokenAddress,
         data: encodeFunctionData({
           abi: usdmAbi,
           functionName: 'approve',
           args: [config.loopchainAddress, maxUint256],
         }),
-        chain: megaethMainnet,
       })
-      flash('Approved')
-      refresh()
-    } catch (e: unknown) {
-      flash((e as Error).message ?? 'approve failed', true)
     }
+    calls.push(action)
+    return calls
   }
 
   const onToggle = (cellId: number, durationLoops: number, pitchIdx: number) => {
     if (!smartWalletClient) return
 
-    setOpenCellId(null)
+    setOpenCell(null)
     const bit = 1n << BigInt(cellId)
     const optimisticPattern = pattern | bit
     let optimisticPitches = pitches
@@ -217,12 +235,12 @@ export function App() {
     }
     try {
       setBusy('Pressing copy #1…')
+      const calls = withApproval(basePrice, {
+        to: config.loopchainAddress,
+        data: encodeFunctionData({ abi: loopchainAbi, functionName: 'record', args: [] }),
+      })
       const txHash = await smartWalletClient.sendTransaction(
-        {
-          to: config.loopchainAddress,
-          data: encodeFunctionData({ abi: loopchainAbi, functionName: 'record', args: [] }),
-          chain: megaethMainnet,
-        },
+        { calls },
         { uiOptions: { showWalletUIs: false } },
       )
 
@@ -268,16 +286,16 @@ export function App() {
     try {
       setPressingSeriesId(record.seriesId)
       setBusy(`Pressing copy #${record.nextEdition}…`)
+      const calls = withApproval(record.nextPressPrice, {
+        to: config.loopchainAddress,
+        data: encodeFunctionData({
+          abi: loopchainAbi,
+          functionName: 'press',
+          args: [record.seriesId],
+        }),
+      })
       await smartWalletClient.sendTransaction(
-        {
-          to: config.loopchainAddress,
-          data: encodeFunctionData({
-            abi: loopchainAbi,
-            functionName: 'press',
-            args: [record.seriesId],
-          }),
-          chain: megaethMainnet,
-        },
+        { calls },
         { uiOptions: { showWalletUIs: false } },
       )
       flash(`Pressed copy #${record.nextEdition} of loop #${record.seriesId}`)
@@ -341,9 +359,8 @@ export function App() {
     }
   }
 
-  const needsApproval = authenticated && smartAddress && allowance < basePrice
   const userEmail = user?.email?.address ?? user?.google?.email ?? null
-  const canRecord = authenticated && smartAddress && pattern !== 0n && !needsApproval && !playback
+  const canRecord = authenticated && smartAddress && pattern !== 0n && !playback
 
   const displayPattern = playback ? playback.pattern : pattern
   const displayPitches = playback ? playback.pitches : pitches
@@ -383,11 +400,9 @@ export function App() {
                 {' · '}
                 {formatUnits(usdmBalance, 18).slice(0, 6)} USDm
               </span>
-              {needsApproval && (
-                <button className="primary" onClick={onApprove}>
-                  approve
-                </button>
-              )}
+              <button onClick={() => setShowFund(true)} title="Show your deposit address" disabled={!smartAddress}>
+                ⊕ fund
+              </button>
               <button onClick={logout}>logout</button>
             </>
           )}
@@ -410,7 +425,7 @@ export function App() {
         pattern={displayPattern}
         pitches={displayPitches}
         playingStep={playingStep}
-        onCellClick={playback ? () => undefined : setOpenCellId}
+        onCellClick={playback ? () => undefined : (id, rect) => setOpenCell({ id, rect })}
       />
 
       <div className="controls">
@@ -438,16 +453,21 @@ export function App() {
         refreshTick={libraryRefresh}
       />
 
-      {openCellId !== null && !playback && (
-        <ToggleModal
-          cellId={openCellId}
-          onClose={() => setOpenCellId(null)}
-          onSubmit={(duration, pitch) => onToggle(openCellId, duration, pitch)}
+      {openCell !== null && !playback && (
+        <CellPopover
+          cellId={openCell.id}
+          anchorRect={openCell.rect}
+          onClose={() => setOpenCell(null)}
+          onSubmit={(duration, pitch) => onToggle(openCell.id, duration, pitch)}
         />
       )}
 
       {shareSeriesId !== null && (
         <ShareModal seriesId={shareSeriesId} onClose={() => setShareSeriesId(null)} />
+      )}
+
+      {showFund && smartAddress && (
+        <FundModal address={smartAddress} usdmBalance={usdmBalance} onClose={() => setShowFund(false)} />
       )}
 
       {error && <div className="toast error">{error}</div>}
@@ -484,6 +504,49 @@ function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => vo
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
+        <div className="row">
+          <button onClick={onClose}>close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Deposit-address modal — pops on first connect and re-openable via the header "fund" button.
+function FundModal({
+  address,
+  usdmBalance,
+  onClose,
+}: {
+  address: `0x${string}`
+  usdmBalance: bigint
+  onClose: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(address)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // ignore
+    }
+  }
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Fund your wallet ⊕</h3>
+        <p className="muted">
+          Send USDm on MegaETH Mainnet to your smart-wallet address below — it bankrolls cell rent and
+          presses. You currently hold {formatUnits(usdmBalance, 18).slice(0, 6)} USDm.
+        </p>
+        <div className="share-url">
+          <input readOnly value={address} onFocus={(e) => e.currentTarget.select()} />
+          <button className="primary" onClick={copy}>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
+        <p className="muted">Deposits land in a few seconds. Reopen this any time via the “⊕ fund” button.</p>
         <div className="row">
           <button onClick={onClose}>close</button>
         </div>

@@ -10,7 +10,8 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
 
 ```
  ┌─────────────────┐
- │ 1. Connect      │   Privy login (email/Google) → Kernel smart wallet auto-created
+ │ 1. Connect      │   Privy login (email/Google) → Kernel smart wallet auto-created.
+ │                 │   A fund popover surfaces the deposit address — copy + top up.
  └────────┬────────┘
           │
  ┌────────▼────────┐
@@ -19,9 +20,9 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
  └────────┬────────┘
           │
  ┌────────▼────────┐
- │ 3. Toggle cells │   Click a cell → pick duration (1–32 loops) + pitch (synth row).
- │    (silent)     │   Smart-wallet userOp ships without modal. Cell lights up live for
- │                 │   everyone watching. Costs `rentPerLoop × durationLoops` USDm.
+ │ 3. Toggle cells │   Click a cell → a popover opens right on it. Default 16 loops;
+ │    (silent)     │   press T to toggle or M for a max toggle. Smart-wallet userOp
+ │                 │   ships without modal. Cell lights up live for everyone watching.
  └────────┬────────┘
           │
  ┌────────▼────────┐
@@ -51,6 +52,8 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
 
 **Key UX guarantees:**
 - One approval modal at session start, zero modals on per-cell toggles (`uiOptions.showWalletUIs: false` on the smart-wallet `sendTransaction`).
+- Contextual toggle — the popover opens on the clicked cell (default 16 loops); `T` toggles, `M` max-toggles, so there are no mouse round-trips.
+- Fund popover surfaces the smart-wallet deposit address on connect, re-openable any time from the header `⊕ fund` button.
 - Sub-cent gas on MegaETH; rent and presses are paid in USDm so cost is stable in dollars.
 - Lazy expiry — anyone reading `livePattern()` gets the truthful current state without a keeper.
 

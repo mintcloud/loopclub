@@ -4,7 +4,7 @@ interface GridProps {
   pattern: bigint
   pitches: bigint
   playingStep: number
-  onCellClick: (cellId: number) => void
+  onCellClick: (cellId: number, rect: DOMRect) => void
 }
 
 export function Grid({ pattern, pitches, playingStep, onCellClick }: GridProps) {
@@ -40,7 +40,7 @@ interface RowProps {
   pattern: bigint
   pitches: bigint
   playingStep: number
-  onCellClick: (cellId: number) => void
+  onCellClick: (cellId: number, rect: DOMRect) => void
 }
 
 function Row({ track, pattern, pitches, playingStep, onCellClick }: RowProps) {
@@ -68,7 +68,12 @@ function Row({ track, pattern, pitches, playingStep, onCellClick }: RowProps) {
         if (beatStart) cls.push('beat-1')
 
         return (
-          <div key={cellId} className={cls.join(' ')} onClick={() => onCellClick(cellId)} title={`cell ${cellId}`}>
+          <div
+            key={cellId}
+            className={cls.join(' ')}
+            onClick={(e) => onCellClick(cellId, e.currentTarget.getBoundingClientRect())}
+            title={`cell ${cellId}`}
+          >
             {label}
           </div>
         )

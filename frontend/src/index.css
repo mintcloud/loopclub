@@ -441,6 +441,103 @@ button.primary:disabled {
 .mini-cell.on.synth  { background: var(--synth); }
 .mini-cell.playing { box-shadow: 0 0 0 1px white inset; }
 
+/* ───── Cell popover (contextual toggle) ───── */
+.popover-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+}
+.cell-popover {
+  position: fixed;
+  background: var(--panel);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 234px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.65);
+}
+.popover-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.popover-title {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.popover-x {
+  padding: 0.1rem 0.35rem;
+  font-size: 11px;
+  line-height: 1;
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+.popover-x:hover { border-color: var(--border); color: var(--text); }
+.popover-duration {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.popover-duration input {
+  width: 72px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.popover-cost { font-size: 11px; }
+.popover-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+.popover-actions button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.popover-arrow {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: var(--panel);
+  transform: translateX(-50%) rotate(45deg);
+}
+.cell-popover.above .popover-arrow {
+  bottom: -6px;
+  border-right: 1px solid var(--accent-dim);
+  border-bottom: 1px solid var(--accent-dim);
+}
+.cell-popover.below .popover-arrow {
+  top: -6px;
+  border-left: 1px solid var(--accent-dim);
+  border-top: 1px solid var(--accent-dim);
+}
+kbd {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 3px;
+  padding: 0.08rem 0.32rem;
+  line-height: 1;
+}
+
 /* ───── Share modal ───── */
 .share-url {
   display: flex;
