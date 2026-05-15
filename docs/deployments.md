@@ -35,18 +35,20 @@ Anyone can call `MockUsdm.faucet(amount)` to mint themselves test USDm — no al
 
 | Contract | Address | Deploy block | Deploy tx |
 |---|---|---|---|
-| `Loopchain` (Series + bonding-curve model) | [`0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76) | 16,036,858 | [`0xca83db99…973a983c`](https://megaeth.blockscout.com/tx/0xca83db99691fa1628c67eeee5685698da13793f33e31dd85d7ced558973a983c) |
+| `Loopchain` (Series + bonding-curve, `_popcount` fix + on-chain `tokenURI`) | [`0xE9Ba1E07Df5D95234F4e0102d06eAe2f16365f1a`](https://megaeth.blockscout.com/address/0xE9Ba1E07Df5D95234F4e0102d06eAe2f16365f1a) | 16,043,341 | [`0xe95ec2f6…208eec67`](https://megaeth.blockscout.com/tx/0xe95ec2f6d80665e0bb8766d68edc987912df2b16e32232687fe3a097208eec67) |
 | `USDm` (Ethena/MegaETH official, payment token) | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaeth.blockscout.com/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) | — | — |
 
 **Deployer / Owner / Treasury:** `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` (rotate owner + treasury to a Safe later via `transferOwnership` / `setTreasury`)
 **Constructor args (Loopchain):** `(payment, treasury, owner) = (0xFAfD…79E7, 0x6cF2…0Ee3, 0x6cF2…0Ee3)`
-**On-chain config (verified post-deploy):** `holdersBps = 7000`, `treasuryBps = 3000`, `basePrice = 1 USDm`
+**Source commit:** `405a203` ("contracts: fix holders'-cut underpayment + on-chain tokenURI") — `forge test` 27/27.
+**On-chain config (verified post-deploy):** `holdersBps = 7000`, `treasuryBps = 3000`, `basePrice = 1 USDm`, `alpha = 0.25 USDm`, `rentPerLoop = 0.004 USDm`, `paymentToken = 0xFAfD…79E7`. Runtime bytecode 15,423 B — byte-for-byte the `405a203` build.
 **RPC used:** `https://mainnet.megaeth.com/rpc`
 **Forge artifacts:** `contracts/broadcast/Deploy.s.sol/4326/run-latest.json`
 **Deploy date:** 2026-05-15
-**Total gas paid:** 0.000132 ETH (132 047 072 gas × 0.001000001 gwei)
+**Total gas paid:** 0.000161 ETH (160 525 400 gas × 0.001000001 gwei)
 
-> **Superseded:** the original one-shot `Loopchain` at [`0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3`](https://megaeth.blockscout.com/address/0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3) (block 15,477,967, deployed 2026-05-08, tx `0x6c34334d…91b891f7`) ran the dead flat-mint model. It is still on-chain but no longer used — do not point any client at it.
+> **Superseded — `0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`** ([explorer](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76), block 16,036,858, deployed 2026-05-15, tx `0xca83db99…973a983c`). First Series + bonding-curve deploy. Replaced because `press()`/`claimRoyalty()` underpaid holders — `_popcount()` mis-counted any pattern with cells ≥ #8. Still on-chain (holds 2 metadata-less NFTs); do not point any client at it.
+> **Superseded — `0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3`** ([explorer](https://megaeth.blockscout.com/address/0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3), block 15,477,967, deployed 2026-05-08, tx `0x6c34334d…91b891f7`). The original one-shot flat-mint model. Do not point any client at it.
 
 ### Frontend wiring
 
@@ -55,7 +57,7 @@ Set in your Vite env (`frontend/.env.local`) **and** in the Vercel project env:
 ```
 VITE_CHAIN_ID=4326
 VITE_RPC_URL=https://mainnet.megaeth.com/rpc
-VITE_LOOPCHAIN_ADDRESS=0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76
+VITE_LOOPCHAIN_ADDRESS=0xE9Ba1E07Df5D95234F4e0102d06eAe2f16365f1a
 VITE_PAYMENT_TOKEN_ADDRESS=0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7
 VITE_EXPLORER_URL=https://megaeth.blockscout.com
 ```
