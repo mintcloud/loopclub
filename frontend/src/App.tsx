@@ -273,6 +273,53 @@ export function App() {
     }
   }
 
+  // Re-pull a series from chain and, if it's the one currently in playback,
+  // update the snapshot so the CTA banner shows the new next-edition + price.
+  const refreshPlayback = useCallback(async (seriesId: bigint) => {
+    try {
+      const [info, nextPrice] = await Promise.all([
+        publicClient.readContract({
+          address: config.loopchainAddress,
+          abi: loopchainAbi,
+          functionName: 'seriesInfo',
+          args: [seriesId],
+        }),
+        publicClient
+          .readContract({
+            address: config.loopchainAddress,
+            abi: loopchainAbi,
+            functionName: 'pressPriceFor',
+            args: [seriesId],
+          })
+          .catch(() => 0n),
+      ])
+      const [pat, pit, mintedAtLoop, nextEdition, holders, cellsPerHolder] = info as readonly [
+        bigint,
+        bigint,
+        bigint,
+        number,
+        readonly `0x${string}`[],
+        readonly number[],
+      ]
+      setPlayback((prev) =>
+        prev && prev.seriesId === seriesId
+          ? {
+              ...prev,
+              pattern: pat,
+              pitches: pit,
+              mintedAtLoop,
+              holders,
+              cellsPerHolder,
+              nextEdition: Number(nextEdition),
+              nextPressPrice: nextPrice as bigint,
+            }
+          : prev,
+      )
+    } catch (e) {
+      console.warn('playback refresh failed', e)
+    }
+  }, [])
+
   // Press copy #N of an existing loop — calls press(seriesId).
   const onPressSeries = async (record: LoopRecord) => {
     if (!smartWalletClient) return
@@ -299,6 +346,9 @@ export function App() {
         { uiOptions: { showWalletUIs: false } },
       )
       flash(`Pressed copy #${record.nextEdition} of loop #${record.seriesId}`)
+      if (playbackRef.current?.seriesId === record.seriesId) {
+        void refreshPlayback(record.seriesId)
+      }
       setLibraryRefresh((n) => n + 1)
       refresh()
     } catch (e: unknown) {
@@ -365,7 +415,7 @@ export function App() {
   const displayPattern = playback ? playback.pattern : pattern
   const displayPitches = playback ? playback.pitches : pitches
 
-  const basePriceStr = formatUnits(basePrice, 18).replace(/\.?0+$/, '')
+  const basePriceStr = fmtUsdm(basePrice)
 
   return (
     <div className="app">
@@ -411,13 +461,40 @@ export function App() {
 
       {playback && (
         <div className="playback-banner">
-          <span>
-            ▶ Playing loop <strong>#{playback.seriesId.toString()}</strong> · {playback.holders.length} contrib ·{' '}
-            {playback.nextEdition - 1}× pressed · next press {formatUnits(playback.nextPressPrice, 18).slice(0, 6)} USDm
-          </span>
-          <button className="primary" onClick={exitPlayback}>
-            ◼ back to live jam
-          </button>
+          <div className="pb-status">
+            <span>
+              ▶ Playing loop <strong>#{playback.seriesId.toString()}</strong> ·{' '}
+              {playback.holders.length} contributor{playback.holders.length === 1 ? '' : 's'} ·{' '}
+              {playback.nextEdition - 1} edition{playback.nextEdition - 1 === 1 ? '' : 's'} pressed
+            </span>
+            <button onClick={exitPlayback}>◼ back to live jam</button>
+          </div>
+          <div className="pb-cta">
+            <div className="pb-cta-copy">
+              <strong className="pb-headline">✦ Want to make this loop yours?</strong>
+              <span className="pb-sub">
+                Press Edition #{playback.nextEdition} and mint your own NFT of this loop. Grab it while
+                it's hot — each new edition costs more than the last.
+              </span>
+            </div>
+            {!authenticated ? (
+              <button className="primary pb-press" onClick={login}>
+                Connect to press
+              </button>
+            ) : (
+              <button
+                className="hot pb-press"
+                onClick={() => onPressSeries(playback)}
+                disabled={pressingSeriesId === playback.seriesId}
+              >
+                {pressingSeriesId === playback.seriesId
+                  ? 'Pressing…'
+                  : `✦ Press Edition #${playback.nextEdition}${
+                      playback.nextPressPrice > 0n ? ` · ${fmtUsdm(playback.nextPressPrice)} USDm` : ''
+                    }`}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -553,6 +630,12 @@ function FundModal({
       </div>
     </div>
   )
+}
+
+// Format a USDm wei amount as a compact decimal string (no trailing zeros).
+function fmtUsdm(wei: bigint): string {
+  const s = formatUnits(wei, 18)
+  return s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s
 }
 
 function countCells(pattern: bigint): number {

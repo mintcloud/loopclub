@@ -41,6 +41,12 @@ interface RoyaltyPosition {
   claimable: bigint // amount this wallet can claim right now
 }
 
+/** One edition NFT the connected wallet holds (edition #1 = the recorder's original press). */
+interface OwnedEdition {
+  tokenId: bigint
+  edition: number
+}
+
 export function Library({
   smartAddress,
   playingTokenId,
@@ -55,6 +61,7 @@ export function Library({
 }: LibraryProps) {
   const [records, setRecords] = useState<LoopRecord[]>([])
   const [royalty, setRoyalty] = useState<Record<string, RoyaltyPosition>>({})
+  const [owned, setOwned] = useState<Record<string, OwnedEdition[]>>({})
   const [tab, setTab] = useState<Tab>('recent')
   const [error, setError] = useState<string | null>(null)
 
@@ -173,6 +180,73 @@ export function Library({
     }
   }, [records, smartAddress, refreshTick])
 
+  // Which loop editions the connected wallet currently holds as NFTs, keyed by
+  // seriesId. Walk every minted token (nextTokenId is the upper bound) and keep
+  // the ones owned by this wallet — reflects live ownership, transfers included.
+  // Re-runs on connect and after the wallet's own record/press (refreshTick).
+  useEffect(() => {
+    const me = smartAddress?.toLowerCase()
+    if (!me) {
+      setOwned({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const nextTokenId = (await publicClient.readContract({
+          address: config.loopchainAddress,
+          abi: loopchainAbi,
+          functionName: 'nextTokenId',
+        })) as bigint
+        const totalTokens = Number(nextTokenId - 1n)
+        if (totalTokens <= 0) {
+          if (!cancelled) setOwned({})
+          return
+        }
+        const tokenIds = Array.from({ length: totalTokens }, (_, i) => BigInt(i + 1))
+        const rows = await Promise.all(
+          tokenIds.map(async (tid) => {
+            const [tokenOwner, seriesId, edition] = await Promise.all([
+              publicClient.readContract({
+                address: config.loopchainAddress,
+                abi: loopchainAbi,
+                functionName: 'ownerOf',
+                args: [tid],
+              }) as Promise<`0x${string}`>,
+              publicClient.readContract({
+                address: config.loopchainAddress,
+                abi: loopchainAbi,
+                functionName: 'seriesOf',
+                args: [tid],
+              }) as Promise<bigint>,
+              publicClient.readContract({
+                address: config.loopchainAddress,
+                abi: loopchainAbi,
+                functionName: 'editionOf',
+                args: [tid],
+              }) as Promise<number>,
+            ])
+            return { tokenId: tid, owner: tokenOwner.toLowerCase(), seriesId, edition: Number(edition) }
+          }),
+        )
+        if (cancelled) return
+        const map: Record<string, OwnedEdition[]> = {}
+        for (const row of rows) {
+          if (row.owner !== me) continue
+          const key = row.seriesId.toString()
+          ;(map[key] ??= []).push({ tokenId: row.tokenId, edition: row.edition })
+        }
+        for (const key of Object.keys(map)) map[key].sort((a, b) => a.edition - b.edition)
+        setOwned(map)
+      } catch (e) {
+        console.error('ownership load failed', e)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [smartAddress, refreshTick])
+
   const filtered = useMemo(() => {
     const me = smartAddress?.toLowerCase()
     let arr = records.slice()
@@ -181,14 +255,19 @@ export function Library({
     } else if (tab === 'collab') {
       arr.sort((a, b) => b.holders.length - a.holders.length || Number(b.seriesId - a.seriesId))
     } else {
+      // "My Loops" — loops the wallet contributed a cell to OR holds an edition of.
       arr = arr.filter((r) => {
         if (!me) return false
-        return r.holders.some((h) => h.toLowerCase() === me)
+        const contributed = r.holders.some((h) => h.toLowerCase() === me)
+        const holdsEdition = (owned[r.seriesId.toString()]?.length ?? 0) > 0
+        return contributed || holdsEdition
       })
       arr.sort((a, b) => Number(b.mintedAtLoop - a.mintedAtLoop) || Number(b.seriesId - a.seriesId))
     }
     return arr
-  }, [records, tab, smartAddress])
+  }, [records, tab, smartAddress, owned])
+
+  const me = smartAddress?.toLowerCase()
 
   return (
     <div className="library">
@@ -205,7 +284,7 @@ export function Library({
             className={tab === 'mine' ? 'tab active' : 'tab'}
             onClick={() => setTab('mine')}
             disabled={!smartAddress}
-            title={smartAddress ? '' : 'connect to filter loops you contributed to'}
+            title={smartAddress ? '' : 'connect to see loops you created, pressed or contributed to'}
           >
             My Loops
           </button>
@@ -219,7 +298,7 @@ export function Library({
           {records.length === 0
             ? 'No loops recorded yet — be the first.'
             : tab === 'mine'
-              ? 'No loops you contributed to.'
+              ? "No loops yet — press an edition or rent a cell and you'll see it here."
               : 'No loops match.'}
         </div>
       ) : (
@@ -231,14 +310,55 @@ export function Library({
             const isClaiming = claimingSeriesId === r.seriesId
             const priceStr = formatPrice(r.nextPressPrice)
             const roy = royalty[r.seriesId.toString()]
+            // The connected wallet's relationship to this loop.
+            const myEditions = owned[r.seriesId.toString()] ?? []
+            const isOwner = myEditions.length > 0
+            const isContributor = !!me && r.holders.some((h) => h.toLowerCase() === me)
+            const topEdition = isOwner ? myEditions[0] : null // lowest edition held
+            const cardClass = [
+              'loop-card',
+              isPlaying ? 'playing' : '',
+              isOwner ? 'role-owned' : isContributor ? 'role-contrib' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
             return (
-              <div key={r.seriesId.toString()} className={isPlaying ? 'loop-card playing' : 'loop-card'}>
+              <div key={r.seriesId.toString()} className={cardClass}>
                 <div className="loop-card-head">
                   <span className="token-id">loop #{r.seriesId.toString()}</span>
                   <span className="muted">
                     {editionsMinted}× pressed · {r.holders.length} contrib
                   </span>
                 </div>
+                {(isOwner || isContributor) && (
+                  <div className="role-badges">
+                    {isOwner && topEdition && (
+                      <span
+                        className="role-badge owned"
+                        title={
+                          myEditions.length === 1
+                            ? `You hold edition #${topEdition.edition}${
+                                topEdition.edition === 1 ? ' — the original press' : ''
+                              } of this loop`
+                            : `You hold ${myEditions.length} editions of this loop: ${myEditions
+                                .map((e) => `#${e.edition}`)
+                                .join(', ')}`
+                        }
+                      >
+                        ✦ edition #{topEdition.edition}
+                        {myEditions.length > 1 ? ` +${myEditions.length - 1}` : ''}
+                      </span>
+                    )}
+                    {isContributor && (
+                      <span
+                        className="role-badge contrib"
+                        title="You rented a cell that became part of this loop"
+                      >
+                        ♪ contributor
+                      </span>
+                    )}
+                  </div>
+                )}
                 <MiniGrid pattern={r.pattern} pitches={r.pitches} playingStep={isPlaying ? playingStep : -1} />
                 <div className="loop-card-foot">
                   <span className="muted owner">
@@ -268,6 +388,17 @@ export function Library({
                       >
                         {isClaiming ? 'claiming…' : `♪ claim ${formatPrice(roy.claimable)}`}
                       </button>
+                    )}
+                    {isOwner && topEdition && (
+                      <a
+                        className="nft-link"
+                        href={`${config.explorerUrl}/token/${config.loopchainAddress}/instance/${topEdition.tokenId.toString()}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`View your edition #${topEdition.edition} NFT on the explorer`}
+                      >
+                        ✦ your NFT
+                      </a>
                     )}
                     <button onClick={() => copyShareLink(r.seriesId)} title="copy share link">
                       ↗ share
