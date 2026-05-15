@@ -11,7 +11,6 @@ import { publicClient } from './viemClient'
 import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep } from './audio'
 
 const POLL_MS = 2000
-const MINT_PRICE = 4n * 10n ** 18n // 4 USDm
 
 export function App() {
   const { ready, authenticated, user, login, logout } = usePrivy()
@@ -21,14 +20,16 @@ export function App() {
   const [pitches, setPitches] = useState<bigint>(0n)
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
   const [allowance, setAllowance] = useState<bigint>(0n)
+  const [basePrice, setBasePrice] = useState<bigint>(1n * 10n ** 18n) // default 1 USDm; refreshed from chain
   const [openCellId, setOpenCellId] = useState<number | null>(null)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [playback, setPlayback] = useState<LoopRecord | null>(null)
-  const [shareTokenId, setShareTokenId] = useState<bigint | null>(null)
+  const [shareSeriesId, setShareSeriesId] = useState<bigint | null>(null)
   const [libraryRefresh, setLibraryRefresh] = useState(0)
+  const [pressingSeriesId, setPressingSeriesId] = useState<bigint | null>(null)
 
   const smartAddress = (smartWalletClient?.account?.address ?? null) as `0x${string}` | null
   const playbackRef = useRef<LoopRecord | null>(null)
@@ -36,13 +37,14 @@ export function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [p, ps] = await Promise.all([
+      const [p, ps, base] = await Promise.all([
         publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'livePattern' }),
         publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'livePitches' }),
+        publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'basePrice' }),
       ])
       setPattern(p as bigint)
       setPitches(ps as bigint)
-      // Always feed live state so audio can resume on exit-playback without a race.
+      setBasePrice(base as bigint)
       setLiveState(p as bigint, ps as bigint)
 
       if (smartAddress) {
@@ -78,7 +80,7 @@ export function App() {
     onStep((step) => setPlayingStep(step))
   }, [])
 
-  // On first load, if URL has ?loop=<id>, auto-load + enter playback mode for that token.
+  // On first load, if URL has ?loop=<seriesId>, auto-load + enter playback for that series.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const id = params.get('loop')
@@ -86,39 +88,43 @@ export function App() {
     let cancelled = false
     ;(async () => {
       try {
-        const tokenId = BigInt(id)
-        const [loop, owner] = await Promise.all([
+        const seriesId = BigInt(id)
+        const [info, nextPrice] = await Promise.all([
           publicClient.readContract({
             address: config.loopchainAddress,
             abi: loopchainAbi,
-            functionName: 'loopOf',
-            args: [tokenId],
+            functionName: 'seriesInfo',
+            args: [seriesId],
           }),
           publicClient
             .readContract({
               address: config.loopchainAddress,
               abi: loopchainAbi,
-              functionName: 'ownerOf',
-              args: [tokenId],
+              functionName: 'pressPriceFor',
+              args: [seriesId],
             })
-            .catch(() => null),
+            .catch(() => 0n),
         ])
         if (cancelled) return
-        const [pat, pit, mintedAtLoop, holders, cellsPerHolder] = loop as readonly [
+        const [pat, pit, mintedAtLoop, nextEdition, holders, cellsPerHolder] = info as readonly [
           bigint,
           bigint,
           bigint,
+          number,
           readonly `0x${string}`[],
           readonly number[],
         ]
         const record: LoopRecord = {
-          tokenId,
+          seriesId,
+          tokenId: seriesId,
           pattern: pat,
           pitches: pit,
           mintedAtLoop,
           holders,
           cellsPerHolder,
-          owner: owner as `0x${string}` | null,
+          nextEdition: Number(nextEdition),
+          nextPressPrice: nextPrice as bigint,
+          owner: null,
         }
         enterPlayback(record)
       } catch (e) {
@@ -197,18 +203,19 @@ export function App() {
       })
   }
 
-  const onSave = async () => {
+  // Press copy #1 of a brand-new loop — calls record().
+  const onRecord = async () => {
     if (!smartWalletClient) return
     if (pattern === 0n) {
       flash('Grid is empty — toggle some cells first', true)
       return
     }
-    if (usdmBalance < MINT_PRICE) {
-      flash(`Need 4 USDm to save (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`, true)
+    if (usdmBalance < basePrice) {
+      flash(`Need ${formatUnits(basePrice, 18)} USDm to press (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`, true)
       return
     }
     try {
-      setBusy('Saving loop…')
+      setBusy('Pressing copy #1…')
       const txHash = await smartWalletClient.sendTransaction(
         {
           to: config.loopchainAddress,
@@ -218,16 +225,15 @@ export function App() {
         { uiOptions: { showWalletUIs: false } },
       )
 
-      // Pull tokenId from RecordingMinted event in the receipt.
-      let mintedId: bigint | null = null
+      let newSeriesId: bigint | null = null
       try {
         const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
         for (const log of receipt.logs) {
           if (log.address.toLowerCase() !== config.loopchainAddress.toLowerCase()) continue
           try {
             const decoded = decodeEventLog({ abi: loopchainAbi, data: log.data, topics: log.topics })
-            if (decoded.eventName === 'RecordingMinted') {
-              mintedId = (decoded.args as { tokenId: bigint }).tokenId
+            if (decoded.eventName === 'SeriesRecorded') {
+              newSeriesId = (decoded.args as { seriesId: bigint }).seriesId
               break
             }
           } catch {
@@ -239,12 +245,47 @@ export function App() {
       }
 
       setBusy(null)
-      if (mintedId !== null) setShareTokenId(mintedId)
-      else flash('Saved!')
+      if (newSeriesId !== null) setShareSeriesId(newSeriesId)
+      else flash('Recorded!')
       setLibraryRefresh((n) => n + 1)
       refresh()
     } catch (e: unknown) {
-      flash((e as Error).message ?? 'save failed', true)
+      flash((e as Error).message ?? 'record failed', true)
+    }
+  }
+
+  // Press copy #N of an existing loop — calls press(seriesId).
+  const onPressSeries = async (record: LoopRecord) => {
+    if (!smartWalletClient) return
+    if (usdmBalance < record.nextPressPrice) {
+      flash(
+        `Need ${formatUnits(record.nextPressPrice, 18)} USDm to press (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
+        true,
+      )
+      return
+    }
+    try {
+      setPressingSeriesId(record.seriesId)
+      setBusy(`Pressing copy #${record.nextEdition}…`)
+      await smartWalletClient.sendTransaction(
+        {
+          to: config.loopchainAddress,
+          data: encodeFunctionData({
+            abi: loopchainAbi,
+            functionName: 'press',
+            args: [record.seriesId],
+          }),
+          chain: megaethMainnet,
+        },
+        { uiOptions: { showWalletUIs: false } },
+      )
+      flash(`Pressed copy #${record.nextEdition} of loop #${record.seriesId}`)
+      setLibraryRefresh((n) => n + 1)
+      refresh()
+    } catch (e: unknown) {
+      flash((e as Error).message ?? 'press failed', true)
+    } finally {
+      setPressingSeriesId(null)
     }
   }
 
@@ -271,13 +312,14 @@ export function App() {
     }
   }
 
-  const needsApproval = authenticated && smartAddress && allowance < MINT_PRICE
+  const needsApproval = authenticated && smartAddress && allowance < basePrice
   const userEmail = user?.email?.address ?? user?.google?.email ?? null
-  const canSave = authenticated && smartAddress && pattern !== 0n && !needsApproval && !playback
+  const canRecord = authenticated && smartAddress && pattern !== 0n && !needsApproval && !playback
 
-  // What the main grid renders: live state when jamming, snapshot when playing back.
   const displayPattern = playback ? playback.pattern : pattern
   const displayPitches = playback ? playback.pitches : pitches
+
+  const basePriceStr = formatUnits(basePrice, 18).replace(/\.?0+$/, '')
 
   return (
     <div className="app">
@@ -287,18 +329,18 @@ export function App() {
           <button onClick={onAudioToggle}>{audioOn ? '◼ stop' : '▶ play'}</button>
           {authenticated && (
             <button
-              className={canSave ? 'primary' : ''}
-              onClick={onSave}
-              disabled={!canSave || busy === 'Saving loop…'}
+              className={canRecord ? 'primary' : ''}
+              onClick={onRecord}
+              disabled={!canRecord || busy?.startsWith('Pressing')}
               title={
                 playback
-                  ? 'Exit playback to save the live grid'
+                  ? 'Exit playback to record the live grid'
                   : pattern === 0n
                     ? 'Toggle some cells first'
-                    : `Mint current loop as NFT (${formatUnits(MINT_PRICE, 18)} USDm)`
+                    : `Press copy #1 — ${basePriceStr} USDm`
               }
             >
-              {busy === 'Saving loop…' ? 'Saving…' : '✦ save loop'}
+              {busy === 'Pressing copy #1…' ? 'Pressing…' : `✦ press copy #1 · ${basePriceStr} USDm`}
             </button>
           )}
           {!ready ? null : !authenticated ? (
@@ -326,8 +368,8 @@ export function App() {
       {playback && (
         <div className="playback-banner">
           <span>
-            ▶ Playing loop <strong>#{playback.tokenId.toString()}</strong> · {playback.holders.length} contrib · minted
-            at loop {playback.mintedAtLoop.toString()}
+            ▶ Playing loop <strong>#{playback.seriesId.toString()}</strong> · {playback.holders.length} contrib ·{' '}
+            {playback.nextEdition - 1}× pressed · next press {formatUnits(playback.nextPressPrice, 18).slice(0, 6)} USDm
           </span>
           <button className="primary" onClick={exitPlayback}>
             ◼ back to live jam
@@ -356,10 +398,12 @@ export function App() {
 
       <Library
         smartAddress={smartAddress}
-        playingTokenId={playback?.tokenId ?? null}
+        playingTokenId={playback?.seriesId ?? null}
         playingStep={playingStep}
         onPlay={enterPlayback}
         onStop={exitPlayback}
+        onPress={onPressSeries}
+        pressingSeriesId={pressingSeriesId}
         refreshTick={libraryRefresh}
       />
 
@@ -371,8 +415,8 @@ export function App() {
         />
       )}
 
-      {shareTokenId !== null && (
-        <ShareModal tokenId={shareTokenId} onClose={() => setShareTokenId(null)} />
+      {shareSeriesId !== null && (
+        <ShareModal seriesId={shareSeriesId} onClose={() => setShareSeriesId(null)} />
       )}
 
       {error && <div className="toast error">{error}</div>}
@@ -407,7 +451,7 @@ authenticated=${authenticated}
 smartWalletClient=${smartWalletClient ? 'present' : 'UNDEFINED'}
 smartAddress=${smartAddress ?? 'null'}
 chain=${config.chainId}
-playback=${playback ? `#${playback.tokenId}` : 'null'}
+playback=${playback ? `#${playback.seriesId}` : 'null'}
 linkedAccounts=
 ${JSON.stringify(
   user?.linkedAccounts?.map((a: any) => ({
@@ -426,8 +470,8 @@ ${JSON.stringify(
   )
 }
 
-function ShareModal({ tokenId, onClose }: { tokenId: bigint; onClose: () => void }) {
-  const url = `${window.location.origin}${window.location.pathname}?loop=${tokenId.toString()}`
+function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => void }) {
+  const url = `${window.location.origin}${window.location.pathname}?loop=${seriesId.toString()}`
   const [copied, setCopied] = useState(false)
   const copy = async () => {
     try {
@@ -441,8 +485,8 @@ function ShareModal({ tokenId, onClose }: { tokenId: bigint; onClose: () => void
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Loop #{tokenId.toString()} saved ✦</h3>
-        <p className="muted">Your loop is live on chain. Share it:</p>
+        <h3>Loop #{seriesId.toString()} recorded ✦</h3>
+        <p className="muted">Your loop is live on chain. Share it — anyone can press the next copy.</p>
         <div className="share-url">
           <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
           <button className="primary" onClick={copy}>
