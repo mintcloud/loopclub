@@ -6,18 +6,18 @@ Vite + React + TS + Privy (Kernel smart wallet) + viem + Tone.js.
 
 ```bash
 cd frontend
-cp .env.example .env.local   # edit if needed; defaults point at deployed testnet
+cp .env.example .env.local   # edit if needed; defaults point at deployed mainnet
 npm install
 npm run dev                  # → http://localhost:5173
 ```
 
 ## Env vars
 
-All in `.env.example`. The defaults are wired to the deployed MegaETH testnet contracts (chain 6343):
+All in `.env.example`. The defaults are wired to the deployed MegaETH mainnet contracts (chain 4326):
 
 - `VITE_PRIVY_APP_ID` — `cmoxau2fi00xd0clevvngoxzr`
-- `VITE_LOOPCHAIN_ADDRESS` — `0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`
-- `VITE_PAYMENT_TOKEN_ADDRESS` — `0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3` (MockUsdm)
+- `VITE_LOOPCHAIN_ADDRESS` — `0xE9Ba1E07Df5D95234F4e0102d06eAe2f16365f1a`
+- `VITE_PAYMENT_TOKEN_ADDRESS` — `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7` (USDm)
 - `VITE_RPC_URL`, `VITE_CHAIN_ID`, `VITE_EXPLORER_URL`
 
 When the contracts redeploy, update `docs/deployments.md` and the corresponding `VITE_*` vars in Vercel.
