@@ -30,7 +30,15 @@ interface LibraryProps {
   onStop: () => void
   onPress: (record: LoopRecord) => void
   pressingSeriesId: bigint | null
+  onClaimRoyalty: (record: LoopRecord) => void
+  claimingSeriesId: bigint | null
   refreshTick: number
+}
+
+/** Royalty position for one series, from the connected wallet's point of view. */
+interface RoyaltyPosition {
+  deposited: bigint // total resale royalty pooled for the series
+  claimable: bigint // amount this wallet can claim right now
 }
 
 export function Library({
@@ -41,9 +49,12 @@ export function Library({
   onStop,
   onPress,
   pressingSeriesId,
+  onClaimRoyalty,
+  claimingSeriesId,
   refreshTick,
 }: LibraryProps) {
   const [records, setRecords] = useState<LoopRecord[]>([])
+  const [royalty, setRoyalty] = useState<Record<string, RoyaltyPosition>>({})
   const [tab, setTab] = useState<Tab>('recent')
   const [error, setError] = useState<string | null>(null)
 
@@ -115,6 +126,53 @@ export function Library({
     return () => clearInterval(id)
   }, [loadAll, refreshTick])
 
+  // Resale royalties are series-keyed and pull-claimed. There's no single view for
+  // "what can I claim", so derive it: claimable = deposited × myCells / cellCount − claimed.
+  // Only the series the connected wallet co-created can ever pay out, so fetch just those.
+  useEffect(() => {
+    const me = smartAddress?.toLowerCase()
+    if (!me || records.length === 0) {
+      setRoyalty({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const mine = records.filter((r) => r.holders.some((h) => h.toLowerCase() === me))
+      try {
+        const entries = await Promise.all(
+          mine.map(async (r) => {
+            const [deposited, claimed] = await Promise.all([
+              publicClient.readContract({
+                address: config.loopchainAddress,
+                abi: loopchainAbi,
+                functionName: 'royaltyDepositedSeries',
+                args: [r.seriesId],
+              }) as Promise<bigint>,
+              publicClient.readContract({
+                address: config.loopchainAddress,
+                abi: loopchainAbi,
+                functionName: 'royaltyClaimedSeries',
+                args: [r.seriesId, smartAddress as `0x${string}`],
+              }) as Promise<bigint>,
+            ])
+            const idx = r.holders.findIndex((h) => h.toLowerCase() === me)
+            const myCells = BigInt(r.cellsPerHolder[idx] ?? 0)
+            const cellCount = popcount(r.pattern)
+            const entitled = cellCount > 0n ? (deposited * myCells) / cellCount : 0n
+            const claimable = entitled > claimed ? entitled - claimed : 0n
+            return [r.seriesId.toString(), { deposited, claimable }] as const
+          }),
+        )
+        if (!cancelled) setRoyalty(Object.fromEntries(entries))
+      } catch (e) {
+        console.error('royalty load failed', e)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [records, smartAddress, refreshTick])
+
   const filtered = useMemo(() => {
     const me = smartAddress?.toLowerCase()
     let arr = records.slice()
@@ -170,7 +228,9 @@ export function Library({
             const isPlaying = playingTokenId === r.seriesId
             const editionsMinted = r.nextEdition - 1
             const isPressing = pressingSeriesId === r.seriesId
+            const isClaiming = claimingSeriesId === r.seriesId
             const priceStr = formatPrice(r.nextPressPrice)
+            const roy = royalty[r.seriesId.toString()]
             return (
               <div key={r.seriesId.toString()} className={isPlaying ? 'loop-card playing' : 'loop-card'}>
                 <div className="loop-card-head">
@@ -181,7 +241,10 @@ export function Library({
                 </div>
                 <MiniGrid pattern={r.pattern} pitches={r.pitches} playingStep={isPlaying ? playingStep : -1} />
                 <div className="loop-card-foot">
-                  <span className="muted owner">next press {priceStr} USDm</span>
+                  <span className="muted owner">
+                    next press {priceStr} USDm
+                    {roy && roy.deposited > 0n && ` · ♪ ${formatPrice(roy.deposited)} royalties`}
+                  </span>
                   <div className="card-actions">
                     {isPlaying ? (
                       <button onClick={onStop}>◼ stop</button>
@@ -196,6 +259,16 @@ export function Library({
                     >
                       {isPressing ? 'pressing…' : `✦ press #${r.nextEdition} · ${priceStr}`}
                     </button>
+                    {roy && roy.claimable > 0n && (
+                      <button
+                        className="primary"
+                        onClick={() => onClaimRoyalty(r)}
+                        disabled={isClaiming}
+                        title={`Claim your royalty share of loop #${r.seriesId.toString()}`}
+                      >
+                        {isClaiming ? 'claiming…' : `♪ claim ${formatPrice(roy.claimable)}`}
+                      </button>
+                    )}
                     <button onClick={() => copyShareLink(r.seriesId)} title="copy share link">
                       ↗ share
                     </button>
@@ -230,4 +303,15 @@ function formatPrice(wei: bigint): string {
 function copyShareLink(seriesId: bigint) {
   const url = `${window.location.origin}${window.location.pathname}?loop=${seriesId.toString()}`
   navigator.clipboard?.writeText(url).catch(() => void 0)
+}
+
+/** Count set bits in a uint64 pattern — the number of filled cells in a loop. */
+function popcount(v: bigint): bigint {
+  let n = 0n
+  let x = v
+  while (x > 0n) {
+    n += x & 1n
+    x >>= 1n
+  }
+  return n
 }

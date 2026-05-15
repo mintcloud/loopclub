@@ -1,8 +1,8 @@
 # Loopchain
 
-One global 16×4 grid drum machine on MegaETH. Cells rented in USDm, full loops mintable as NFTs with revenue share back to the cell owners whose toggles ended up in the snapshot.
+One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finished pattern is recorded as a **Series** of NFT editions priced on a bonding curve, and every edition pressed pays the loop's co-creators — the cell owners snapshotted when it was recorded.
 
-**Live:** MegaETH mainnet (chain 4326). Loopchain `0x6B92…dab3` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
+**Live:** MegaETH mainnet (chain 4326). Loopchain `0x64D8…bf76` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
 
 ---
 
@@ -25,34 +25,40 @@ One global 16×4 grid drum machine on MegaETH. Cells rented in USDm, full loops 
  └────────┬────────┘
           │
  ┌────────▼────────┐
- │ 4. Cells expire │   After N loops (4s each), cell auto-clears. Owner can `renew()`
+ │ 4. Cells expire │   After N loops (4s each), cell auto-clears. Owner can renew
  │    on time      │   before expiry, or someone else can rent it once expired. Lazy
  │                 │   expiry — no "tick" tx needed.
  └────────┬────────┘
           │
  ┌────────▼────────┐
- │ 5. Record       │   Anyone can call `record()` for `mintPrice` USDm. Snapshots the
- │   (mint NFT)    │   current pattern + active holders into an ERC-721. Mint fee
- │                 │   distributes 80/10/10 (holders / recorder / treasury) atomically.
+ │ 5. Record       │   Anyone calls `record()` for `basePrice` (1 USDm). Snapshots the
+ │  (Series + #1)  │   live pattern into a new **Series** and mints **edition #1** to the
+ │                 │   recorder. The co-creator set (cell owners) is frozen here.
  └────────┬────────┘
           │
  ┌────────▼────────┐
- │ 6. Resale       │   ERC-2981 5% royalty → contract → `claimRoyalty(tokenId)` lets
- │   royalties     │   each *original* cell holder pull their share. Famous loops keep
- │                 │   paying their original authors forever.
+ │ 6. Press        │   Anyone calls `press(seriesId)` to mint edition #N. Price follows
+ │  (edition #N)   │   a quadratic curve: `basePrice + alpha·(n−1)²`. Each press splits
+ │                 │   70% to the frozen co-creators (pro-rata to cells) / 30% treasury.
+ └────────┬────────┘
+          │
+ ┌────────▼────────┐
+ │ 7. Resale       │   ERC-2981 5% royalty → contract → `claimRoyalty(seriesId)` lets
+ │   royalties     │   each original co-creator pull their share. Royalties are
+ │                 │   series-keyed: every edition feeds one shared pool.
  └─────────────────┘
 ```
 
 **Key UX guarantees:**
 - One approval modal at session start, zero modals on per-cell toggles (`uiOptions.showWalletUIs: false` on the smart-wallet `sendTransaction`).
-- Sub-cent gas on MegaETH; rent is paid in USDm so the cost is stable in dollars.
+- Sub-cent gas on MegaETH; rent and presses are paid in USDm so cost is stable in dollars.
 - Lazy expiry — anyone reading `livePattern()` gets the truthful current state without a keeper.
 
 ---
 
 ## Economics (v1, in production)
 
-All prices are owner-tunable via `setPrices(rentPerLoop, mintPrice, maxRentDurationLoops)`. Treasury is rotatable via `setTreasury(addr)`.
+Prices are owner-tunable via `setPrices(rentPerLoop, basePrice, alpha, maxRentDurationLoops)`; the primary-sale split via `setSplit(holdersBps, treasuryBps)`. Treasury is rotatable via `setTreasury(addr)`.
 
 | Param | Value | Why |
 |---|---|---|
@@ -61,45 +67,52 @@ All prices are owner-tunable via `setPrices(rentPerLoop, mintPrice, maxRentDurat
 | Synth pitch | 3-bit pentatonic (5 of 8 slots used) | Anything you toggle in row 3 sounds in key. Cells 48–63 carry a `pitchIdx` 0..4. |
 | Rent | **0.004 USDm / cell / loop** | At ~$0.004 it's effectively free per click; full-grid spam costs ~$1/min. |
 | Max rent duration | **32 loops** (~2 min) | Stops anyone from camping a cell across a viral pattern. Renewable. |
-| Mint price | **4 USDm** | High enough to deter trash mints, low enough for casual recording. |
-| Mint split | **80 / 10 / 10** holders / recorder / treasury | Recorder kickback intentionally rewards whoever pays to archive a great loop. |
-| Royalty | **5% (ERC-2981)** | Pull-claim by *original* holders via `claimRoyalty(tokenId)`. |
+| Base price (edition #1) | **1 USDm** | The flat cost to `record()` a loop and mint its first edition. |
+| Press curve | `price(n) = basePrice + alpha·(n−1)²`, **alpha = 0.25 USDm** | Quadratic: #2 = 1.25, #5 = 5, #10 = 21.25 USDm. Popular loops get progressively expensive to copy. |
+| Primary-sale split | **70 / 30** co-creators / treasury | Recorder/presser get the NFT but no cut — only cell holders earn. Kills rent-extraction by squatters. |
+| Royalty | **5% (ERC-2981)** | Series-keyed pull-claim by original co-creators via `claimRoyalty(seriesId)`. |
 
-**Calibration intent:** rent so cheap that ~1–2 mints break even for a loop with average participation. Most loops won't get any mint — that's expected, the tail is what matters. Tune from data, not from theory. Full rationale in [`docs/economics.md`](docs/economics.md).
+**Calibration intent:** recording is cheap (1 USDm) so any finished loop is worth pressing once. The quadratic curve means a loop only gets expensive to copy if it's actually wanted — that's the demand signal. Most loops get pressed 0–1 times; the tail is what matters. Tune from data, not theory. Full rationale (and the original one-shot design it replaced) in [`docs/economics.md`](docs/economics.md).
 
-### Mint mechanics in detail
+### Record / press mechanics in detail
 
 `record()` does, atomically, in one tx:
 
 1. Reads `livePattern()` (lazy: cells whose `expiresAtLoop > currentLoop()`).
-2. Reverts if pattern is empty.
-3. Pulls `mintPrice` USDm from the recorder.
-4. Counts unique holders × cells held, deduped on-chain (≤64 entries, linear scan is fine).
-5. Splits the fee:
-   - **80%** divided pro-rata across cells, paid to each cell owner directly (`safeTransfer` of USDm).
-   - **10%** kicked back to `msg.sender` (the recorder).
-   - **10%** to `treasury`.
-6. Mints an ERC-721 to `msg.sender` storing `pattern`, `pitches`, `mintedAtLoop`, and the `holders[]` + `cellsPerHolder[]` snapshot.
-7. Emits `RecordingMinted`.
+2. Reverts if the pattern is empty.
+3. Pulls `basePrice` USDm from the recorder.
+4. Counts unique cell holders × cells held, deduped on-chain (≤64 entries, linear scan is fine).
+5. Creates a **Series** storing `pattern`, `pitches`, `mintedAtLoop`, and the frozen `holders[]` + `cellsPerHolder[]` co-creator snapshot.
+6. Mints **edition #1** (an ERC-721) to the recorder.
+7. Splits the `basePrice`: **70%** pro-rata across the co-creators by cells contributed, **30%** to `treasury`. The recorder gets the NFT but no financial cut.
+8. Emits `SeriesRecorded`.
 
-Holders are paid push-style on mint (USDm `safeTransfer` cannot revert in the way ETH `transfer` can). Royalties are pull-style via `claimRoyalty(tokenId)` — marketplaces send ERC-2981 5% to the contract, a keeper or anyone calls `depositRoyalty(tokenId, amount)` to attribute it to a token, then each original holder can pull their share whenever they want.
+`press(seriesId)` mints **edition #N** of an existing series:
+
+1. Computes `price(n) = basePrice + alpha·(n−1)²` for the next edition number.
+2. Pulls that price in USDm from the presser.
+3. Splits it 70 / 30 across the *same frozen co-creator set* — holders don't need to still own the cells.
+4. Mints the edition to the presser and emits `SeriesPressed`.
+
+Co-creators are paid push-style on every record/press (USDm `safeTransfer`). Resale royalties are pull-style and **series-keyed**: marketplaces send the ERC-2981 5% to the contract, anyone calls `depositRoyalty(seriesId, amount)` to attribute it, and each original co-creator pulls their pro-rata share via `claimRoyalty(seriesId)` whenever they want. The frontend Library surfaces a claim button when you have an unclaimed balance.
 
 ---
 
-## Status (2026-05-08)
+## Status (2026-05-15)
 
 | Layer | State |
 |---|---|
-| v1 spec | locked — see [`docs/v1-spec.md`](docs/v1-spec.md) |
+| v1 spec | locked, then reworked one-shot → Series + bonding curve — see [`docs/v1-spec.md`](docs/v1-spec.md) |
 | Economics | locked — see [`docs/economics.md`](docs/economics.md) |
 | Smart-account stack | Kernel via Privy + EIP-7702 — see [`docs/stack-and-7702.md`](docs/stack-and-7702.md) |
-| Contracts (`contracts/`) | ✅ built + tested (15/15) on Foundry 1.7.1 |
+| Contracts (`contracts/`) | ✅ built + tested (**23/23**) on Foundry 1.7.1 |
 | Bundler / paymaster | configured in Privy dashboard (Kernel MegaETH mainnet endpoints) |
 | Hot wallet funding | ✅ `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` funded |
-| Testnet deploy | ✅ chain 6343 — see [`docs/deployments.md`](docs/deployments.md) |
-| **Mainnet deploy** | ✅ chain 4326 — Loopchain `0x6B92…dab3` |
-| Frontend (`frontend/`) | ✅ live on Vercel, points at mainnet |
+| Testnet deploy | chain 6343 — **stale**, runs the old one-shot model (not redeployed) |
+| **Mainnet deploy** | ✅ chain 4326 — Loopchain `0x64D8…bf76` (Series + bonding curve, deployed 2026-05-15) |
+| Frontend (`frontend/`) | ✅ live on Vercel — repoint `VITE_LOOPCHAIN_ADDRESS` to the new address + redeploy |
 | Toggle UX | ✅ silent (no modal), approve modal preserved |
+| Record / press / royalty-claim UI | ✅ wired |
 | Session keys | not yet — see "Roadmap" below |
 
 Detailed step-by-step status: [`docs/progress.md`](docs/progress.md).
@@ -121,11 +134,11 @@ loopchain/
 ├── frontend/         # Vite + React app — live on Vercel
 └── docs/
     ├── v1-spec.md            # the on-chain protocol spec
-    ├── economics.md          # rent / mint / split rationale (read this first)
+    ├── economics.md          # rent / record / press / split rationale (read this first)
     ├── ux-architecture.md    # FE architecture (note: §3 is superseded by stack-and-7702.md)
     ├── stack-and-7702.md     # current stack + EIP-7702 plan (authoritative)
     ├── deployments.md        # testnet + mainnet addresses
-    └── progress.md           # 21-step build plan + per-step status
+    └── progress.md           # build plan + per-step status
 ```
 
 ## Quick start
@@ -144,9 +157,10 @@ forge test -vv
 Deploy:
 
 ```bash
-source .env
-forge script script/Deploy.s.sol --rpc-url $MEGAETH_MAINNET_RPC --broadcast --slow
+forge script script/Deploy.s.sol:Deploy --rpc-url megaeth_mainnet --broadcast -vvv
 ```
+
+`forge` auto-loads `.env`. `PAYMENT_TOKEN` selects the payment token (real USDm on mainnet; unset on testnet to deploy a fresh `MockUsdm`). `TREASURY` defaults to the deployer if unset.
 
 ### Frontend
 
@@ -159,20 +173,22 @@ npm run dev
 
 ## Roadmap (post-v1)
 
-- **Session keys** — install a permission-scoped key on the Kernel account at login (target = Loopchain, selector = `toggle()`, valid 24h). All toggles sign locally — sub-50ms latency, no Privy roundtrip. Today's `showWalletUIs: false` already kills the modal, but each toggle still hops through the bundler. Session keys would shave that to local-only signing.
-- **Playable NFT page** — `/loop/:tokenId` route that plays the snapshot (Tone.js + on-chain pattern read). Shareable. Each mint = a 4s audio post.
-- **Daily highlight auto-mint** — treasury-funded keeper records "loop of the day" by some heuristic (most renewals, most distinct contributors). Drives mint demand without requiring a human curator.
-- **First-mint-free** — first N mints/day free for new users. Lower friction for "is this fun?" experiment.
-- **USDm-denominated v2 rent** — already done in v1.
-- **Treasury → multisig** — when revenue exists, swap deployer to a Safe (or self-deployed 2-of-3 if Safe isn't on MegaETH yet).
+- **Session keys** — install a permission-scoped key on the Kernel account at login (target = Loopchain, selectors = `toggle` / `record` / `press`, valid 24h). All toggles sign locally — sub-50ms latency, no Privy roundtrip. Today's `showWalletUIs: false` already kills the modal, but each toggle still hops through the bundler.
+- **Playable NFT / series page** — a `/loop/:seriesId` route that plays the snapshot (Tone.js + on-chain read). Share links already carry `?loop=<seriesId>`; this would give each loop a real page.
+- **Per-loop share cards** — dynamic OG images for `?loop=N` links (needs a Vercel edge function); static OG card ships today.
+- **Royalty keeper** — a bot that watches marketplace transfers and calls `depositRoyalty(seriesId, …)` so resale royalties get attributed without a manual step.
+- **Daily highlight auto-mint** — treasury-funded keeper records "loop of the day" by some heuristic (most renewals, most distinct contributors). Drives press demand without a human curator.
+- **Treasury → multisig** — when revenue exists, rotate `owner` + `treasury` to a Safe (or self-deployed 2-of-3 if Safe isn't on MegaETH yet).
 
 ## Key contracts
 
 | Contract | Mainnet | Testnet |
 |---|---|---|
-| `Loopchain` | [`0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3`](https://megaeth.blockscout.com/address/0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) |
+| `Loopchain` | [`0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) — stale, old one-shot model |
 | Payment token | USDm (real) `0xFAfD…79E7` | MockUsdm `0x6B92…dab3` (open faucet) |
+
+The previous mainnet one-shot `Loopchain` `0x6B92…dab3` is superseded — see [`docs/deployments.md`](docs/deployments.md).
 
 ## Hot wallet
 
-`0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` — controlled by Theo, used for testnet + mainnet deploy and currently the treasury. Deployer key stays on Theo's laptop. Rotate treasury to multisig when revenue justifies the operational overhead.
+`0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` — controlled by Theo, used for testnet + mainnet deploy and currently both `owner` and `treasury`. Deployer key stays off-repo. Rotate `owner` + `treasury` to a multisig when revenue justifies the operational overhead.

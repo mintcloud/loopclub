@@ -30,6 +30,7 @@ export function App() {
   const [shareSeriesId, setShareSeriesId] = useState<bigint | null>(null)
   const [libraryRefresh, setLibraryRefresh] = useState(0)
   const [pressingSeriesId, setPressingSeriesId] = useState<bigint | null>(null)
+  const [claimingSeriesId, setClaimingSeriesId] = useState<bigint | null>(null)
 
   const smartAddress = (smartWalletClient?.account?.address ?? null) as `0x${string}` | null
   const playbackRef = useRef<LoopRecord | null>(null)
@@ -289,6 +290,34 @@ export function App() {
     }
   }
 
+  // Claim accrued resale royalties for a series the user co-created (held cells in).
+  const onClaimRoyalty = async (record: LoopRecord) => {
+    if (!smartWalletClient) return
+    try {
+      setClaimingSeriesId(record.seriesId)
+      setBusy(`Claiming royalties for loop #${record.seriesId}…`)
+      await smartWalletClient.sendTransaction(
+        {
+          to: config.loopchainAddress,
+          data: encodeFunctionData({
+            abi: loopchainAbi,
+            functionName: 'claimRoyalty',
+            args: [record.seriesId],
+          }),
+          chain: megaethMainnet,
+        },
+        { uiOptions: { showWalletUIs: false } },
+      )
+      flash(`Claimed royalties for loop #${record.seriesId}`)
+      setLibraryRefresh((n) => n + 1)
+      refresh()
+    } catch (e: unknown) {
+      flash((e as Error).message ?? 'claim failed', true)
+    } finally {
+      setClaimingSeriesId(null)
+    }
+  }
+
   const enterPlayback = (record: LoopRecord) => {
     setPlayback(record)
     setSnapshot(record.pattern, record.pitches)
@@ -404,6 +433,8 @@ export function App() {
         onStop={exitPlayback}
         onPress={onPressSeries}
         pressingSeriesId={pressingSeriesId}
+        onClaimRoyalty={onClaimRoyalty}
+        claimingSeriesId={claimingSeriesId}
         refreshTick={libraryRefresh}
       />
 
@@ -425,46 +456,6 @@ export function App() {
         <div className="muted" style={{ textAlign: 'center', paddingTop: '2rem' }}>
           Connect to rent cells. {userEmail ? `signed in as ${userEmail}` : ''}
         </div>
-      )}
-
-      {authenticated && (
-        <pre
-          style={{
-            position: 'fixed',
-            bottom: 8,
-            left: 8,
-            maxWidth: '40vw',
-            maxHeight: '40vh',
-            overflow: 'auto',
-            background: 'rgba(0,0,0,0.7)',
-            border: '1px solid #444',
-            color: '#0f0',
-            font: '10px ui-monospace, monospace',
-            padding: 8,
-            zIndex: 999,
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-{`privyAppId=${config.privyAppId ?? 'MISSING'}
-ready=${ready}
-authenticated=${authenticated}
-smartWalletClient=${smartWalletClient ? 'present' : 'UNDEFINED'}
-smartAddress=${smartAddress ?? 'null'}
-chain=${config.chainId}
-playback=${playback ? `#${playback.seriesId}` : 'null'}
-linkedAccounts=
-${JSON.stringify(
-  user?.linkedAccounts?.map((a: any) => ({
-    type: a.type,
-    address: a.address,
-    chainType: a.chainType,
-    walletClientType: a.walletClientType,
-    smartWalletType: a.smartWalletType,
-  })),
-  null,
-  2,
-)}`}
-        </pre>
       )}
     </div>
   )

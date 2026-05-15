@@ -394,6 +394,8 @@ button.primary:disabled {
   display: flex;
   gap: 0.3rem;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .card-actions button,
 .card-actions a {
