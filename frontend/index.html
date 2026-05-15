@@ -5,7 +5,39 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0a12" />
-    <title>Loopchain</title>
+    <title>Loopchain — on-chain drum machine</title>
+    <meta
+      name="description"
+      content="One global 16×4 grid drum machine on MegaETH. Rent a cell, jam with everyone live, press the loop as an NFT — co-creators get paid on every press."
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Loopchain" />
+    <meta property="og:title" content="Loopchain — on-chain drum machine" />
+    <meta
+      property="og:description"
+      content="One global 16×4 grid drum machine on MegaETH. Rent a cell, jam live, press the loop as an NFT — co-creators get paid on every press."
+    />
+    <meta property="og:image" content="/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Loopchain — a 16×4 step grid drum machine" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Loopchain — on-chain drum machine" />
+    <meta
+      name="twitter:description"
+      content="Rent a cell, jam live, press the loop as an NFT — co-creators get paid on every press."
+    />
+    <meta name="twitter:image" content="/og-cover.png" />
+
+    <!-- NOTE: og:image / twitter:image are relative. Most modern unfurlers (X, Discord,
+         Telegram, Slack, Meta) resolve them against the page URL. If a custom domain is
+         added, switch these to absolute URLs for maximum crawler coverage, and add
+         <meta property="og:url"> + <link rel="canonical">. Per-loop dynamic cards for
+         ?loop=N share links would need a Vercel edge function (@vercel/og) — see docs. -->
   </head>
   <body>
     <div id="root"></div>

@@ -144,6 +144,42 @@ export const loopchainAbi = [
     ],
     anonymous: false,
   },
+  // Royalty (pull-claim, series-keyed). depositRoyalty/claimedSeries getters let the
+  // UI compute a holder's claimable share without a dedicated view function.
+  {
+    type: 'function',
+    name: 'royaltyDepositedSeries',
+    stateMutability: 'view',
+    inputs: [{ name: 'seriesId', type: 'uint256' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'royaltyClaimedSeries',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'seriesId', type: 'uint256' },
+      { name: 'holder', type: 'address' },
+    ],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'claimRoyalty',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'seriesId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'event',
+    name: 'RoyaltyClaimed',
+    inputs: [
+      { name: 'seriesId', type: 'uint256', indexed: true },
+      { name: 'holder', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
 ] as const
 
 export const usdmAbi = [
