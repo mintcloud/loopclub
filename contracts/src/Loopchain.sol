@@ -7,6 +7,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 /// @title Loopchain v1 (series + bonding-curve editions)
 /// @notice One global 16x4 step grid. Cells are rented for N loops; a pattern is recorded as
@@ -16,6 +18,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 ///         The recorder/presser receives an NFT but no financial cut — all primary-sale proceeds
 ///         (minus treasury cut) flow to the Series' co-creators (the cell holders snapshotted at
 ///         record() time), pro-rata to cells contributed.
+///         Each NFT carries a fully on-chain `tokenURI`: its name states the exact Series (loop)
+///         and edition number, so editions #1..#N of a loop are explicitly tied to that loop.
 contract Loopchain is ERC721, IERC2981, Ownable {
     using SafeERC20 for IERC20;
 
@@ -57,6 +61,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         uint64  pitches;
         uint64  mintedAtLoop;
         uint32  nextEdition;        // edition number for the NEXT press; 0 means "no series"
+        uint16  cellCount;          // lit cells in `pattern`, snapshotted at record() time
         address[] holders;          // unique cell owners at record time
         uint8[]   cellsPerHolder;   // parallel array
     }
@@ -260,6 +265,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         s.pitches = pitches;
         s.mintedAtLoop = nowLoop;
         s.nextEdition = 2; // edition #1 is being minted now
+        s.cellCount = uint16(cellCount); // frozen lit-cell count; used for all later splits
         s.holders = new address[](uniqLen);
         s.cellsPerHolder = new uint8[](uniqLen);
         for (uint256 k = 0; k < uniqLen; k++) {
@@ -286,9 +292,9 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         uint256 price = _priceForEdition(edition);
         paymentToken.safeTransferFrom(msg.sender, address(this), price);
 
-        // Distribute to the series' frozen holder set.
-        uint256 cellCount = _popcount(s.pattern);
-        _distribute(price, s.holders, s.cellsPerHolder, s.holders.length, cellCount);
+        // Distribute to the series' frozen holder set, using the lit-cell count
+        // captured at record() time.
+        _distribute(price, s.holders, s.cellsPerHolder, s.holders.length, s.cellCount);
 
         // Mint edition #N to the presser.
         tokenId = nextTokenId++;
@@ -325,8 +331,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         }
         if (caller_cells == 0) revert NotAHolder();
 
-        uint256 cellCount = _popcount(s.pattern);
-        uint256 entitled = (deposited * caller_cells) / cellCount;
+        uint256 entitled = (deposited * caller_cells) / s.cellCount;
         uint256 already = royaltyClaimedSeries[seriesId][msg.sender];
         if (entitled <= already) revert NothingToClaim();
 
@@ -350,6 +355,85 @@ contract Loopchain is ERC721, IERC2981, Ownable {
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, IERC165) returns (bool) {
         return interfaceId == type(IERC2981).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    // ───────────────────────── Token metadata (fully on-chain) ─────────────────────────
+
+    /// @notice ERC-721 metadata for `tokenId`, generated entirely on-chain as a base64 JSON
+    ///         data URI. The token's name states the exact Series (loop) and edition number it
+    ///         belongs to — e.g. "Loopchain Loop #1 - Edition #2" — and the `Loop`/`Edition`
+    ///         attributes encode the same link in structured form. Every edition of a loop
+    ///         renders the identical pattern image, since they share the same `Series.pattern`.
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        _requireOwned(tokenId); // reverts ERC721NonexistentToken for unminted ids
+        uint256 sid = seriesOf[tokenId];
+        uint32  edition = editionOf[tokenId];
+        Series storage s = _series[sid];
+
+        string memory sidStr = Strings.toString(sid);
+        string memory edStr  = Strings.toString(edition);
+
+        string memory json = string.concat(
+            '{"name":"Loopchain Loop #', sidStr, ' - Edition #', edStr,
+            '","description":"Edition #', edStr, ' of Loop #', sidStr,
+            ': a 16-step x 4-track drum pattern recorded on Loopchain (MegaETH). Every edition of '
+            'this loop shares the same beat and the same co-creators; each press costs more along '
+            'the bonding curve.","image":"data:image/svg+xml;base64,',
+            Base64.encode(bytes(_renderSVG(s.pattern))),
+            '","attributes":', _attributes(sid, edition, s), '}'
+        );
+        return string.concat("data:application/json;base64,", Base64.encode(bytes(json)));
+    }
+
+    /// @dev Structured trait list. `Loop` + `Edition` are the explicit on-chain link between
+    ///      this NFT and the specific loop / position in its 1..N edition run.
+    function _attributes(uint256 sid, uint32 edition, Series storage s)
+        internal
+        view
+        returns (string memory)
+    {
+        return string.concat(
+            '[{"trait_type":"Loop","value":', Strings.toString(sid),
+            '},{"trait_type":"Edition","value":', Strings.toString(edition),
+            '},{"trait_type":"Cells","value":', Strings.toString(s.cellCount),
+            '},{"trait_type":"Co-creators","value":', Strings.toString(s.holders.length),
+            '},{"trait_type":"Recorded at loop","value":', Strings.toString(s.mintedAtLoop),
+            '},{"trait_type":"Pattern","value":"', Strings.toHexString(uint256(s.pattern), 8),
+            '"}]'
+        );
+    }
+
+    /// @dev Renders the loop's 16x4 grid as an SVG — 4 track rows (kick / snare / hat / synth),
+    ///      lit cells filled in their track colour. All editions of a series render identically.
+    function _renderSVG(uint64 pattern) internal pure returns (string memory) {
+        string memory cells = "";
+        for (uint8 row = 0; row < 4; row++) {
+            for (uint8 col = 0; col < STEPS; col++) {
+                uint8 cellId = row * STEPS + col;
+                bool lit = (pattern >> cellId) & 1 == 1;
+                cells = string.concat(
+                    cells,
+                    '<rect x="', Strings.toString(12 + uint256(col) * 34),
+                    '" y="', Strings.toString(12 + uint256(row) * 34),
+                    '" width="30" height="30" rx="5" fill="',
+                    lit ? _trackColor(row) : "#2a2a44",
+                    '"/>'
+                );
+            }
+        }
+        return string.concat(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="564" height="156" viewBox="0 0 564 156">',
+            '<rect width="564" height="156" fill="#1a1a2e"/>',
+            cells,
+            '</svg>'
+        );
+    }
+
+    function _trackColor(uint8 row) internal pure returns (string memory) {
+        if (row == 0) return "#ff6b6b"; // kick
+        if (row == 1) return "#ffd93d"; // snare
+        if (row == 2) return "#6bcb77"; // hat
+        return "#64b5f6";               // synth
     }
 
     // ───────────────────────── Owner controls ─────────────────────────
@@ -438,13 +522,5 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         }
 
         if (treasuryCut > 0) paymentToken.safeTransfer(treasury, treasuryCut);
-    }
-
-    function _popcount(uint64 x) internal pure returns (uint256 c) {
-        uint256 v = uint256(x);
-        v = v - ((v >> 1) & 0x5555555555555555);
-        v = (v & 0x3333333333333333) + ((v >> 2) & 0x3333333333333333);
-        v = (v + (v >> 4)) & 0x0f0f0f0f0f0f0f0f;
-        c = (v * 0x0101010101010101) >> 56;
     }
 }

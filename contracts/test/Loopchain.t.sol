@@ -363,4 +363,90 @@ contract LoopchainTest is Test {
         vm.expectRevert();
         lc.setSplit(8_000, 1_000);
     }
+
+    // ─────── Regression: holders' cut survives high-numbered cells ───────
+    // The old _popcount() SWAR trick mis-counted any pattern with lit cells beyond
+    // the first byte (#8+), collapsing the holders' cut to dust. These patterns span
+    // cells #0, #40, #63 — the case that mis-paid the real edition-#2 press on mainnet.
+
+    function test_press_holdersCut_correctWithHighCells() public {
+        vm.prank(alice); lc.toggle(0,  8, 0);
+        vm.prank(alice); lc.toggle(63, 8, 0);
+        vm.prank(bob);   lc.toggle(40, 8, 0);
+
+        vm.prank(carol);
+        uint256 tokenId1 = lc.record();
+        uint256 seriesId = lc.seriesOf(tokenId1);
+
+        uint256 price      = lc.pressPriceFor(seriesId);
+        uint256 holdersCut = (price * lc.holdersBps()) / 10_000;
+        uint256 perCell    = holdersCut / 3; // 3 lit cells
+
+        uint256 aliceBefore = usdm.balanceOf(alice);
+        uint256 bobBefore   = usdm.balanceOf(bob);
+
+        vm.prank(dave);
+        lc.press(seriesId);
+
+        // Alice held 2 of 3 cells, Bob 1 — each gets the full pro-rata cut, not dust.
+        assertEq(usdm.balanceOf(alice) - aliceBefore, perCell * 2);
+        assertEq(usdm.balanceOf(bob)   - bobBefore,   perCell * 1);
+    }
+
+    function test_claimRoyalty_correctWithHighCells() public {
+        vm.prank(alice); lc.toggle(0,  4, 0);
+        vm.prank(alice); lc.toggle(63, 4, 0);
+        vm.prank(bob);   lc.toggle(40, 4, 0);
+        vm.prank(carol); uint256 tokenId = lc.record();
+        uint256 seriesId = lc.seriesOf(tokenId);
+
+        usdm.mint(address(this), 30e18);
+        usdm.approve(address(lc), type(uint256).max);
+        lc.depositRoyalty(seriesId, 30e18);
+
+        uint256 aliceBefore = usdm.balanceOf(alice);
+        uint256 bobBefore   = usdm.balanceOf(bob);
+
+        vm.prank(alice); lc.claimRoyalty(seriesId);
+        vm.prank(bob);   lc.claimRoyalty(seriesId);
+
+        // 3 lit cells: alice 2/3 = 20 USDm, bob 1/3 = 10 USDm.
+        assertEq(usdm.balanceOf(alice) - aliceBefore, 20e18);
+        assertEq(usdm.balanceOf(bob)   - bobBefore,   10e18);
+    }
+
+    // ─────── Token metadata (on-chain tokenURI) ───────
+
+    function test_tokenURI_referencesSeriesAndEdition() public {
+        vm.prank(alice); lc.toggle(0,  8, 0);
+        vm.prank(alice); lc.toggle(44, 8, 0);
+        vm.prank(carol); uint256 tokenId1 = lc.record();
+        uint256 seriesId = lc.seriesOf(tokenId1);
+
+        vm.prank(dave); uint256 tokenId2 = lc.press(seriesId);
+
+        string memory uri1 = lc.tokenURI(tokenId1);
+        string memory uri2 = lc.tokenURI(tokenId2);
+
+        // Both are on-chain base64 JSON data URIs.
+        assertTrue(_startsWith(uri1, "data:application/json;base64,"));
+        assertTrue(_startsWith(uri2, "data:application/json;base64,"));
+        // Editions #1 and #2 of the same loop yield distinct metadata (different edition #).
+        assertTrue(keccak256(bytes(uri1)) != keccak256(bytes(uri2)));
+    }
+
+    function test_tokenURI_revertsForNonexistentToken() public {
+        vm.expectRevert();
+        lc.tokenURI(999);
+    }
+
+    function _startsWith(string memory s, string memory prefix) internal pure returns (bool) {
+        bytes memory sb = bytes(s);
+        bytes memory pb = bytes(prefix);
+        if (sb.length < pb.length) return false;
+        for (uint256 i = 0; i < pb.length; i++) {
+            if (sb[i] != pb[i]) return false;
+        }
+        return true;
+    }
 }
