@@ -17,8 +17,9 @@
 | Mainnet deploy | ✅ chain 4326 — `Loopchain` `0x64D8…bf76`, deployed 2026-05-15 (the old one-shot `0x6B92…dab3` is superseded) |
 | Testnet deploy | stale — chain 6343 still runs the old one-shot model; not redeployed |
 | Frontend | ✅ record / press / library / royalty-claim UI wired; `tsc` clean; `.env.local` repointed. Vercel still needs `VITE_LOOPCHAIN_ADDRESS` updated + a redeploy |
-| Smart-account stack | Kernel via Privy (the §2 pivot below held) |
-| Open items | Vercel env + redeploy · session keys · two-device live demo · WS subscriptions (still 2s polling) · O(N) library fetch |
+| Smart-account stack | Kernel via Privy (the §2 pivot below held); **Step 4 session keys** added flag-gated — see [`checkpoints.md`](checkpoints.md) |
+| Latency/collab plan | steps 1–3 shipped (event-streamed live grid, owner colours, block-sync badge); step 4 (session keys) shipped behind `VITE_ENABLE_SESSION_KEYS`, off until verified in a preview deploy |
+| Open items | Vercel env (`VITE_ZERODEV_RPC_URL`; flip `VITE_ENABLE_SESSION_KEYS` after the preview check) · two-device live demo · paymaster + realtime-send (step 5) · O(N) library fetch |
 
 What changed since the snapshot below: the contract was reworked from a one-shot flat mint
 into the Series + bonding-curve model (`record()` + `press()`, 70/30 co-creator/treasury

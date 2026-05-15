@@ -670,6 +670,65 @@ kbd {
   50% { opacity: 0.35; }
 }
 
+/* ───── Fast mode — session-key status (Step 4) ───── */
+.fastmode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 12px;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.fastmode-btn:hover:not(:disabled) {
+  background: rgba(124, 92, 255, 0.14);
+  border-color: var(--accent);
+}
+.fastmode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 11px;
+  color: var(--text);
+  background: rgba(124, 92, 255, 0.12);
+  border: 1px solid var(--accent);
+  padding: 0.22rem 0.3rem 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 0 0 10px rgba(124, 92, 255, 0.35);
+}
+.fastmode-bolt {
+  color: var(--owned);
+  animation: boltPulse 2.4s ease-in-out infinite;
+}
+@keyframes boltPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.fastmode-off {
+  padding: 0 0.32rem;
+  font-size: 10px;
+  line-height: 1.5;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.fastmode-off:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.fastmode-badge.unavailable {
+  border-color: var(--border);
+  color: var(--muted);
+  background: var(--panel);
+  box-shadow: none;
+}
+
 /* ───── Live grid — cells coloured by who rented them ───── */
 .track-dot {
   width: 6px;

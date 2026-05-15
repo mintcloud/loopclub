@@ -10,6 +10,7 @@ import { config, megaethMainnet, LOOP_DURATION_SECONDS } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import { useLiveGrid } from './useLiveGrid'
+import { useSessionKey, type SessionKey } from './useSessionKey'
 import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep } from './audio'
 
 // The live grid streams from chain events; only wallet/price state is polled.
@@ -42,6 +43,11 @@ export function App() {
   const [claimingSeriesId, setClaimingSeriesId] = useState<bigint | null>(null)
 
   const smartAddress = (smartWalletClient?.account?.address ?? null) as `0x${string}` | null
+
+  // Step 4 — "fast mode": once armed, cell toggles are signed by an in-browser
+  // session key and skip the Privy round-trip. record/press stay on Privy.
+  const session = useSessionKey(smartAddress)
+
   const playbackRef = useRef<LoopRecord | null>(null)
   playbackRef.current = playback
   const fundPromptedRef = useRef(false)
@@ -225,8 +231,17 @@ export function App() {
         args: [cellId, durationLoops, pitchIdx],
       }),
     })
-    smartWalletClient
-      .sendTransaction({ calls }, { uiOptions: { showWalletUIs: false } })
+
+    // Fast path: when fast mode is armed and the toggle is a single call
+    // (allowance already maxed, no approve to batch), sign it locally with the
+    // session key — no Privy round-trip. When an approval has to ride along
+    // (calls.length === 2) we fall back to the Privy client, which sets the
+    // max-uint256 allowance; every later toggle then takes the fast path.
+    const fast = session.armed && calls.length === 1
+    const submit: Promise<`0x${string}`> = fast
+      ? session.send(calls[0])
+      : smartWalletClient.sendTransaction({ calls }, { uiOptions: { showWalletUIs: false } })
+    submit
       .then(async (txHash) => {
         try {
           await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
@@ -477,6 +492,7 @@ export function App() {
               {busy === 'Pressing copy #1…' ? 'Pressing…' : `✦ press copy #1 · ${basePriceStr} USDm`}
             </button>
           )}
+          {authenticated && <FastMode session={session} ready={!!smartAddress} />}
           {!ready ? null : !authenticated ? (
             <button className="primary" onClick={login}>
               Connect
@@ -622,6 +638,64 @@ function SyncBadge({ blockNumber }: { blockNumber: number }) {
       <span className="sync-dot" key={blockNumber} />
       block #{blockNumber.toLocaleString('en-US')}
     </span>
+  )
+}
+
+// "Fast mode" control — arms / shows / disarms the session key (Step 4). Hidden
+// entirely when the feature flag is off. The address guard in sessionKey.ts
+// means the worst a misconfigured session can do is fall back to Privy.
+function FastMode({ session, ready }: { session: SessionKey; ready: boolean }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (session.status !== 'armed') return
+    const id = setInterval(() => tick((n) => n + 1), 30_000)
+    return () => clearInterval(id)
+  }, [session.status])
+
+  if (session.status === 'disabled' || session.status === 'restoring' || !ready) return null
+
+  if (session.status === 'armed' && session.expiresAt) {
+    const mins = Math.max(0, Math.round((session.expiresAt - Date.now()) / 60_000))
+    return (
+      <span className="fastmode-badge" title="Cell toggles are signed locally — no wallet round-trip">
+        <span className="fastmode-bolt">⚡</span>
+        fast mode · {mins}m
+        <button className="fastmode-off" onClick={session.disarm} title="Turn off fast mode">
+          ✕
+        </button>
+      </span>
+    )
+  }
+
+  if (session.status === 'arming') {
+    return (
+      <button className="fastmode-btn" disabled>
+        ⚡ arming…
+      </button>
+    )
+  }
+
+  if (session.status === 'mismatch') {
+    return (
+      <span className="fastmode-badge unavailable" title={session.errorMsg ?? ''}>
+        ⚡ unavailable
+      </span>
+    )
+  }
+
+  // idle | error
+  return (
+    <button
+      className="fastmode-btn"
+      onClick={session.arm}
+      title={
+        session.status === 'error'
+          ? session.errorMsg ?? 'Retry enabling fast mode'
+          : 'Sign once — then cell toggles are instant, with no wallet popups'
+      }
+    >
+      ⚡ {session.status === 'error' ? 'retry fast mode' : 'enable fast mode'}
+    </button>
   )
 }
 

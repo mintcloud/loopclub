@@ -1,6 +1,6 @@
 # Loopchain frontend
 
-Vite + React + TS + Privy (Kernel smart wallet) + viem + Tone.js.
+Vite + React + TS + Privy (Kernel smart wallet) + ZeroDev session keys + viem + Tone.js.
 
 ## Quick start
 
@@ -19,6 +19,8 @@ All in `.env.example`. The defaults are wired to the deployed MegaETH mainnet co
 - `VITE_LOOPCHAIN_ADDRESS` — `0xE9Ba1E07Df5D95234F4e0102d06eAe2f16365f1a`
 - `VITE_PAYMENT_TOKEN_ADDRESS` — `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7` (USDm)
 - `VITE_RPC_URL`, `VITE_CHAIN_ID`, `VITE_EXPLORER_URL`
+- `VITE_ZERODEV_RPC_URL` — ZeroDev bundler+paymaster RPC, used by fast mode (session keys)
+- `VITE_ENABLE_SESSION_KEYS` — `true` / `false` master switch for fast mode (default `false`)
 
 When the contracts redeploy, update `docs/deployments.md` and the corresponding `VITE_*` vars in Vercel.
 
@@ -32,12 +34,14 @@ When the contracts redeploy, update `docs/deployments.md` and the corresponding 
 - **Library** — browses recorded series (Recent / Most Collab / My Loops), plays snapshots, presses copies, copies `?loop=<seriesId>` share links.
 - **Royalty claim** — series-keyed `claimRoyalty(seriesId)`; a claim button surfaces on a loop card when the connected wallet has an unclaimed share.
 - **Audio** — Tone.js drives a 4-second pattern at 240 BPM (16 sixteenth-notes). Drum tracks are kick/snare/hat synths; track 4 is a polysynth that plays the pentatonic pitch stored on each synth cell.
+- **Fast mode (session keys)** — opt-in, behind `VITE_ENABLE_SESSION_KEYS`. The user signs once to authorise an in-browser session key scoped to `Loopchain.toggle()` for one hour; every toggle after that is signed locally — no Privy round-trip. record/press/claim still go through the Privy client. Privy is unchanged as the login + root signer. See `src/sessionKey.ts` and `docs/checkpoints.md`.
 
 ## What's NOT wired yet
 
 - Royalty *deposit* UI — `depositRoyalty(seriesId, amount)` exists on-chain; attribution is expected to come from a keeper bot watching marketplace transfers, not a manual button.
 - Per-loop dynamic OG cards for `?loop=N` share links — a static OG card ships in `index.html`; dynamic per-loop images would need a Vercel edge function.
-- Session keys — sub-50ms local signing; toggles still hop through the bundler.
+- Fast mode for record/press — session keys currently fast-path `toggle()` only; record/press are rarer, larger spends and stay on the deliberate Privy signing path. Extending the call policy to `record` is a small follow-up.
+- Paymaster decision + MegaETH realtime send (`*Sync`) — step 5 of the latency plan; fast mode keeps the existing ZeroDev paymaster for now.
 - EIP-7702 mode toggle (smart wallet defaults to counterfactual; if/when 7702 lands cleanly in Privy/Kernel we flip the flag).
 
 ## Vercel deploy
@@ -56,13 +60,18 @@ Add the `VITE_*` env vars from `.env.example` (skip `VITE_PRIVY_APP_ID` if you'd
 
 ```
 src/
-├── main.tsx          # PrivyProvider + SmartWalletsProvider
-├── App.tsx           # state, polling, tx flows, layout
-├── Grid.tsx          # 16×4 grid render
-├── ToggleModal.tsx   # duration + pitch picker
-├── audio.ts          # Tone.js sequencer
-├── viemClient.ts     # public client for reads
-├── abi.ts            # Loopchain + MockUsdm minimal ABIs
-├── config.ts         # env-derived chain + contract addresses
-└── index.css         # dark theme
+├── main.tsx            # PrivyProvider + SmartWalletsProvider
+├── App.tsx             # state, polling, tx flows, layout
+├── Grid.tsx            # 16×4 grid render
+├── CellPopover.tsx     # duration + pitch picker (and the occupied-cell card)
+├── ContributorStrip.tsx# per-player colour legend under the grid
+├── useLiveGrid.ts      # event-streamed grid state (CellRented + multicall)
+├── sessionKey.ts       # fast mode — ZeroDev session-key account + policies
+├── useSessionKey.ts    # fast mode — arm / restore / expiry React state
+├── owner.ts            # stable per-address hue for owner colouring
+├── audio.ts            # Tone.js sequencer
+├── viemClient.ts       # public + event clients for reads
+├── abi.ts              # Loopchain + MockUsdm minimal ABIs
+├── config.ts           # env-derived chain + contract addresses
+└── index.css           # dark theme
 ```
