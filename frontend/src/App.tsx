@@ -21,6 +21,7 @@ export function App() {
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
   const [allowance, setAllowance] = useState<bigint>(0n)
   const [basePrice, setBasePrice] = useState<bigint>(1n * 10n ** 18n) // default 1 USDm; refreshed from chain
+  const [rentPerLoop, setRentPerLoop] = useState<bigint>(4n * 10n ** 15n) // default 0.004 USDm/loop; refreshed from chain
   const [openCell, setOpenCell] = useState<{ id: number; rect: DOMRect } | null>(null)
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
@@ -40,14 +41,16 @@ export function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [p, ps, base] = await Promise.all([
+      const [p, ps, base, rent] = await Promise.all([
         publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'livePattern' }),
         publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'livePitches' }),
         publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'basePrice' }),
+        publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'rentPerLoop' }),
       ])
       setPattern(p as bigint)
       setPitches(ps as bigint)
       setBasePrice(base as bigint)
+      setRentPerLoop(rent as bigint)
       setLiveState(p as bigint, ps as bigint)
 
       if (smartAddress) {
@@ -188,6 +191,18 @@ export function App() {
   const onToggle = (cellId: number, durationLoops: number, pitchIdx: number) => {
     if (!smartWalletClient) return
 
+    // Renting a cell pulls USDm via toggle() → safeTransferFrom, so it needs the
+    // same one-time approval the press/record flows do — without it the call
+    // reverts with ERC20InsufficientAllowance during paymaster simulation.
+    const cost = rentPerLoop * BigInt(durationLoops)
+    if (usdmBalance < cost) {
+      flash(
+        `Need ${formatUnits(cost, 18)} USDm to rent (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
+        true,
+      )
+      return
+    }
+
     setOpenCell(null)
     const bit = 1n << BigInt(cellId)
     const optimisticPattern = pattern | bit
@@ -202,19 +217,16 @@ export function App() {
     if (!playbackRef.current) setLiveState(optimisticPattern, optimisticPitches)
     flash(`Cell ${cellId} on for ${durationLoops}× ${LOOP_DURATION_SECONDS}s`)
 
+    const calls = withApproval(cost, {
+      to: config.loopchainAddress,
+      data: encodeFunctionData({
+        abi: loopchainAbi,
+        functionName: 'toggle',
+        args: [cellId, durationLoops, pitchIdx],
+      }),
+    })
     smartWalletClient
-      .sendTransaction(
-        {
-          to: config.loopchainAddress,
-          data: encodeFunctionData({
-            abi: loopchainAbi,
-            functionName: 'toggle',
-            args: [cellId, durationLoops, pitchIdx],
-          }),
-          chain: megaethMainnet,
-        },
-        { uiOptions: { showWalletUIs: false } },
-      )
+      .sendTransaction({ calls }, { uiOptions: { showWalletUIs: false } })
       .then(() => refresh())
       .catch((e: unknown) => {
         flash((e as Error).message ?? 'toggle failed', true)
