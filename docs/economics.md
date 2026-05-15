@@ -1,6 +1,29 @@
 # Loopchain economics v1
 
-*2026-05-08 · for Theo*
+*2026-05-08 · for Theo · updated 2026-05-15*
+
+> **⚠️ Updated 2026-05-15.** This is the original design memo. The shipped v1 diverged from
+> several of its recommendations — most notably it uses a **bonding-curve editions** model
+> (which §2b and the "Bottom line" deferred to v2) and is **USDm-denominated** (§7 recommended
+> ETH for v1). The "As shipped" section immediately below is the authoritative current model;
+> everything after it is preserved as the reasoning record. See also [`v1-spec.md`](v1-spec.md).
+
+---
+
+## As shipped (v1, 2026-05-15)
+
+The deployed contract differs from the recommendations in the memo below. Current model:
+
+- **USDm-denominated**, not ETH. Rent, record, press and royalties all settle in USDm.
+- **Rent** — `0.004 USDm / cell / loop`, pre-paid duration (model B from §1), `maxRentDurationLoops = 32`. Unchanged in spirit.
+- **No flat mint.** `record()` costs `basePrice = 1 USDm` and mints **edition #1** of a new Series. `press(seriesId)` mints further editions at `price(n) = basePrice + alpha·(n−1)²` with `alpha = 0.25 USDm` — a quadratic bonding curve (§2b's deferred option, pulled forward).
+- **Split is 70 / 30 co-creators / treasury.** No recorder or presser cut — whoever pays gets the NFT but no money. Owner-tunable via `setSplit()`.
+- **Co-creators are frozen at `record()` time** — the cell owners snapshotted into the Series. Presses pay that set pro-rata to cells contributed, even if they no longer hold the cells.
+- **Royalties are series-keyed** — `depositRoyalty(seriesId, amount)` / `claimRoyalty(seriesId)`; all editions of a series share one pool.
+
+Why the change: a flat mint + 10% recorder kickback let a squatter record other people's loops and skim. Editions on a curve make the *loop itself* the asset — copies get more expensive as a loop proves popular — and routing all non-treasury proceeds to cell holders removes the skim. Full reasoning is in the 05-12 squatting analysis.
+
+The sections below are the original 2026-05-08 memo, kept for the record.
 
 ---
 

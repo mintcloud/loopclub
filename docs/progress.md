@@ -1,6 +1,32 @@
 # Loopchain build progress · 2026-05-08
 
-*Status check after Privy + Kernel onboarding*
+*Status check after Privy + Kernel onboarding · updated 2026-05-15*
+
+> **⚠️ Superseded — the body of this doc is a snapshot from 2026-05-08.** It describes the
+> pre-deploy build state and the original one-shot contract. The "Current status" section
+> immediately below reflects reality; for live status prefer the README and
+> [`deployments.md`](deployments.md).
+
+---
+
+## Current status (2026-05-15)
+
+| Layer | State |
+|---|---|
+| Contracts | ✅ reworked one-shot → **Series + bonding-curve editions**; `forge test` 23/23 pass |
+| Mainnet deploy | ✅ chain 4326 — `Loopchain` `0x64D8…bf76`, deployed 2026-05-15 (the old one-shot `0x6B92…dab3` is superseded) |
+| Testnet deploy | stale — chain 6343 still runs the old one-shot model; not redeployed |
+| Frontend | ✅ record / press / library / royalty-claim UI wired; `tsc` clean; `.env.local` repointed. Vercel still needs `VITE_LOOPCHAIN_ADDRESS` updated + a redeploy |
+| Smart-account stack | Kernel via Privy (the §2 pivot below held) |
+| Open items | Vercel env + redeploy · session keys · two-device live demo · WS subscriptions (still 2s polling) · O(N) library fetch |
+
+What changed since the snapshot below: the contract was reworked from a one-shot flat mint
+into the Series + bonding-curve model (`record()` + `press()`, 70/30 co-creator/treasury
+split, series-keyed royalties — see [`v1-spec.md`](v1-spec.md) / [`economics.md`](economics.md));
+the frontend gained record / press / library / royalty-claim UI; both contract and frontend
+are committed and deployed to mainnet.
+
+The snapshot below (2026-05-08) is kept for the record.
 
 ---
 

@@ -1,6 +1,15 @@
 # Loopchain v1 — locked spec + next steps
 
-*2026-05-08 · for Theo*
+*2026-05-08 · for Theo · updated 2026-05-15*
+
+> **⚠️ Updated 2026-05-15 — v1 shipped, then the mint model was reworked.** This doc originally
+> specified a one-shot flat-price mint (`mintPrice`, 80/10/10 holders/recorder/treasury). The
+> deployed v1 instead uses a **Series + bonding-curve editions** model: `record()` creates a
+> Series and mints edition #1 for `basePrice`; `press(seriesId)` mints edition #N at
+> `basePrice + alpha·(n−1)²`; the split is **70/30 co-creators/treasury** with no recorder cut.
+> §1 below is preserved as the original design reasoning. The **Pricing** and **Record / press
+> flow** blocks in §2 are updated to the as-shipped model. See also [`economics.md`](economics.md)
+> and the project README for the authoritative current model.
 
 ---
 
@@ -175,20 +184,22 @@ Cost is real but tiny. Worth it. You called it correctly.
 - Testnet: mock USDm with open `mint()` for playtesting
 - Mainnet: Ethena USDm (address TBD when finalized)
 
-### Pricing
+### Pricing *(updated 2026-05-15 — as shipped)*
 
 - `rentPerLoop = 0.004 USDm` per cell per loop
-- `mintPrice = 4 USDm`
+- `basePrice = 1 USDm` — cost to `record()` a loop; mints edition #1
+- `alpha = 0.25 USDm` — bonding-curve coefficient
 - `maxRentDurationLoops = 32` (max 2 minutes occupancy per rental)
-- All three are owner-tunable
+- All owner-tunable via `setPrices(rentPerLoop, basePrice, alpha, maxRentDurationLoops)`
 
-### Mint flow
+### Record / press flow *(updated 2026-05-15 — as shipped; replaces the one-shot "Mint flow")*
 
-- `record()` reverts if pattern empty
-- Splits **80% holders / 10% recorder / 10% treasury**
-- NFT stores holders array + cellIds + pattern + pitches + mintedAtLoop
+- `record()` reverts on an empty pattern; otherwise creates a **Series** and mints **edition #1** to the recorder for `basePrice`
+- `press(seriesId)` mints **edition #N** at `price(n) = basePrice + alpha·(n−1)²` (#2 = 1.25, #5 = 5, #10 = 21.25 USDm)
+- Every record/press splits **70% co-creators / 30% treasury** — the recorder/presser receives the NFT but no financial cut; only cell holders earn. Split is owner-tunable via `setSplit(holdersBps, treasuryBps)`
+- A Series stores the frozen `holders[]` + `cellsPerHolder[]` co-creator snapshot (cell owners at `record()` time) plus `pattern` + `pitches` + `mintedAtLoop`
 - ERC-721 + ERC-2981 (5% royalty)
-- Royalty pull-pattern: `claimRoyalty(tokenId)` — each holder claims their share
+- Royalty pull-pattern, **series-keyed**: `claimRoyalty(seriesId)` — each co-creator claims their pro-rata share; all editions of a series feed one shared pool
 
 ### Treasury
 

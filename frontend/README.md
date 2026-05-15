@@ -26,16 +26,18 @@ When the contracts redeploy, update `docs/deployments.md` and the corresponding 
 
 - **Auth + smart wallet** — Privy with `SmartWalletsProvider`. Email login → embedded EOA → Kernel smart wallet auto-created. Bundler/paymaster configured in the Privy dashboard means users don't need ETH.
 - **Live grid** — polls `Loopchain.livePattern()` and `Loopchain.livePitches()` every 2s.
-- **Faucet button** — calls `MockUsdm.faucet()` for 1000 test USDm.
-- **Approve once** — `MockUsdm.approve(loopchain, MAX_UINT256)`. Needed before first toggle.
+- **Approve once** — `USDm.approve(loopchain, MAX_UINT256)`. Needed before the first toggle. (On testnet `MockUsdm` exposes an open `faucet()` for test USDm.)
 - **Toggle a cell** — click any cell, pick duration (1–32 loops × 4s) and pitch (synth row only), pay rent.
+- **Record + press** — `record()` snapshots the live grid into a Series and mints edition #1; `press(seriesId)` mints edition #N on the quadratic bonding curve.
+- **Library** — browses recorded series (Recent / Most Collab / My Loops), plays snapshots, presses copies, copies `?loop=<seriesId>` share links.
+- **Royalty claim** — series-keyed `claimRoyalty(seriesId)`; a claim button surfaces on a loop card when the connected wallet has an unclaimed share.
 - **Audio** — Tone.js drives a 4-second pattern at 240 BPM (16 sixteenth-notes). Drum tracks are kick/snare/hat synths; track 4 is a polysynth that plays the pentatonic pitch stored on each synth cell.
 
 ## What's NOT wired yet
 
-- `record()` (mint NFT) — contract supports it; UI button is the next slice.
-- Royalty deposit/claim.
-- NFT gallery / minted-loops view.
+- Royalty *deposit* UI — `depositRoyalty(seriesId, amount)` exists on-chain; attribution is expected to come from a keeper bot watching marketplace transfers, not a manual button.
+- Per-loop dynamic OG cards for `?loop=N` share links — a static OG card ships in `index.html`; dynamic per-loop images would need a Vercel edge function.
+- Session keys — sub-50ms local signing; toggles still hop through the bundler.
 - EIP-7702 mode toggle (smart wallet defaults to counterfactual; if/when 7702 lands cleanly in Privy/Kernel we flip the flag).
 
 ## Vercel deploy
