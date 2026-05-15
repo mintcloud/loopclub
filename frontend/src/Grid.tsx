@@ -1,13 +1,50 @@
-import { STEPS, TRACKS, TRACK_LABELS, SYNTH_CELL_START, PITCH_LABELS } from './config'
+import { type CSSProperties, useEffect, useState } from 'react'
+import { STEPS, TRACKS, TRACK_LABELS, SYNTH_CELL_START, PITCH_LABELS, EXPIRING_SOON_LOOPS } from './config'
+import type { CellState, RentEvent } from './useLiveGrid'
+import { ownerColor, sameAddr, shortAddr } from './owner'
+
+export type CellStatus = 'free' | 'mine' | 'occupied'
 
 interface GridProps {
   pattern: bigint
   pitches: bigint
   playingStep: number
-  onCellClick: (cellId: number, rect: DOMRect) => void
+  onCellClick: (cellId: number, rect: DOMRect, status: CellStatus) => void
+  // Live mode: per-cell ownership. Omitted during loop playback, where the grid
+  // shows a static snapshot with no owners and falls back to track colours.
+  cells?: CellState[]
+  myAddress?: string | null
+  currentLoop?: number
+  lastRent?: RentEvent | null
 }
 
-export function Grid({ pattern, pitches, playingStep, onCellClick }: GridProps) {
+export function Grid({
+  pattern,
+  pitches,
+  playingStep,
+  onCellClick,
+  cells,
+  myAddress,
+  currentLoop,
+  lastRent,
+}: GridProps) {
+  // Cells that just landed from a CellRented event get a one-shot pop animation.
+  const [landed, setLanded] = useState<Set<number>>(() => new Set())
+
+  useEffect(() => {
+    if (!lastRent) return
+    const id = lastRent.cellId
+    setLanded((prev) => new Set(prev).add(id))
+    const t = setTimeout(() => {
+      setLanded((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }, 720)
+    return () => clearTimeout(t)
+  }, [lastRent])
+
   return (
     <div className="grid">
       <div className="label step-axis-label">step</div>
@@ -29,6 +66,10 @@ export function Grid({ pattern, pitches, playingStep, onCellClick }: GridProps) 
           pitches={pitches}
           playingStep={playingStep}
           onCellClick={onCellClick}
+          cells={cells}
+          myAddress={myAddress}
+          currentLoop={currentLoop}
+          landed={landed}
         />
       ))}
     </div>
@@ -40,19 +81,48 @@ interface RowProps {
   pattern: bigint
   pitches: bigint
   playingStep: number
-  onCellClick: (cellId: number, rect: DOMRect) => void
+  onCellClick: (cellId: number, rect: DOMRect, status: CellStatus) => void
+  cells?: CellState[]
+  myAddress?: string | null
+  currentLoop?: number
+  landed: Set<number>
 }
 
-function Row({ track, pattern, pitches, playingStep, onCellClick }: RowProps) {
+function Row({
+  track,
+  pattern,
+  pitches,
+  playingStep,
+  onCellClick,
+  cells,
+  myAddress,
+  currentLoop,
+  landed,
+}: RowProps) {
+  const liveMode = cells !== undefined
   return (
     <>
-      <div className="label">{TRACK_LABELS[track]}</div>
+      <div className="label">
+        {liveMode && <span className={`track-dot ${TRACK_LABELS[track]}`} />}
+        {TRACK_LABELS[track]}
+      </div>
       {Array.from({ length: STEPS }).map((_, step) => {
         const cellId = step + track * STEPS
         const on = ((pattern >> BigInt(cellId)) & 1n) === 1n
         const isSynth = cellId >= SYNTH_CELL_START
         const playing = playingStep === step
         const beatStart = step % 4 === 0
+
+        const cell = cells?.[cellId]
+        const owner = on ? (cell?.owner ?? null) : null
+        const mine = sameAddr(owner, myAddress)
+        const pending = Boolean(cell?.pending)
+        const loopsLeft =
+          cell && currentLoop !== undefined ? cell.expiryLoop - currentLoop : Number.POSITIVE_INFINITY
+        const expiring = on && liveMode && Number.isFinite(loopsLeft) && loopsLeft <= EXPIRING_SOON_LOOPS
+
+        let status: CellStatus = 'free'
+        if (on && owner) status = mine ? 'mine' : 'occupied'
 
         let label = ''
         if (on && isSynth) {
@@ -63,16 +133,42 @@ function Row({ track, pattern, pitches, playingStep, onCellClick }: RowProps) {
 
         const trackName = TRACK_LABELS[track]
         const cls = ['cell']
-        if (on) cls.push('on', trackName)
+        if (on) {
+          cls.push('on')
+          if (liveMode) cls.push(mine ? 'mine' : 'other')
+          else cls.push(trackName)
+        }
         if (playing) cls.push('playing')
         if (beatStart) cls.push('beat-1')
+        if (pending) cls.push('pending')
+        if (expiring) cls.push('expiring')
+        if (landed.has(cellId)) cls.push('just-landed')
+
+        const style: CSSProperties = {}
+        if (on && liveMode && owner && !mine) {
+          ;(style as Record<string, string>)['--cell-color'] = ownerColor(owner)
+        }
+
+        let title = `cell ${cellId}`
+        if (liveMode) {
+          if (status === 'occupied' && owner) {
+            const n = Math.max(0, Math.round(loopsLeft))
+            title = `rented by ${shortAddr(owner)} · ${n} loop${n === 1 ? '' : 's'} left`
+          } else if (status === 'mine') {
+            const n = Math.max(0, Math.round(loopsLeft))
+            title = `your cell · ${n} loop${n === 1 ? '' : 's'} left${pending ? ' · confirming…' : ''}`
+          } else {
+            title = `cell ${cellId} — tap to rent`
+          }
+        }
 
         return (
           <div
             key={cellId}
             className={cls.join(' ')}
-            onClick={(e) => onCellClick(cellId, e.currentTarget.getBoundingClientRect())}
-            title={`cell ${cellId}`}
+            style={style}
+            onClick={(e) => onCellClick(cellId, e.currentTarget.getBoundingClientRect(), status)}
+            title={title}
           >
             {label}
           </div>

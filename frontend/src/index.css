@@ -626,3 +626,169 @@ kbd {
   font-family: ui-monospace, monospace;
   font-size: 11px;
 }
+
+/* ───── Block-sync badge (header) ───── */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hat);
+  box-shadow: 0 0 6px var(--hat);
+}
+.sync-badge:not(.connecting) .sync-dot {
+  animation: blockPulse 0.5s ease-out;
+}
+.sync-badge.connecting .sync-dot {
+  background: var(--muted);
+  box-shadow: none;
+  animation: dim 1.2s ease-in-out infinite;
+}
+@keyframes blockPulse {
+  0% { transform: scale(2.4); opacity: 0.85; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes dim {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ───── Live grid — cells coloured by who rented them ───── */
+.track-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.track-dot.kick  { background: var(--kick); }
+.track-dot.snare { background: var(--snare); }
+.track-dot.hat   { background: var(--hat); }
+.track-dot.synth { background: var(--synth); }
+
+.cell.on.mine {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.cell.on.other {
+  background: var(--cell-color, var(--accent));
+  border-color: var(--cell-color, var(--accent));
+  color: rgba(8, 8, 18, 0.82);
+}
+/* optimistic — our toggle tx is in flight, not yet confirmed on chain */
+.cell.pending {
+  outline: 2px dashed rgba(255, 255, 255, 0.72);
+  outline-offset: -3px;
+  animation: pendingPulse 1s ease-in-out infinite;
+}
+/* rent is nearly up — anyone can grab the cell soon */
+.cell.expiring {
+  animation: expirePulse 1.4s ease-in-out infinite;
+}
+/* a CellRented event just landed — one-shot pop */
+.cell.just-landed {
+  animation: landPop 0.7s ease-out;
+  z-index: 2;
+}
+@keyframes pendingPulse {
+  0%, 100% { outline-color: rgba(255, 255, 255, 0.72); }
+  50%      { outline-color: rgba(255, 255, 255, 0.18); }
+}
+@keyframes expirePulse {
+  0%, 100% { opacity: 0.72; }
+  50%      { opacity: 0.38; }
+}
+@keyframes landPop {
+  0%   { transform: scale(0.5);  filter: brightness(1.9); }
+  55%  { transform: scale(1.2);  filter: brightness(1.35); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+
+/* ───── Contributor strip (live-grid colour key) ───── */
+.contrib-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  font-size: 11px;
+  min-height: 1.4rem;
+}
+.contrib-strip.empty {
+  color: var(--muted);
+}
+.contrib-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.contrib-list {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.contrib-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-family: ui-monospace, monospace;
+}
+.contrib-chip.mine {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.contrib-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.contrib-count {
+  color: var(--muted);
+  background: var(--panel-2);
+  border-radius: 4px;
+  padding: 0 0.32rem;
+  font-size: 10px;
+}
+
+/* ───── Cell popover — "claimed by another player" variant ───── */
+.popover-claimed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.claimed-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.claimed-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

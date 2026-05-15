@@ -2,27 +2,34 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256, decodeEventLog } from 'viem'
-import { Grid } from './Grid'
+import { Grid, type CellStatus } from './Grid'
 import { CellPopover } from './CellPopover'
+import { ContributorStrip } from './ContributorStrip'
 import { Library, type LoopRecord } from './Library'
-import { config, megaethMainnet, LOOP_DURATION_SECONDS, SYNTH_CELL_START } from './config'
+import { config, megaethMainnet, LOOP_DURATION_SECONDS } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
-import { publicClient } from './viemClient'
+import { publicClient, usingWebSocket } from './viemClient'
+import { useLiveGrid } from './useLiveGrid'
 import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep } from './audio'
 
-const POLL_MS = 2000
+// The live grid streams from chain events; only wallet/price state is polled.
+const WALLET_POLL_MS = 5000
 
 export function App() {
   const { ready, authenticated, user, login, logout } = usePrivy()
   const { client: smartWalletClient } = useSmartWallets()
 
-  const [pattern, setPattern] = useState<bigint>(0n)
-  const [pitches, setPitches] = useState<bigint>(0n)
+  const grid = useLiveGrid()
+
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
   const [allowance, setAllowance] = useState<bigint>(0n)
   const [basePrice, setBasePrice] = useState<bigint>(1n * 10n ** 18n) // default 1 USDm; refreshed from chain
   const [rentPerLoop, setRentPerLoop] = useState<bigint>(4n * 10n ** 15n) // default 0.004 USDm/loop; refreshed from chain
-  const [openCell, setOpenCell] = useState<{ id: number; rect: DOMRect } | null>(null)
+  const [openCell, setOpenCell] = useState<{
+    id: number
+    rect: DOMRect
+    occupied?: { who: string; loopsLeft: number }
+  } | null>(null)
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
@@ -39,19 +46,16 @@ export function App() {
   playbackRef.current = playback
   const fundPromptedRef = useRef(false)
 
-  const refresh = useCallback(async () => {
+  // Wallet + contract-pricing state. The grid itself is event-streamed, so this
+  // poll only covers balance / allowance / prices.
+  const refreshWallet = useCallback(async () => {
     try {
-      const [p, ps, base, rent] = await Promise.all([
-        publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'livePattern' }),
-        publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'livePitches' }),
+      const [base, rent] = await Promise.all([
         publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'basePrice' }),
         publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'rentPerLoop' }),
       ])
-      setPattern(p as bigint)
-      setPitches(ps as bigint)
       setBasePrice(base as bigint)
       setRentPerLoop(rent as bigint)
-      setLiveState(p as bigint, ps as bigint)
 
       if (smartAddress) {
         const [bal, allow] = await Promise.all([
@@ -72,15 +76,20 @@ export function App() {
         setAllowance(allow as bigint)
       }
     } catch (e) {
-      console.error('refresh failed', e)
+      console.error('wallet refresh failed', e)
     }
   }, [smartAddress])
 
   useEffect(() => {
-    refresh()
-    const id = setInterval(refresh, POLL_MS)
+    refreshWallet()
+    const id = setInterval(refreshWallet, WALLET_POLL_MS)
     return () => clearInterval(id)
-  }, [refresh])
+  }, [refreshWallet])
+
+  // Feed the audio engine the live grid whenever it changes (unless replaying a loop).
+  useEffect(() => {
+    if (!playback) setLiveState(grid.pattern, grid.pitches)
+  }, [grid.pattern, grid.pitches, playback])
 
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
@@ -189,7 +198,7 @@ export function App() {
   }
 
   const onToggle = (cellId: number, durationLoops: number, pitchIdx: number) => {
-    if (!smartWalletClient) return
+    if (!smartWalletClient || !smartAddress) return
 
     // Renting a cell pulls USDm via toggle() → safeTransferFrom, so it needs the
     // same one-time approval the press/record flows do — without it the call
@@ -204,18 +213,9 @@ export function App() {
     }
 
     setOpenCell(null)
-    const bit = 1n << BigInt(cellId)
-    const optimisticPattern = pattern | bit
-    let optimisticPitches = pitches
-    if (cellId >= SYNTH_CELL_START) {
-      const offset = cellId - SYNTH_CELL_START
-      const mask = ~(0x7n << BigInt(offset * 3))
-      optimisticPitches = (pitches & mask) | (BigInt(pitchIdx & 0x7) << BigInt(offset * 3))
-      setPitches(optimisticPitches)
-    }
-    setPattern(optimisticPattern)
-    if (!playbackRef.current) setLiveState(optimisticPattern, optimisticPitches)
-    flash(`Cell ${cellId} on for ${durationLoops}× ${LOOP_DURATION_SECONDS}s`)
+    // Light the cell instantly — marked pending until the tx confirms on chain.
+    grid.applyOptimistic(cellId, smartAddress, durationLoops, pitchIdx)
+    flash(`Renting cell ${cellId} for ${durationLoops}× ${LOOP_DURATION_SECONDS}s…`)
 
     const calls = withApproval(cost, {
       to: config.loopchainAddress,
@@ -227,17 +227,27 @@ export function App() {
     })
     smartWalletClient
       .sendTransaction({ calls }, { uiOptions: { showWalletUIs: false } })
-      .then(() => refresh())
+      .then(async (txHash) => {
+        try {
+          await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
+        } catch {
+          // receipt wait is best-effort — the CellRented event also confirms it
+        }
+        void grid.refreshCell(cellId)
+        void refreshWallet()
+      })
       .catch((e: unknown) => {
-        flash((e as Error).message ?? 'toggle failed', true)
-        refresh()
+        flash((e as Error).message ?? 'rent failed', true)
+        // Roll the optimistic cell back to on-chain truth.
+        void grid.refreshCell(cellId)
+        void refreshWallet()
       })
   }
 
   // Press copy #1 of a brand-new loop — calls record().
   const onRecord = async () => {
     if (!smartWalletClient) return
-    if (pattern === 0n) {
+    if (grid.pattern === 0n) {
       flash('Grid is empty — toggle some cells first', true)
       return
     }
@@ -279,7 +289,7 @@ export function App() {
       if (newSeriesId !== null) setShareSeriesId(newSeriesId)
       else flash('Recorded!')
       setLibraryRefresh((n) => n + 1)
-      refresh()
+      refreshWallet()
     } catch (e: unknown) {
       flash((e as Error).message ?? 'record failed', true)
     }
@@ -362,7 +372,7 @@ export function App() {
         void refreshPlayback(record.seriesId)
       }
       setLibraryRefresh((n) => n + 1)
-      refresh()
+      refreshWallet()
     } catch (e: unknown) {
       flash((e as Error).message ?? 'press failed', true)
     } finally {
@@ -390,7 +400,7 @@ export function App() {
       )
       flash(`Claimed royalties for loop #${record.seriesId}`)
       setLibraryRefresh((n) => n + 1)
-      refresh()
+      refreshWallet()
     } catch (e: unknown) {
       flash((e as Error).message ?? 'claim failed', true)
     } finally {
@@ -421,18 +431,34 @@ export function App() {
     }
   }
 
-  const userEmail = user?.email?.address ?? user?.google?.email ?? null
-  const canRecord = authenticated && smartAddress && pattern !== 0n && !playback
+  // Route a grid click: a cell held by someone else opens a read-only info card;
+  // free / own cells open the toggle popover.
+  const handleCellClick = (id: number, rect: DOMRect, status: CellStatus) => {
+    if (status === 'occupied') {
+      const c = grid.cells[id]
+      if (c.owner) {
+        setOpenCell({ id, rect, occupied: { who: c.owner, loopsLeft: c.expiryLoop - grid.currentLoop } })
+        return
+      }
+    }
+    setOpenCell({ id, rect })
+  }
 
-  const displayPattern = playback ? playback.pattern : pattern
-  const displayPitches = playback ? playback.pitches : pitches
+  const userEmail = user?.email?.address ?? user?.google?.email ?? null
+  const canRecord = authenticated && smartAddress && grid.pattern !== 0n && !playback
+
+  const displayPattern = playback ? playback.pattern : grid.pattern
+  const displayPitches = playback ? playback.pitches : grid.pitches
 
   const basePriceStr = fmtUsdm(basePrice)
 
   return (
     <div className="app">
       <header className="header">
-        <h1>Loopchain</h1>
+        <div className="header-left">
+          <h1>Loopchain</h1>
+          <SyncBadge blockNumber={grid.blockNumber} />
+        </div>
         <div className="right">
           <button onClick={onAudioToggle}>{audioOn ? '◼ stop' : '▶ play'}</button>
           {authenticated && (
@@ -443,7 +469,7 @@ export function App() {
               title={
                 playback
                   ? 'Exit playback to record the live grid'
-                  : pattern === 0n
+                  : grid.pattern === 0n
                     ? 'Toggle some cells first'
                     : `Press copy #1 — ${basePriceStr} USDm`
               }
@@ -514,12 +540,21 @@ export function App() {
         pattern={displayPattern}
         pitches={displayPitches}
         playingStep={playingStep}
-        onCellClick={playback ? () => undefined : (id, rect) => setOpenCell({ id, rect })}
+        onCellClick={playback ? () => undefined : handleCellClick}
+        cells={playback ? undefined : grid.cells}
+        myAddress={smartAddress}
+        currentLoop={grid.currentLoop}
+        lastRent={playback ? null : grid.lastRent}
       />
+
+      {!playback && (
+        <ContributorStrip cells={grid.cells} currentLoop={grid.currentLoop} myAddress={smartAddress} />
+      )}
 
       <div className="controls">
         <span className="muted">
-          {countCells(displayPattern)} cells {playback ? 'in snapshot' : 'live'} · poll every {POLL_MS / 1000}s
+          {countCells(displayPattern)} cells {playback ? 'in snapshot' : 'live'}
+          {!playback && ` · ${usingWebSocket ? 'streaming ⚡' : 'live updates'}`}
         </span>
         <span className="muted">
           chain {config.chainId} ·{' '}
@@ -546,6 +581,7 @@ export function App() {
         <CellPopover
           cellId={openCell.id}
           anchorRect={openCell.rect}
+          occupied={openCell.occupied}
           onClose={() => setOpenCell(null)}
           onSubmit={(duration, pitch) => onToggle(openCell.id, duration, pitch)}
         />
@@ -567,6 +603,25 @@ export function App() {
         </div>
       )}
     </div>
+  )
+}
+
+// Live MegaETH block the grid is synced to — a heartbeat that reframes the grid
+// as shared global state. The dot replays its pulse on every new block.
+function SyncBadge({ blockNumber }: { blockNumber: number }) {
+  if (!blockNumber) {
+    return (
+      <span className="sync-badge connecting" title="Connecting to MegaETH…">
+        <span className="sync-dot" />
+        syncing…
+      </span>
+    )
+  }
+  return (
+    <span className="sync-badge" title="The live grid is synced to this MegaETH block">
+      <span className="sync-dot" key={blockNumber} />
+      block #{blockNumber.toLocaleString('en-US')}
+    </span>
   )
 }
 

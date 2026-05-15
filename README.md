@@ -130,6 +130,7 @@ Rent is therefore an unattributed USDm balance that builds up on the contract ov
 | **Mainnet deploy** | ✅ chain 4326 — Loopchain `0x64D8…bf76` (Series + bonding curve, deployed 2026-05-15) |
 | Frontend (`frontend/`) | ✅ live on Vercel — repoint `VITE_LOOPCHAIN_ADDRESS` to the new address + redeploy |
 | Toggle UX | ✅ silent (no modal), approve modal preserved |
+| Live grid | ✅ event-streamed — `CellRented` over WebSocket (getLogs-poll fallback), cells coloured by owner, block-sync badge |
 | Record / press / royalty-claim UI | ✅ wired |
 | Session keys | not yet — see "Roadmap" below |
 
@@ -192,6 +193,7 @@ npm run dev
 ## Roadmap (post-v1)
 
 - **Session keys** — install a permission-scoped key on the Kernel account at login (target = Loopchain, selectors = `toggle` / `record` / `press`, valid 24h). All toggles sign locally — sub-50ms latency, no Privy roundtrip. Today's `showWalletUIs: false` already kills the modal, but each toggle still hops through the bundler.
+- **True WebSocket push** — set `VITE_WS_RPC_URL` to a MegaETH WS endpoint so the live grid streams `CellRented` over `eth_subscribe` instead of the 1s `getLogs` poll it falls back to today.
 - **Playable NFT / series page** — a `/loop/:seriesId` route that plays the snapshot (Tone.js + on-chain read). Share links already carry `?loop=<seriesId>`; this would give each loop a real page.
 - **Per-loop share cards** — dynamic OG images for `?loop=N` links (needs a Vercel edge function); static OG card ships today.
 - **Royalty keeper** — a bot that watches marketplace transfers and calls `depositRoyalty(seriesId, …)` so resale royalties get attributed without a manual step.

@@ -8,12 +8,16 @@ import {
   DEFAULT_TOGGLE_LOOPS,
   MAX_TOGGLE_LOOPS,
 } from './config'
+import { ownerColor, shortAddr } from './owner'
 
 interface Props {
   cellId: number
   anchorRect: DOMRect
   onClose: () => void
   onSubmit: (durationLoops: number, pitchIdx: number) => void
+  // When set, the cell is held by another player — the popover renders a
+  // read-only "claimed" card instead of the toggle controls.
+  occupied?: { who: string; loopsLeft: number }
 }
 
 interface PopoverPos {
@@ -25,7 +29,7 @@ interface PopoverPos {
 
 // Contextual toggle popover — anchored to the clicked cell so toggling is one click
 // away from the cursor. T toggles at the chosen duration, M jumps to a max toggle.
-export function CellPopover({ cellId, anchorRect, onClose, onSubmit }: Props) {
+export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }: Props) {
   const [duration, setDuration] = useState(DEFAULT_TOGGLE_LOOPS)
   const [pitch, setPitch] = useState(0)
   const [pos, setPos] = useState<PopoverPos | null>(null)
@@ -59,12 +63,14 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit }: Props) {
   }, [anchorRect, isSynth])
 
   // Hotkeys: T = toggle at current duration, M = max toggle, Esc = close.
+  // A cell held by another player is read-only, so only Esc is wired.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()
         return
       }
+      if (occupied) return
       const k = e.key.toLowerCase()
       if (k === 't') {
         e.preventDefault()
@@ -76,7 +82,7 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [duration, pitch, onClose, onSubmit])
+  }, [duration, pitch, onClose, onSubmit, occupied])
 
   return (
     <div className="popover-layer" onClick={onClose}>
@@ -99,38 +105,54 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit }: Props) {
           </button>
         </div>
 
-        <label className="popover-duration">
-          loops
-          <input
-            type="number"
-            min={1}
-            max={MAX_TOGGLE_LOOPS}
-            value={duration}
-            onChange={(e) =>
-              setDuration(Math.max(1, Math.min(MAX_TOGGLE_LOOPS, Number(e.target.value) || 1)))
-            }
-          />
-        </label>
-
-        {isSynth && (
-          <div className="pitch-picker">
-            <span className="pitch-label">pitch</span>
-            <Keyboard selected={pitch} onSelect={setPitch} />
+        {occupied ? (
+          <div className="popover-claimed">
+            <span className="claimed-owner">
+              <span className="claimed-dot" style={{ background: ownerColor(occupied.who) }} />
+              rented by {shortAddr(occupied.who)}
+            </span>
+            <span className="muted">
+              Frees up in {Math.max(0, occupied.loopsLeft)} loop
+              {occupied.loopsLeft === 1 ? '' : 's'} (~{Math.max(0, occupied.loopsLeft) * LOOP_DURATION_SECONDS}s)
+              {' '}— then it's yours to grab.
+            </span>
           </div>
+        ) : (
+          <>
+            <label className="popover-duration">
+              loops
+              <input
+                type="number"
+                min={1}
+                max={MAX_TOGGLE_LOOPS}
+                value={duration}
+                onChange={(e) =>
+                  setDuration(Math.max(1, Math.min(MAX_TOGGLE_LOOPS, Number(e.target.value) || 1)))
+                }
+              />
+            </label>
+
+            {isSynth && (
+              <div className="pitch-picker">
+                <span className="pitch-label">pitch</span>
+                <Keyboard selected={pitch} onSelect={setPitch} />
+              </div>
+            )}
+
+            <div className="muted popover-cost">
+              {(0.004 * duration).toFixed(3)} USDm · live {duration * LOOP_DURATION_SECONDS}s
+            </div>
+
+            <div className="popover-actions">
+              <button className="primary" onClick={() => onSubmit(duration, pitch)}>
+                toggle <kbd>T</kbd>
+              </button>
+              <button className="hot" onClick={() => onSubmit(MAX_TOGGLE_LOOPS, pitch)}>
+                max <kbd>M</kbd>
+              </button>
+            </div>
+          </>
         )}
-
-        <div className="muted popover-cost">
-          {(0.004 * duration).toFixed(3)} USDm · live {duration * LOOP_DURATION_SECONDS}s
-        </div>
-
-        <div className="popover-actions">
-          <button className="primary" onClick={() => onSubmit(duration, pitch)}>
-            toggle <kbd>T</kbd>
-          </button>
-          <button className="hot" onClick={() => onSubmit(MAX_TOGGLE_LOOPS, pitch)}>
-            max <kbd>M</kbd>
-          </button>
-        </div>
 
         <span className="popover-arrow" style={{ left: pos?.arrowLeft ?? 0 }} />
       </div>

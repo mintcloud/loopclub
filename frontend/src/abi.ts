@@ -16,6 +16,13 @@ export const loopchainAbi = [
     inputs: [{ type: 'uint8' }],
     outputs: [{ type: 'uint64' }],
   },
+  {
+    type: 'function',
+    name: 'cellPitch',
+    stateMutability: 'view',
+    inputs: [{ type: 'uint8' }],
+    outputs: [{ type: 'uint8' }],
+  },
   { type: 'function', name: 'rentPerLoop', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'basePrice', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'alpha', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
@@ -116,6 +123,17 @@ export const loopchainAbi = [
       { name: 'holders', type: 'address[]' },
       { name: 'cellsPerHolder', type: 'uint8[]' },
     ],
+  },
+  {
+    type: 'event',
+    name: 'CellRented',
+    inputs: [
+      { name: 'cellId', type: 'uint8', indexed: true },
+      { name: 'renter', type: 'address', indexed: true },
+      { name: 'expiryLoop', type: 'uint64', indexed: false },
+      { name: 'pitchIdx', type: 'uint8', indexed: false },
+    ],
+    anonymous: false,
   },
   {
     type: 'event',
