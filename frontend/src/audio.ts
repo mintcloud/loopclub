@@ -46,6 +46,18 @@ function pitchAtFrom(pitches: bigint, synthCellOffset: number): string {
 export async function startAudio() {
   if (seq) return
   await Tone.start()
+  // iOS: switch off the default "ambient" audio session so the hardware
+  // ring/silent switch doesn't mute Web Audio on the built-in speaker.
+  // The user explicitly pressed play, so 'playback' is the right category.
+  // Safari 16.4+ / iOS 17+; older iOS lacks the API and silently no-ops
+  // (headphone/Bluetooth output is unaffected by the silent switch anyway).
+  if ('audioSession' in navigator) {
+    try {
+      (navigator as { audioSession: { type: string } }).audioSession.type = 'playback'
+    } catch {
+      // Unsupported value or read-only — leave the default session.
+    }
+  }
   // 60 BPM × 16th-notes = 250ms/step, 16 steps = 4s — matches LOOP_DURATION_SECONDS.
   Tone.Transport.bpm.value = 60
 
