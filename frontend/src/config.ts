@@ -1,5 +1,23 @@
 import { defineChain } from 'viem'
 
+// ───── Fast mode (session keys) — HARD-DISABLED 2026-05-18 ─────
+// Fast mode is non-functional on MegaETH and is removed from the deployment
+// until that changes. The session-key permission depends on ZeroDev's
+// TimestampPolicy contract (0xB9f8f524bE6EcD8C945b1b87f9ae5C192FdCE20F), which
+// is NOT deployed on chain 4326 — so every fast-mode toggle reverts on-chain
+// with `AA23 reverted 0x` (see sessionKey.ts for the full diagnosis).
+//
+// This build-time gate forces the feature off regardless of the
+// VITE_ENABLE_SESSION_KEYS env var, so a stale Vercel setting can't ship the
+// broken feature. With it off, useSessionKey() reports `disabled`, the ⚡
+// fast-mode control is not rendered, and every cell toggle goes through the
+// Privy client — i.e. the app behaves exactly as it did pre-session-keys.
+//
+// RE-ENABLE: flip this to `true` once ZeroDev deploys TimestampPolicy on chain
+// 4326 (support ticket raised 2026-05-18). No other code change is needed —
+// the session-key implementation (sessionKey.ts / useSessionKey.ts) is intact.
+const SESSION_KEYS_SUPPORTED = false
+
 export const config = {
   privyAppId: import.meta.env.VITE_PRIVY_APP_ID as string,
   chainId: Number(import.meta.env.VITE_CHAIN_ID),
@@ -14,11 +32,12 @@ export const config = {
   // submit toggle UserOps signed by the in-browser session key. Same endpoint
   // the Privy Kernel wallet already uses. Session keys stay off unless set.
   zerodevRpcUrl: (import.meta.env.VITE_ZERODEV_RPC_URL as string | undefined) || undefined,
-  // Master switch for Step 4 (session keys) — see sessionKey.ts. Off by
-  // default: enable it in a preview deploy, confirm the kernel-address match
-  // logged to the console, then flip it on in production. Safe by construction
-  // even when on — the address guard refuses to engage on any mismatch.
-  enableSessionKeys: import.meta.env.VITE_ENABLE_SESSION_KEYS === 'true',
+  // Master switch for Step 4 (session keys) — see sessionKey.ts. Requires BOTH
+  // the build-time SESSION_KEYS_SUPPORTED gate above (currently off — fast mode
+  // is broken on MegaETH) AND the VITE_ENABLE_SESSION_KEYS env var. While
+  // SESSION_KEYS_SUPPORTED is false this is always false, whatever the env says.
+  enableSessionKeys:
+    SESSION_KEYS_SUPPORTED && import.meta.env.VITE_ENABLE_SESSION_KEYS === 'true',
 }
 
 // Multicall3 — same deterministic CREATE2 address on MegaETH mainnet as every

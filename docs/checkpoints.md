@@ -46,6 +46,16 @@ all that's needed — no on-chain action.
 
 ## Step 4 — session keys ("fast mode")
 
+> **STATUS 2026-05-18 — fast mode is HARD-DISABLED.** It is non-functional on
+> MegaETH: the session-key permission needs ZeroDev's `TimestampPolicy`
+> contract (`0xB9f8f524…20F`), which is not deployed on chain 4326, so every
+> fast-mode toggle reverts with `AA23 reverted 0x`. `config.ts` now gates the
+> feature behind a build-time `SESSION_KEYS_SUPPORTED = false` constant, so the
+> deployment ships without fast mode regardless of `VITE_ENABLE_SESSION_KEYS`.
+> A ZeroDev support ticket (raised 2026-05-18) asks them to deploy
+> `TimestampPolicy` on 4326. **Re-enable:** flip `SESSION_KEYS_SUPPORTED` to
+> `true` once the contract is live — no other code change needed.
+
 Added on top of `pre-session-keys`. Lets a user authorise an in-browser
 session key once, after which cell toggles are signed locally (no Privy
 round-trip). See `frontend/src/sessionKey.ts` for the full safety model.
