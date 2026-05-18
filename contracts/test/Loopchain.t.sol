@@ -19,6 +19,11 @@ contract LoopchainTest is Test {
 
     uint64 constant LOOP_DURATION = 4;
 
+    // First synth cell — track 9 (index 8) starts at cell 128.
+    uint8 constant SYNTH0  = 128;
+    uint8 constant SYNTH2  = 130;
+    uint8 constant SYNTH15 = 143; // last cell of the 144-cell grid
+
     function setUp() public {
         usdm = new MockUsdm();
         lc = new Loopchain(address(usdm), treasury, owner);
@@ -50,11 +55,12 @@ contract LoopchainTest is Test {
 
     function test_toggle_synthCell_storesPitch() public {
         vm.prank(alice);
-        lc.toggle(50, 2, 3);
+        lc.toggle(SYNTH2, 2, 3);
 
-        assertEq(lc.cellPitch(50), 3);
-        uint64 pitches = lc.livePitches();
-        assertEq((pitches >> 6) & 0x7, 3);
+        assertEq(lc.cellSynthData(SYNTH2), 3);
+        uint256 synthData = lc.liveSynthData();
+        // Synth cell index 2 → bits [32..47]; pitch lives in bits 0-2 of that word.
+        assertEq((synthData >> 32) & 0x7, 3);
     }
 
     function test_toggle_revertsOnCollision() public {
@@ -85,9 +91,17 @@ contract LoopchainTest is Test {
     }
 
     function test_toggle_revertsOnBadPitch() public {
+        // PITCH_OPTIONS is 8 → cellData 0..7 valid; 8 reverts (and forces reserved bits 3-15 to zero).
         vm.prank(alice);
         vm.expectRevert();
-        lc.toggle(48, 2, 5);
+        lc.toggle(SYNTH0, 2, 8);
+    }
+
+    function test_toggle_revertsOnBadCell() public {
+        // CELLS is 144 → cell 144 is out of range.
+        vm.prank(alice);
+        vm.expectRevert();
+        lc.toggle(144, 4, 0);
     }
 
     function test_toggle_afterExpiry_newOwnerCanRent() public {
@@ -95,6 +109,28 @@ contract LoopchainTest is Test {
         vm.warp(block.timestamp + 3 * LOOP_DURATION);
         vm.prank(bob); lc.toggle(9, 1, 0);
         assertEq(lc.cellOwner(9), bob);
+    }
+
+    // ─────── 9-track grid ───────
+
+    function test_toggle_highCells_acrossNewTracks() public {
+        vm.prank(alice); lc.toggle(100, 4, 0);     // cowbell track
+        vm.prank(bob);   lc.toggle(SYNTH0, 4, 0);  // first synth cell
+        vm.prank(carol); lc.toggle(SYNTH15, 4, 0); // last cell of the grid
+
+        uint256 p = lc.livePattern();
+        assertEq((p >> 100) & 1, 1);
+        assertEq((p >> SYNTH0) & 1, 1);
+        assertEq((p >> SYNTH15) & 1, 1);
+    }
+
+    function test_liveSynthData_packsSixteenBitsPerCell() public {
+        vm.prank(alice); lc.toggle(SYNTH0,  8, 1);  // synth idx 0,  pitch 1
+        vm.prank(alice); lc.toggle(SYNTH15, 8, 7);  // synth idx 15, pitch 7
+
+        uint256 sd = lc.liveSynthData();
+        assertEq(sd & 0xFFFF, 1);                 // idx 0  → bits [0..15]
+        assertEq((sd >> (15 * 16)) & 0xFFFF, 7);  // idx 15 → bits [240..255]
     }
 
     // ─────── Pricing curve ───────
@@ -176,19 +212,34 @@ contract LoopchainTest is Test {
 
     function test_record_storesSnapshot() public {
         vm.prank(alice); lc.toggle(0, 4, 0);
-        vm.prank(bob);   lc.toggle(50, 4, 2);
+        vm.prank(bob);   lc.toggle(SYNTH2, 4, 2);
 
         vm.prank(carol);
         uint256 tokenId = lc.record();
 
-        (uint64 pat, uint64 pit, , address[] memory holders, uint8[] memory cells) = lc.loopOf(tokenId);
+        (uint256 pat, uint256 sd, , , , , address[] memory holders, uint8[] memory cells)
+            = lc.loopOf(tokenId);
 
         assertEq(pat & 1, 1);
-        assertEq((pat >> 50) & 1, 1);
-        assertEq((pit >> 6) & 0x7, 2);
+        assertEq((pat >> SYNTH2) & 1, 1);
+        assertEq((sd >> 32) & 0x7, 2);
         assertEq(holders.length, 2);
         assertEq(cells[0], 1);
         assertEq(cells[1], 1);
+    }
+
+    function test_record_snapshotsKitScaleSwing() public {
+        // Owner sets scale/swing; a paid flip moves the live kit; record() freezes all three.
+        vm.prank(owner); lc.setGlobals(3, 6);
+        vm.prank(carol); lc.setKit(4);
+
+        vm.prank(alice); lc.toggle(0, 8, 0);
+        vm.prank(alice); uint256 tokenId = lc.record();
+
+        (, , , , uint8 k, uint8 sc, uint8 sw, , ) = lc.seriesInfo(lc.seriesOf(tokenId));
+        assertEq(k,  4);
+        assertEq(sc, 3);
+        assertEq(sw, 6);
     }
 
     // ─────── Press (editions 2+) ───────
@@ -279,8 +330,116 @@ contract LoopchainTest is Test {
             lc.press(seriesId);
         }
         // After 5 total editions (1 record + 4 press), nextEdition should be 6.
-        (, , , uint32 nextEd, , ) = lc.seriesInfo(seriesId);
+        (, , , uint32 nextEd, , , , , ) = lc.seriesInfo(seriesId);
         assertEq(nextEd, 6);
+    }
+
+    // ─────── Kit flip (paid global) ───────
+
+    function test_setKit_chargesFee_andSplits50_50() public {
+        // alice 2 cells, bob 1 cell — carol (no live cells) flips and pays full freight.
+        vm.prank(alice); lc.toggle(0, 8, 0);
+        vm.prank(alice); lc.toggle(1, 8, 0);
+        vm.prank(bob);   lc.toggle(2, 8, 0);
+
+        uint256 flipFee      = lc.flipFee();                                 // 10 USDm
+        uint256 coCreatorCut = (flipFee * lc.FLIP_COCREATOR_BPS()) / 10_000;  // 5 USDm
+        uint256 treasuryCut  = flipFee - coCreatorCut;                       // 5 USDm
+        uint256 perCell      = coCreatorCut / 3;                             // 3 live cells
+
+        uint256 aliceBefore = usdm.balanceOf(alice);
+        uint256 bobBefore   = usdm.balanceOf(bob);
+        uint256 carolBefore = usdm.balanceOf(carol);
+        uint256 trBefore    = usdm.balanceOf(treasury);
+
+        vm.prank(carol);
+        lc.setKit(1);
+
+        assertEq(lc.kitId(), 1);
+        // Co-creator half is pushed pro-rata, in this tx (no claim step).
+        assertEq(usdm.balanceOf(alice) - aliceBefore, perCell * 2);
+        assertEq(usdm.balanceOf(bob)   - bobBefore,   perCell * 1);
+        assertEq(usdm.balanceOf(treasury) - trBefore, treasuryCut);
+        assertEq(int256(usdm.balanceOf(carol)) - int256(carolBefore), -int256(flipFee));
+    }
+
+    function test_setKit_creatorDiscount_ownerOfAllCellsPaysHalf() public {
+        // Alice owns 100% of the live cells and flips → the co-creator half routes back to her.
+        vm.prank(alice); lc.toggle(0, 8, 0);
+        vm.prank(alice); lc.toggle(1, 8, 0);
+        vm.prank(alice); lc.toggle(2, 8, 0);
+
+        uint256 flipFee      = lc.flipFee();
+        uint256 coCreatorCut = (flipFee * lc.FLIP_COCREATOR_BPS()) / 10_000;
+        uint256 perCell      = coCreatorCut / 3;
+
+        uint256 aliceBefore = usdm.balanceOf(alice);
+
+        vm.prank(alice);
+        lc.setKit(1);
+
+        // Net = -flipFee + (her 3 cells' share). Owning everything → net ≈ -flipFee/2.
+        int256 expected = -int256(flipFee) + int256(perCell * 3);
+        assertEq(int256(usdm.balanceOf(alice)) - int256(aliceBefore), expected);
+    }
+
+    function test_setKit_noLiveCells_wholeFeeToTreasury() public {
+        uint256 flipFee     = lc.flipFee();
+        uint256 carolBefore = usdm.balanceOf(carol);
+        uint256 trBefore    = usdm.balanceOf(treasury);
+
+        vm.prank(carol);
+        lc.setKit(2);
+
+        assertEq(lc.kitId(), 2);
+        assertEq(usdm.balanceOf(treasury) - trBefore, flipFee); // no co-creators → all to treasury
+        assertEq(int256(usdm.balanceOf(carol)) - int256(carolBefore), -int256(flipFee));
+    }
+
+    function test_setKit_revertsOnSameKit() public {
+        // kitId starts at 0; flipping to 0 is a no-op and must revert.
+        vm.prank(carol);
+        vm.expectRevert();
+        lc.setKit(0);
+    }
+
+    function test_setKit_recordedSeriesKeepsItsKit() public {
+        vm.prank(alice); lc.toggle(0, 8, 0);
+
+        vm.prank(carol); lc.setKit(2);                  // live kit → 2
+        vm.prank(alice); uint256 tokenId = lc.record(); // series frozen at kit 2
+        uint256 seriesId = lc.seriesOf(tokenId);
+
+        vm.prank(bob); lc.setKit(8);                    // live kit → 8
+
+        (, , , , uint8 seriesKit, , , , ) = lc.seriesInfo(seriesId);
+        assertEq(seriesKit, 2);  // recorded Series unaffected by the later flip
+        assertEq(lc.kitId(), 8); // live grid moved on
+    }
+
+    function test_setKit_proRata_acrossThreeHolders() public {
+        // alice 3, bob 2, carol 1 — co-creator half splits 3:2:1.
+        vm.prank(alice); lc.toggle(0, 8, 0);
+        vm.prank(alice); lc.toggle(1, 8, 0);
+        vm.prank(alice); lc.toggle(2, 8, 0);
+        vm.prank(bob);   lc.toggle(3, 8, 0);
+        vm.prank(bob);   lc.toggle(4, 8, 0);
+        vm.prank(carol); lc.toggle(5, 8, 0);
+
+        uint256 flipFee      = lc.flipFee();
+        uint256 coCreatorCut = (flipFee * lc.FLIP_COCREATOR_BPS()) / 10_000;
+        uint256 perCell      = coCreatorCut / 6; // 6 live cells
+
+        uint256 aliceBefore = usdm.balanceOf(alice);
+        uint256 bobBefore   = usdm.balanceOf(bob);
+        uint256 carolBefore = usdm.balanceOf(carol);
+
+        vm.prank(dave);
+        lc.setKit(1);
+
+        assertEq(usdm.balanceOf(alice) - aliceBefore, perCell * 3);
+        assertEq(usdm.balanceOf(bob)   - bobBefore,   perCell * 2);
+        assertEq(usdm.balanceOf(carol) - carolBefore, perCell * 1);
     }
 
     // ─────── Royalty (series-keyed) ───────
@@ -364,15 +523,42 @@ contract LoopchainTest is Test {
         lc.setSplit(8_000, 1_000);
     }
 
+    function test_setGlobals_onlyOwner() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        lc.setGlobals(1, 1);
+
+        vm.prank(owner);
+        lc.setGlobals(5, 7);
+        assertEq(lc.scaleId(), 5);
+        assertEq(lc.swing(),   7);
+    }
+
+    function test_setFlipFee_onlyOwner_andTakesEffect() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        lc.setFlipFee(20e18);
+
+        vm.prank(owner);
+        lc.setFlipFee(20e18);
+        assertEq(lc.flipFee(), 20e18);
+
+        // A flip with no live cells now routes the new 20 USDm fee entirely to treasury.
+        uint256 trBefore = usdm.balanceOf(treasury);
+        vm.prank(carol);
+        lc.setKit(1);
+        assertEq(usdm.balanceOf(treasury) - trBefore, 20e18);
+    }
+
     // ─────── Regression: holders' cut survives high-numbered cells ───────
     // The old _popcount() SWAR trick mis-counted any pattern with lit cells beyond
-    // the first byte (#8+), collapsing the holders' cut to dust. These patterns span
-    // cells #0, #40, #63 — the case that mis-paid the real edition-#2 press on mainnet.
+    // the first byte (#8+), collapsing the holders' cut to dust. These patterns now
+    // also span the top of the widened 144-cell grid (#143).
 
     function test_press_holdersCut_correctWithHighCells() public {
-        vm.prank(alice); lc.toggle(0,  8, 0);
-        vm.prank(alice); lc.toggle(63, 8, 0);
-        vm.prank(bob);   lc.toggle(40, 8, 0);
+        vm.prank(alice); lc.toggle(0,       8, 0);
+        vm.prank(alice); lc.toggle(SYNTH15, 8, 0);
+        vm.prank(bob);   lc.toggle(40,      8, 0);
 
         vm.prank(carol);
         uint256 tokenId1 = lc.record();
@@ -394,9 +580,9 @@ contract LoopchainTest is Test {
     }
 
     function test_claimRoyalty_correctWithHighCells() public {
-        vm.prank(alice); lc.toggle(0,  4, 0);
-        vm.prank(alice); lc.toggle(63, 4, 0);
-        vm.prank(bob);   lc.toggle(40, 4, 0);
+        vm.prank(alice); lc.toggle(0,       4, 0);
+        vm.prank(alice); lc.toggle(SYNTH15, 4, 0);
+        vm.prank(bob);   lc.toggle(40,      4, 0);
         vm.prank(carol); uint256 tokenId = lc.record();
         uint256 seriesId = lc.seriesOf(tokenId);
 
