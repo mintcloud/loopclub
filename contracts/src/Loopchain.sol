@@ -10,14 +10,18 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
-/// @title Loopchain v1 (series + bonding-curve editions)
-/// @notice One global 16x4 step grid. Cells are rented for N loops; a pattern is recorded as
-///         a Series whose first NFT edition is minted at `basePrice`. Subsequent presses mint
-///         additional editions of the same Series at a quadratic price:
+/// @title Loopchain v1 (series + bonding-curve editions, sound-expansion build)
+/// @notice One global 16x9 step grid (16 steps x 9 tracks). Cells are rented for N loops; a
+///         pattern is recorded as a Series whose first NFT edition is minted at `basePrice`.
+///         Subsequent presses mint additional editions of the same Series at a quadratic price:
 ///         `price(n) = basePrice + alpha * (n - 1)^2`.
 ///         The recorder/presser receives an NFT but no financial cut — all primary-sale proceeds
 ///         (minus treasury cut) flow to the Series' co-creators (the cell holders snapshotted at
 ///         record() time), pro-rata to cells contributed.
+///         Three globals colour the live grid: `kitId` (the sound kit), `scaleId` and `swing`.
+///         `scaleId`/`swing` are owner-curated; `kitId` is community-flippable — anyone can call
+///         the paid `setKit` flip (fee split 50% treasury / 50% to live-cell co-creators).
+///         All three are snapshotted into a Series at record() time and frozen on the minted NFT.
 ///         Each NFT carries a fully on-chain `tokenURI`: its name states the exact Series (loop)
 ///         and edition number, so editions #1..#N of a loop are explicitly tied to that loop.
 contract Loopchain is ERC721, IERC2981, Ownable {
@@ -25,12 +29,14 @@ contract Loopchain is ERC721, IERC2981, Ownable {
 
     // ───────────────────────── Constants ─────────────────────────
 
-    uint8  public constant CELLS = 64;
     uint8  public constant STEPS = 16;
-    uint8  public constant SYNTH_CELL_START = 48;
-    uint8  public constant PITCH_OPTIONS = 5;
+    uint8  public constant TRACKS = 9;
+    uint8  public constant CELLS = 144;          // STEPS * TRACKS
+    uint8  public constant SYNTH_CELL_START = 128; // track 9 (index 8) → 8 * 16
+    uint8  public constant PITCH_OPTIONS = 8;    // 3-bit scale-degree index
     uint64 public constant LOOP_DURATION_SECONDS = 4;
-    uint96 public constant ROYALTY_BPS = 500; // 5%
+    uint96 public constant ROYALTY_BPS = 500;    // 5%
+    uint16 public constant FLIP_COCREATOR_BPS = 5_000; // 50% of a kit-flip fee → co-creators
 
     // ───────────────────────── Storage ─────────────────────────
 
@@ -50,18 +56,29 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     uint16 public holdersBps  = 7_000;
     uint16 public treasuryBps = 3_000;
 
+    // Kit-flip fee (USDm). Owner-tunable, like the prices. Split is the constant FLIP_COCREATOR_BPS.
+    uint256 public flipFee = 10e18;              // 10 USDm
+
+    // Live-grid globals, snapshotted into each Series at record() time.
+    uint8 public kitId;    // the live kit — mutated by the paid setKit() flip; anyone can flip
+    uint8 public scaleId;  // owner-set — the scale every loop is keyed to
+    uint8 public swing;    // owner-set — the swing amount the live grid plays with
+
     // Per-cell rental state (live grid).
     mapping(uint8 => address) public cellOwner;
     mapping(uint8 => uint64)  public cellExpiryLoop;
-    mapping(uint8 => uint8)   public cellPitch; // synth cells (cellId >= 48), values 0..4
+    mapping(uint8 => uint16)  public cellSynthData; // synth cells (cellId >= 128); bits 0-2 = pitch
 
     // Series (one per record()) and per-NFT lookup tables.
     struct Series {
-        uint64  pattern;
-        uint64  pitches;
+        uint256 pattern;            // 144-bit live-grid snapshot
+        uint256 synthData;          // 16 bits x 16 synth cells (see Appendix layout)
         uint64  mintedAtLoop;
         uint32  nextEdition;        // edition number for the NEXT press; 0 means "no series"
         uint16  cellCount;          // lit cells in `pattern`, snapshotted at record() time
+        uint8   kitId;              // kit this Series was recorded with — frozen
+        uint8   scaleId;            // scale at record() time — frozen
+        uint8   swing;              // swing at record() time — frozen
         address[] holders;          // unique cell owners at record time
         uint8[]   cellsPerHolder;   // parallel array
     }
@@ -81,14 +98,14 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         uint8 indexed cellId,
         address indexed renter,
         uint64 expiryLoop,
-        uint8 pitchIdx
+        uint16 cellData
     );
     event SeriesRecorded(
         uint256 indexed seriesId,
         uint256 indexed tokenId,
         address indexed recorder,
-        uint64 pattern,
-        uint64 pitches,
+        uint256 pattern,
+        uint256 synthData,
         uint64 mintedAtLoop,
         uint256 holdersCount,
         uint256 pricePaid
@@ -105,6 +122,9 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     event TreasuryRotated(address indexed previous, address indexed current);
     event PricesUpdated(uint256 rentPerLoop, uint256 basePrice, uint256 alpha, uint16 maxRentDurationLoops);
     event SplitUpdated(uint16 holdersBps, uint16 treasuryBps);
+    event KitFlipped(address indexed flipper, uint8 oldKit, uint8 newKit, uint256 feePaid);
+    event GlobalsUpdated(uint8 scaleId, uint8 swing);
+    event FlipFeeUpdated(uint256 flipFee);
 
     // ───────────────────────── Errors ─────────────────────────
 
@@ -114,6 +134,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     error BadSplit();
     error CellOccupied(address occupant, uint64 expiryLoop);
     error EmptyPattern();
+    error KitUnchanged();
     error NotAHolder();
     error NothingToClaim();
     error UnknownSeries();
@@ -135,23 +156,24 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         return uint64(block.timestamp / LOOP_DURATION_SECONDS);
     }
 
-    /// @notice Live grid pattern (bit i = cell i is currently rented).
-    function livePattern() public view returns (uint64 pattern) {
+    /// @notice Live grid pattern (bit i = cell i is currently rented). 144 cells → one uint256.
+    function livePattern() public view returns (uint256 pattern) {
         uint64 nowLoop = currentLoop();
         for (uint8 i = 0; i < CELLS; i++) {
             if (cellOwner[i] != address(0) && cellExpiryLoop[i] > nowLoop) {
-                pattern |= (uint64(1) << i);
+                pattern |= (uint256(1) << i);
             }
         }
     }
 
-    /// @notice Live synth pitches (3 bits × 16 synth cells).
-    function livePitches() public view returns (uint64 pitches) {
+    /// @notice Live synth word — 16 bits per synth cell, 16 synth cells → one uint256.
+    ///         v1 uses only bits 0-2 of each cell (pitch / scale degree); bits 3-15 are reserved.
+    function liveSynthData() public view returns (uint256 synthData) {
         uint64 nowLoop = currentLoop();
         for (uint8 i = 0; i < STEPS; i++) {
             uint8 cellId = SYNTH_CELL_START + i;
             if (cellOwner[cellId] != address(0) && cellExpiryLoop[cellId] > nowLoop) {
-                pitches |= (uint64(cellPitch[cellId]) & 0x7) << (uint64(i) * 3);
+                synthData |= uint256(cellSynthData[cellId]) << (uint256(i) * 16);
             }
         }
     }
@@ -161,16 +183,22 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         external
         view
         returns (
-            uint64 pattern,
-            uint64 pitches,
+            uint256 pattern,
+            uint256 synthData,
             uint64 mintedAtLoop,
             uint32 nextEdition,
+            uint8 kitId_,
+            uint8 scaleId_,
+            uint8 swing_,
             address[] memory holders,
             uint8[] memory cellsPerHolder
         )
     {
         Series storage s = _series[seriesId];
-        return (s.pattern, s.pitches, s.mintedAtLoop, s.nextEdition, s.holders, s.cellsPerHolder);
+        return (
+            s.pattern, s.synthData, s.mintedAtLoop, s.nextEdition,
+            s.kitId, s.scaleId, s.swing, s.holders, s.cellsPerHolder
+        );
     }
 
     /// @notice Convenience: snapshot of the series this token belongs to.
@@ -178,9 +206,12 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         external
         view
         returns (
-            uint64 pattern,
-            uint64 pitches,
+            uint256 pattern,
+            uint256 synthData,
             uint64 mintedAtLoop,
+            uint8 kitId_,
+            uint8 scaleId_,
+            uint8 swing_,
             address[] memory holders,
             uint8[] memory cellsPerHolder
         )
@@ -188,7 +219,10 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         uint256 sid = seriesOf[tokenId];
         if (sid == 0) revert UnknownSeries();
         Series storage s = _series[sid];
-        return (s.pattern, s.pitches, s.mintedAtLoop, s.holders, s.cellsPerHolder);
+        return (
+            s.pattern, s.synthData, s.mintedAtLoop,
+            s.kitId, s.scaleId, s.swing, s.holders, s.cellsPerHolder
+        );
     }
 
     /// @notice Price (in USDm wei) the next presser will pay for a given series.
@@ -211,7 +245,10 @@ contract Loopchain is ERC721, IERC2981, Ownable {
 
     // ───────────────────────── Toggle (rent a cell) ─────────────────────────
 
-    function toggle(uint8 cellId, uint16 durationLoops, uint8 pitchIdx) external {
+    /// @param cellData For synth cells (cellId >= SYNTH_CELL_START), the 16-bit synth word.
+    ///        v1 validates and stores bits 0-2 only (pitch); bits 3-15 must be zero. Ignored
+    ///        for drum cells, which are binary on/off.
+    function toggle(uint8 cellId, uint16 durationLoops, uint16 cellData) external {
         if (cellId >= CELLS) revert BadCell();
         if (durationLoops == 0 || durationLoops > maxRentDurationLoops) revert BadDuration();
 
@@ -232,20 +269,22 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         cellExpiryLoop[cellId] = newExpiry;
 
         if (cellId >= SYNTH_CELL_START) {
-            if (pitchIdx >= PITCH_OPTIONS) revert BadPitch();
-            cellPitch[cellId] = pitchIdx;
+            // v1: only the 3 pitch bits may be set — this also keeps reserved bits 3-15 zero
+            // until octave/velocity/glide are lit later (frontend-only, no redeploy).
+            if (cellData >= PITCH_OPTIONS) revert BadPitch();
+            cellSynthData[cellId] = cellData;
         }
 
-        emit CellRented(cellId, msg.sender, newExpiry, pitchIdx);
+        emit CellRented(cellId, msg.sender, newExpiry, cellData);
     }
 
     // ───────────────────────── Record (mint edition #1, create series) ─────────────────────────
 
     function record() external returns (uint256 tokenId) {
-        uint64 pattern = livePattern();
+        uint256 pattern = livePattern();
         if (pattern == 0) revert EmptyPattern();
 
-        uint64 pitches = livePitches();
+        uint256 synthData = liveSynthData();
         uint64 nowLoop = currentLoop();
 
         uint256 price = basePrice;
@@ -258,14 +297,17 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         // Distribute. NB: no recorder cut — caller only gets paid if they're also a holder.
         _distribute(price, uniq, cnts, uniqLen, cellCount);
 
-        // Create the series.
+        // Create the series — pattern, synth word, and the three live globals are all frozen here.
         uint256 seriesId = nextSeriesId++;
         Series storage s = _series[seriesId];
         s.pattern = pattern;
-        s.pitches = pitches;
+        s.synthData = synthData;
         s.mintedAtLoop = nowLoop;
         s.nextEdition = 2; // edition #1 is being minted now
         s.cellCount = uint16(cellCount); // frozen lit-cell count; used for all later splits
+        s.kitId = kitId;     // whatever the last paid flip left live
+        s.scaleId = scaleId;
+        s.swing = swing;
         s.holders = new address[](uniqLen);
         s.cellsPerHolder = new uint8[](uniqLen);
         for (uint256 k = 0; k < uniqLen; k++) {
@@ -279,7 +321,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         editionOf[tokenId] = 1;
         _safeMint(msg.sender, tokenId);
 
-        emit SeriesRecorded(seriesId, tokenId, msg.sender, pattern, pitches, nowLoop, uniqLen, price);
+        emit SeriesRecorded(seriesId, tokenId, msg.sender, pattern, synthData, nowLoop, uniqLen, price);
     }
 
     // ───────────────────────── Press (mint next edition of an existing series) ─────────────────────────
@@ -304,6 +346,48 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         _safeMint(msg.sender, tokenId);
 
         emit SeriesPressed(seriesId, tokenId, msg.sender, edition, price);
+    }
+
+    // ───────────────────────── Kit flip (paid global, anyone) ─────────────────────────
+
+    /// @notice Flip the live kit. Anyone may call; costs `flipFee` USDm, split 50% to the
+    ///         treasury and 50% pushed pro-rata to the live-cell co-creators inside this tx.
+    ///         The flip moves the LIVE grid's kit only — a recorded Series keeps the kit it was
+    ///         recorded with, forever. Sticky, no cooldown by design (see master spec §3).
+    /// @dev    Co-creators are pushed directly (`safeTransfer`), the same as `_distribute` does
+    ///         for a primary sale: the flip is a direct-sale-shaped event (payer = msg.sender,
+    ///         money in hand, recipient set known now), so there is no pull-claim path.
+    function setKit(uint8 newKitId) external {
+        if (newKitId == kitId) revert KitUnchanged();
+
+        // Effects before interactions (plain ERC-20 has no callback, but keep CEI as a matter of form).
+        uint8 oldKit = kitId;
+        kitId = newKitId;
+
+        paymentToken.safeTransferFrom(msg.sender, address(this), flipFee);
+
+        uint256 coCreatorCut = (flipFee * FLIP_COCREATOR_BPS) / 10_000;
+        uint256 treasuryCut  = flipFee - coCreatorCut;
+
+        // Co-creator set = live-cell owners at the instant of the flip (drum + synth).
+        (address[] memory uniq, uint8[] memory cnts, uint256 uniqLen, uint256 cellCount)
+            = _snapshotHolders(livePattern());
+
+        if (cellCount > 0 && uniqLen > 0) {
+            uint256 perCell = coCreatorCut / cellCount;
+            for (uint256 k = 0; k < uniqLen; k++) {
+                uint256 amt = perCell * uint256(cnts[k]);
+                if (amt > 0) paymentToken.safeTransfer(uniq[k], amt);
+            }
+            // Rounding dust stays in the contract (sweepable by owner) — as in _distribute.
+        } else {
+            // No live cells → no co-creators → the whole fee goes to treasury.
+            treasuryCut = flipFee;
+        }
+
+        paymentToken.safeTransfer(treasury, treasuryCut);
+
+        emit KitFlipped(msg.sender, oldKit, newKitId, flipFee);
     }
 
     // ───────────────────────── Royalty (pull-claim, series-keyed) ─────────────────────────
@@ -376,7 +460,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         string memory json = string.concat(
             '{"name":"Loopchain Loop #', sidStr, ' - Edition #', edStr,
             '","description":"Edition #', edStr, ' of Loop #', sidStr,
-            ': a 16-step x 4-track drum pattern recorded on Loopchain (MegaETH). Every edition of '
+            ': a 16-step x 9-track drum pattern recorded on Loopchain (MegaETH). Every edition of '
             'this loop shares the same beat and the same co-creators; each press costs more along '
             'the bonding curve.","image":"data:image/svg+xml;base64,',
             Base64.encode(bytes(_renderSVG(s.pattern))),
@@ -386,7 +470,8 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     }
 
     /// @dev Structured trait list. `Loop` + `Edition` are the explicit on-chain link between
-    ///      this NFT and the specific loop / position in its 1..N edition run.
+    ///      this NFT and the specific loop / position in its 1..N edition run. `Kit`/`Scale`/
+    ///      `Swing` are the live globals frozen into the Series at record() time.
     function _attributes(uint256 sid, uint32 edition, Series storage s)
         internal
         view
@@ -398,16 +483,20 @@ contract Loopchain is ERC721, IERC2981, Ownable {
             '},{"trait_type":"Cells","value":', Strings.toString(s.cellCount),
             '},{"trait_type":"Co-creators","value":', Strings.toString(s.holders.length),
             '},{"trait_type":"Recorded at loop","value":', Strings.toString(s.mintedAtLoop),
-            '},{"trait_type":"Pattern","value":"', Strings.toHexString(uint256(s.pattern), 8),
+            '},{"trait_type":"Kit","value":', Strings.toString(s.kitId),
+            '},{"trait_type":"Scale","value":', Strings.toString(s.scaleId),
+            '},{"trait_type":"Swing","value":', Strings.toString(s.swing),
+            '},{"trait_type":"Pattern","value":"', Strings.toHexString(s.pattern, 18),
             '"}]'
         );
     }
 
-    /// @dev Renders the loop's 16x4 grid as an SVG — 4 track rows (kick / snare / hat / synth),
-    ///      lit cells filled in their track colour. All editions of a series render identically.
-    function _renderSVG(uint64 pattern) internal pure returns (string memory) {
+    /// @dev Renders the loop's 16x9 grid as an SVG — 9 track rows (kick / snare / clap-rim /
+    ///      closed hat / open hat / cowbell / crash / ride / synth), lit cells filled in their
+    ///      track colour. All editions of a series render identically.
+    function _renderSVG(uint256 pattern) internal pure returns (string memory) {
         string memory cells = "";
-        for (uint8 row = 0; row < 4; row++) {
+        for (uint8 row = 0; row < TRACKS; row++) {
             for (uint8 col = 0; col < STEPS; col++) {
                 uint8 cellId = row * STEPS + col;
                 bool lit = (pattern >> cellId) & 1 == 1;
@@ -422,8 +511,8 @@ contract Loopchain is ERC721, IERC2981, Ownable {
             }
         }
         return string.concat(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="564" height="156" viewBox="0 0 564 156">',
-            '<rect width="564" height="156" fill="#1a1a2e"/>',
+            '<svg xmlns="http://www.w3.org/2000/svg" width="564" height="326" viewBox="0 0 564 326">',
+            '<rect width="564" height="326" fill="#1a1a2e"/>',
             cells,
             '</svg>'
         );
@@ -432,7 +521,12 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     function _trackColor(uint8 row) internal pure returns (string memory) {
         if (row == 0) return "#ff6b6b"; // kick
         if (row == 1) return "#ffd93d"; // snare
-        if (row == 2) return "#6bcb77"; // hat
+        if (row == 2) return "#ff9f43"; // clap / rim
+        if (row == 3) return "#6bcb77"; // closed hat
+        if (row == 4) return "#4dd0a8"; // open hat
+        if (row == 5) return "#c084fc"; // cowbell
+        if (row == 6) return "#f06595"; // crash
+        if (row == 7) return "#74c0fc"; // ride
         return "#64b5f6";               // synth
     }
 
@@ -465,6 +559,20 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         emit SplitUpdated(_holdersBps, _treasuryBps);
     }
 
+    /// @notice Set the owner-curated live globals — the scale every loop is keyed to and the
+    ///         swing the grid plays with. `kitId` is NOT here: it is community-flippable via setKit().
+    function setGlobals(uint8 _scaleId, uint8 _swing) external onlyOwner {
+        scaleId = _scaleId;
+        swing = _swing;
+        emit GlobalsUpdated(_scaleId, _swing);
+    }
+
+    /// @notice Retune the kit-flip fee. The 50/50 split (FLIP_COCREATOR_BPS) is a constant by design.
+    function setFlipFee(uint256 _flipFee) external onlyOwner {
+        flipFee = _flipFee;
+        emit FlipFeeUpdated(_flipFee);
+    }
+
     /// @notice Sweep payment-token balance not earmarked for royalties.
     function sweepUnattributed(address to, uint256 amount) external onlyOwner {
         paymentToken.safeTransfer(to, amount);
@@ -472,7 +580,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
 
     // ───────────────────────── Internals ─────────────────────────
 
-    function _snapshotHolders(uint64 pattern)
+    function _snapshotHolders(uint256 pattern)
         internal
         view
         returns (address[] memory uniq, uint8[] memory cnts, uint256 uniqLen, uint256 cellCount)

@@ -6,10 +6,10 @@ Foundry project for the Loopchain v1 contracts. See `loopchain-progress.md` for 
 
 ```
 src/
-  Loopchain.sol      # ERC-721 + ERC-2981 + USDm rent/mint/royalty
+  Loopchain.sol      # ERC-721 + ERC-2981 + USDm rent/mint/royalty + kit flip
   MockUsdm.sol       # open-mint test ERC-20 with EIP-2612 permit (testnet only)
 test/
-  Loopchain.t.sol    # rent, expiry, collision, mint distribution, royalty, treasury
+  Loopchain.t.sol    # rent, expiry, collision, mint distribution, royalty, kit flip, treasury
 script/
   Deploy.s.sol       # deploys MockUsdm (if no PAYMENT_TOKEN) then Loopchain
 ```
@@ -50,6 +50,6 @@ forge verify-contract <ADDRESS> src/Loopchain.sol:Loopchain \
 ## Known v1 limitations
 
 - **Marketplace royalty attribution.** ERC-2981 returns the contract address as receiver. Marketplaces transfer USDm to the contract without per-token context. A keeper (or the recorder) must call `depositRoyalty(tokenId, amount)` to attribute receipts. v2 candidates: per-token `Clones.clone(splitterImpl)` so the marketplace pays the splitter directly.
-- **Per-claim gas.** `claimRoyalty()` does a linear scan over `holders[]` (≤64). Fine. `record()` deduplication is also O(n²) over up to 64 cells; ~3300 ops worst case, comfortably under any sane gas limit.
-- **64 holders × `address[]` storage per mint.** ~1.4 KB per NFT. MegaETH-cheap.
+- **Per-claim gas.** `claimRoyalty()` does a linear scan over `holders[]` (≤144). Fine. `record()` and `setKit()` both run an O(n²) dedup over up to 144 cells; ~20k ops worst case, comfortably under any sane gas limit on MegaETH.
+- **144 holders × `address[]` storage per mint.** ~3 KB per NFT worst case. MegaETH-cheap.
 - **No `permit()` integration.** Frontend asks for a one-time `approve(MAX_UINT256)` against the Loopchain contract. v2 can wrap `toggle/record` with EIP-2612 permits if real USDm supports them.
