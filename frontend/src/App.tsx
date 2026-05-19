@@ -11,7 +11,7 @@ import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
-import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep } from './audio'
+import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep, previewCell } from './audio'
 
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
@@ -34,6 +34,9 @@ export function App() {
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
+  // Audition mode: while on, clicking any cell plays its voice once — no
+  // popover, no rent, no transaction. Lets you hear a sound before you buy it.
+  const [auditionMode, setAuditionMode] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [playback, setPlayback] = useState<LoopRecord | null>(null)
@@ -452,9 +455,14 @@ export function App() {
     }
   }
 
-  // Route a grid click: a cell held by someone else opens a read-only info card;
-  // free / own cells open the toggle popover.
+  // Route a grid click: in audition mode, just play the cell's sound. Otherwise
+  // a cell held by someone else opens a read-only info card; free / own cells
+  // open the toggle popover.
   const handleCellClick = (id: number, rect: DOMRect, status: CellStatus) => {
+    if (auditionMode) {
+      void previewCell(id, grid.cells[id]?.pitch ?? 0)
+      return
+    }
     if (status === 'occupied') {
       const c = grid.cells[id]
       if (c.owner) {
@@ -482,6 +490,13 @@ export function App() {
         </div>
         <div className="right">
           <button onClick={onAudioToggle}>{audioOn ? '◼ stop' : '▶ play'}</button>
+          <button
+            className={auditionMode ? 'primary' : ''}
+            onClick={() => setAuditionMode((v) => !v)}
+            title="Audition — click any cell to hear its sound. No rent, no transaction."
+          >
+            🔊 audition
+          </button>
           {authenticated && (
             <button
               className={canRecord ? 'primary' : ''}
@@ -567,6 +582,7 @@ export function App() {
         myAddress={smartAddress}
         currentLoop={grid.currentLoop}
         lastRent={playback ? null : grid.lastRent}
+        auditionMode={!playback && auditionMode}
       />
 
       {!playback && (
