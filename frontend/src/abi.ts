@@ -1,7 +1,9 @@
 export const loopchainAbi = [
   { type: 'function', name: 'currentLoop', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint64' }] },
-  { type: 'function', name: 'livePattern', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint64' }] },
-  { type: 'function', name: 'livePitches', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint64' }] },
+  // 144-cell live grid → one uint256 (bit i = cell i is currently rented).
+  { type: 'function', name: 'livePattern', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  // 16 bits per synth cell × 16 synth cells → one uint256. v1 uses bits 0-2 (pitch).
+  { type: 'function', name: 'liveSynthData', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   {
     type: 'function',
     name: 'cellOwner',
@@ -17,11 +19,12 @@ export const loopchainAbi = [
     outputs: [{ type: 'uint64' }],
   },
   {
+    // Synth cells only (cellId ≥ 128). 16-bit word; bits 0-2 are the pitch.
     type: 'function',
-    name: 'cellPitch',
+    name: 'cellSynthData',
     stateMutability: 'view',
     inputs: [{ type: 'uint8' }],
-    outputs: [{ type: 'uint8' }],
+    outputs: [{ type: 'uint16' }],
   },
   { type: 'function', name: 'rentPerLoop', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'basePrice', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
@@ -36,13 +39,15 @@ export const loopchainAbi = [
     outputs: [{ type: 'uint16' }],
   },
   {
+    // cellData is the 16-bit synth word; for synth cells v1 stores bits 0-2
+    // (pitch, 0-7) and rejects anything else. Ignored for drum cells.
     type: 'function',
     name: 'toggle',
     stateMutability: 'nonpayable',
     inputs: [
       { name: 'cellId', type: 'uint8' },
       { name: 'durationLoops', type: 'uint16' },
-      { name: 'pitchIdx', type: 'uint8' },
+      { name: 'cellData', type: 'uint16' },
     ],
     outputs: [],
   },
@@ -62,6 +67,10 @@ export const loopchainAbi = [
   },
   { type: 'function', name: 'nextTokenId', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'nextSeriesId', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  // Live-grid globals frozen into each Series at record() time.
+  { type: 'function', name: 'kitId', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
+  { type: 'function', name: 'scaleId', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
+  { type: 'function', name: 'swing', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
   {
     type: 'function',
     name: 'seriesOf',
@@ -98,15 +107,20 @@ export const loopchainAbi = [
     outputs: [{ type: 'address' }],
   },
   {
+    // Series snapshot. pattern/synthData are uint256; kitId/scaleId/swing are
+    // the live globals frozen at record() time.
     type: 'function',
     name: 'seriesInfo',
     stateMutability: 'view',
     inputs: [{ type: 'uint256' }],
     outputs: [
-      { name: 'pattern', type: 'uint64' },
-      { name: 'pitches', type: 'uint64' },
+      { name: 'pattern', type: 'uint256' },
+      { name: 'synthData', type: 'uint256' },
       { name: 'mintedAtLoop', type: 'uint64' },
       { name: 'nextEdition', type: 'uint32' },
+      { name: 'kitId', type: 'uint8' },
+      { name: 'scaleId', type: 'uint8' },
+      { name: 'swing', type: 'uint8' },
       { name: 'holders', type: 'address[]' },
       { name: 'cellsPerHolder', type: 'uint8[]' },
     ],
@@ -117,9 +131,12 @@ export const loopchainAbi = [
     stateMutability: 'view',
     inputs: [{ type: 'uint256' }],
     outputs: [
-      { name: 'pattern', type: 'uint64' },
-      { name: 'pitches', type: 'uint64' },
+      { name: 'pattern', type: 'uint256' },
+      { name: 'synthData', type: 'uint256' },
       { name: 'mintedAtLoop', type: 'uint64' },
+      { name: 'kitId', type: 'uint8' },
+      { name: 'scaleId', type: 'uint8' },
+      { name: 'swing', type: 'uint8' },
       { name: 'holders', type: 'address[]' },
       { name: 'cellsPerHolder', type: 'uint8[]' },
     ],
@@ -131,7 +148,7 @@ export const loopchainAbi = [
       { name: 'cellId', type: 'uint8', indexed: true },
       { name: 'renter', type: 'address', indexed: true },
       { name: 'expiryLoop', type: 'uint64', indexed: false },
-      { name: 'pitchIdx', type: 'uint8', indexed: false },
+      { name: 'cellData', type: 'uint16', indexed: false },
     ],
     anonymous: false,
   },
@@ -142,8 +159,8 @@ export const loopchainAbi = [
       { name: 'seriesId', type: 'uint256', indexed: true },
       { name: 'tokenId', type: 'uint256', indexed: true },
       { name: 'recorder', type: 'address', indexed: true },
-      { name: 'pattern', type: 'uint64', indexed: false },
-      { name: 'pitches', type: 'uint64', indexed: false },
+      { name: 'pattern', type: 'uint256', indexed: false },
+      { name: 'synthData', type: 'uint256', indexed: false },
       { name: 'mintedAtLoop', type: 'uint64', indexed: false },
       { name: 'holdersCount', type: 'uint256', indexed: false },
       { name: 'pricePaid', type: 'uint256', indexed: false },

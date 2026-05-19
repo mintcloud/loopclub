@@ -160,19 +160,20 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }:
   )
 }
 
-// Pentatonic scale (C, D, E, G, A) shown over a full-octave keyboard.
-// F and B are disabled to make the scale gap visible; black keys are decorative.
-const WHITE_KEYS: Array<{ note: string; pitchIdx: number | null }> = [
+// One diatonic octave — eight selectable scale degrees (C D E F G A B C) over a
+// full white-key keyboard. Black keys are decorative.
+const WHITE_KEYS: Array<{ note: string; pitchIdx: number }> = [
   { note: 'C', pitchIdx: 0 },
   { note: 'D', pitchIdx: 1 },
   { note: 'E', pitchIdx: 2 },
-  { note: 'F', pitchIdx: null },
-  { note: 'G', pitchIdx: 3 },
-  { note: 'A', pitchIdx: 4 },
-  { note: 'B', pitchIdx: null },
+  { note: 'F', pitchIdx: 3 },
+  { note: 'G', pitchIdx: 4 },
+  { note: 'A', pitchIdx: 5 },
+  { note: 'B', pitchIdx: 6 },
+  { note: 'C', pitchIdx: 7 },
 ]
 
-// Black-key positions as fractional offsets across the 7-white-key row (0..7).
+// Black-key positions as fractional offsets across the 8-white-key row (0..8).
 const BLACK_KEYS: Array<{ note: string; offset: number }> = [
   { note: 'C#', offset: 1 },
   { note: 'D#', offset: 2 },
@@ -187,18 +188,15 @@ function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: nu
       <div className="keyboard-whites">
         {WHITE_KEYS.map((k, i) => {
           const active = k.pitchIdx === selected
-          const disabled = k.pitchIdx === null
           const cls = ['key', 'white']
           if (active) cls.push('active')
-          if (disabled) cls.push('disabled')
           return (
             <button
               key={i}
               type="button"
               className={cls.join(' ')}
-              disabled={disabled}
-              onClick={() => k.pitchIdx !== null && onSelect(k.pitchIdx)}
-              title={disabled ? `${k.note} (out of scale)` : `${k.note} (pitch ${k.pitchIdx})`}
+              onClick={() => onSelect(k.pitchIdx)}
+              title={`${PITCH_LABELS[k.pitchIdx]} (degree ${k.pitchIdx})`}
             >
               <span className="key-label">{k.note}</span>
             </button>
@@ -210,7 +208,7 @@ function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: nu
           <span
             key={k.note}
             className="key black"
-            style={{ left: `calc(${k.offset} * (100% / 7) - (var(--black-w) / 2))` }}
+            style={{ left: `calc(${k.offset} * (100% / 8) - (var(--black-w) / 2))` }}
             aria-hidden
           />
         ))}

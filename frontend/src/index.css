@@ -10,7 +10,12 @@
   --accent-dim: #5a3ec0;
   --kick: #ff5c7c;
   --snare: #ffaf5c;
+  --clap: #ff8a5c;
   --hat: #5cffc6;
+  --open-hat: #5cffaf;
+  --cowbell: #b98cff;
+  --crash: #ff5cd6;
+  --ride: #5c9fff;
   --synth: #5cb6ff;
   --danger: #ff5c5c;
   --owned: #ffc24b;
@@ -115,10 +120,15 @@ a { color: var(--accent); }
 }
 .cell:hover { transform: translateY(-1px); }
 .cell.on { background: var(--accent); border-color: var(--accent); color: white; }
-.cell.on.kick   { background: var(--kick);  border-color: var(--kick);  }
-.cell.on.snare  { background: var(--snare); border-color: var(--snare); }
-.cell.on.hat    { background: var(--hat);   border-color: var(--hat); color: #08222a; }
-.cell.on.synth  { background: var(--synth); border-color: var(--synth); color: #051a2c; }
+.cell.on.kick     { background: var(--kick);     border-color: var(--kick);  }
+.cell.on.snare    { background: var(--snare);    border-color: var(--snare); }
+.cell.on.clap     { background: var(--clap);     border-color: var(--clap); }
+.cell.on.hat      { background: var(--hat);      border-color: var(--hat); color: #08222a; }
+.cell.on.open-hat { background: var(--open-hat); border-color: var(--open-hat); color: #08222a; }
+.cell.on.cowbell  { background: var(--cowbell);  border-color: var(--cowbell); }
+.cell.on.crash    { background: var(--crash);    border-color: var(--crash); }
+.cell.on.ride     { background: var(--ride);     border-color: var(--ride); color: #051a2c; }
+.cell.on.synth    { background: var(--synth);    border-color: var(--synth); color: #051a2c; }
 .cell.playing { box-shadow: 0 0 0 2px white inset; }
 .cell.beat-1 { border-left: 2px solid var(--accent-dim); }
 
@@ -223,7 +233,7 @@ a { color: var(--accent); }
 }
 .keyboard-whites {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 2px;
   height: 70px;
 }
@@ -507,10 +517,15 @@ button.primary:disabled {
 }
 .mini-cell.beat-1 { border-left: 1px solid var(--accent-dim); }
 .mini-cell.on { background: var(--accent); }
-.mini-cell.on.kick   { background: var(--kick); }
-.mini-cell.on.snare  { background: var(--snare); }
-.mini-cell.on.hat    { background: var(--hat); }
-.mini-cell.on.synth  { background: var(--synth); }
+.mini-cell.on.kick     { background: var(--kick); }
+.mini-cell.on.snare    { background: var(--snare); }
+.mini-cell.on.clap     { background: var(--clap); }
+.mini-cell.on.hat      { background: var(--hat); }
+.mini-cell.on.open-hat { background: var(--open-hat); }
+.mini-cell.on.cowbell  { background: var(--cowbell); }
+.mini-cell.on.crash    { background: var(--crash); }
+.mini-cell.on.ride     { background: var(--ride); }
+.mini-cell.on.synth    { background: var(--synth); }
 .mini-cell.playing { box-shadow: 0 0 0 1px white inset; }
 
 /* ───── Cell popover (contextual toggle) ───── */
@@ -738,10 +753,15 @@ kbd {
   flex-shrink: 0;
   margin-right: 4px;
 }
-.track-dot.kick  { background: var(--kick); }
-.track-dot.snare { background: var(--snare); }
-.track-dot.hat   { background: var(--hat); }
-.track-dot.synth { background: var(--synth); }
+.track-dot.kick     { background: var(--kick); }
+.track-dot.snare    { background: var(--snare); }
+.track-dot.clap     { background: var(--clap); }
+.track-dot.hat      { background: var(--hat); }
+.track-dot.open-hat { background: var(--open-hat); }
+.track-dot.cowbell  { background: var(--cowbell); }
+.track-dot.crash    { background: var(--crash); }
+.track-dot.ride     { background: var(--ride); }
+.track-dot.synth    { background: var(--synth); }
 
 .cell.on.mine {
   background: var(--accent);

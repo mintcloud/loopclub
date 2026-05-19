@@ -11,7 +11,7 @@ export interface LoopRecord {
   seriesId: bigint
   tokenId: bigint // edition #1 token, used for share links and as a stable identity for playback
   pattern: bigint
-  pitches: bigint
+  synthData: bigint
   mintedAtLoop: bigint
   holders: readonly `0x${string}`[]
   cellsPerHolder: readonly number[]
@@ -91,14 +91,18 @@ export function Library({
             functionName: 'seriesInfo',
             args: [sid],
           })
-          const [pattern, pitches, mintedAtLoop, nextEdition, holders, cellsPerHolder] = info as readonly [
-            bigint,
-            bigint,
-            bigint,
-            number,
-            readonly `0x${string}`[],
-            readonly number[],
-          ]
+          const [pattern, synthData, mintedAtLoop, nextEdition, , , , holders, cellsPerHolder] =
+            info as readonly [
+              bigint,
+              bigint,
+              bigint,
+              number,
+              number,
+              number,
+              number,
+              readonly `0x${string}`[],
+              readonly number[],
+            ]
           const nextPressPrice = (await publicClient.readContract({
             address: config.loopchainAddress,
             abi: loopchainAbi,
@@ -109,7 +113,7 @@ export function Library({
             seriesId: sid,
             tokenId: sid, // placeholder; we use seriesId for share links instead
             pattern,
-            pitches,
+            synthData,
             mintedAtLoop,
             holders,
             cellsPerHolder,
@@ -359,7 +363,7 @@ export function Library({
                     )}
                   </div>
                 )}
-                <MiniGrid pattern={r.pattern} pitches={r.pitches} playingStep={isPlaying ? playingStep : -1} />
+                <MiniGrid pattern={r.pattern} synthData={r.synthData} playingStep={isPlaying ? playingStep : -1} />
                 <div className="loop-card-foot">
                   <span className="muted owner">
                     next press {priceStr} USDm
@@ -436,7 +440,7 @@ function copyShareLink(seriesId: bigint) {
   navigator.clipboard?.writeText(url).catch(() => void 0)
 }
 
-/** Count set bits in a uint64 pattern — the number of filled cells in a loop. */
+/** Count set bits in the 144-bit pattern — the number of filled cells in a loop. */
 function popcount(v: bigint): bigint {
   let n = 0n
   let x = v

@@ -23,7 +23,8 @@ export interface RentEvent {
 export interface LiveGrid {
   cells: CellState[]
   pattern: bigint
-  pitches: bigint
+  /** Synth word — 16 bits per synth cell; bits 0-2 are pitch. Mirrors the contract layout. */
+  synthData: bigint
   currentLoop: number
   blockNumber: number
   lastRent: RentEvent | null
@@ -37,6 +38,11 @@ export interface LiveGrid {
 const RECONCILE_MS = 20_000
 const lc = { address: config.loopchainAddress, abi: loopchainAbi } as const
 const SYNTH_IDS = Array.from({ length: CELLS - SYNTH_CELL_START }, (_, i) => SYNTH_CELL_START + i)
+
+// Synth cells carry a 16-bit word on chain; v1 uses only the low 3 bits (pitch).
+function pitchOf(synthWord: number): number {
+  return synthWord & 0x7
+}
 
 function emptyCells(): CellState[] {
   return Array.from({ length: CELLS }, () => ({ owner: null, expiryLoop: 0, pitch: 0, pending: false }))
@@ -69,14 +75,14 @@ export function useLiveGrid(): LiveGrid {
   // a cell's expiryLoop only ever moves forward (re-rents stack, new owners can
   // only claim an expired cell), so an event with a lower expiry is stale.
   const applyEvent = useCallback(
-    (cellId: number, renter: Address, expiryLoop: bigint, pitchIdx: number) => {
+    (cellId: number, renter: Address, expiryLoop: bigint, cellData: number) => {
       if (cellId < 0 || cellId >= CELLS) return
       const expiry = Number(expiryLoop)
       setCells((prev) => {
         const c = prev[cellId]
         if (expiry < c.expiryLoop) return prev
         const next = prev.slice()
-        next[cellId] = { owner: renter, expiryLoop: expiry, pitch: pitchIdx, pending: false }
+        next[cellId] = { owner: renter, expiryLoop: expiry, pitch: pitchOf(cellData), pending: false }
         return next
       })
       setLastRent({ cellId, owner: renter, at: Date.now() })
@@ -87,7 +93,7 @@ export function useLiveGrid(): LiveGrid {
   // Full ownership snapshot — 3 batched multicalls + the chain loop counter.
   const snapshot = useCallback(async () => {
     try {
-      const [owners, expiries, pitches, chainLoop] = await Promise.all([
+      const [owners, expiries, synthWords, chainLoop] = await Promise.all([
         publicClient.multicall({
           contracts: Array.from(
             { length: CELLS },
@@ -103,7 +109,7 @@ export function useLiveGrid(): LiveGrid {
           allowFailure: false,
         }),
         publicClient.multicall({
-          contracts: SYNTH_IDS.map((i) => ({ ...lc, functionName: 'cellPitch', args: [i] }) as const),
+          contracts: SYNTH_IDS.map((i) => ({ ...lc, functionName: 'cellSynthData', args: [i] }) as const),
           allowFailure: false,
         }),
         publicClient.readContract({ ...lc, functionName: 'currentLoop' }),
@@ -118,7 +124,7 @@ export function useLiveGrid(): LiveGrid {
         return {
           owner: owner === zeroAddress ? null : owner,
           expiryLoop: Number(expiries[i]),
-          pitch: synthIdx >= 0 ? Number(pitches[synthIdx]) : 0,
+          pitch: synthIdx >= 0 ? pitchOf(Number(synthWords[synthIdx])) : 0,
           pending: false,
         }
       })
@@ -133,11 +139,11 @@ export function useLiveGrid(): LiveGrid {
   const refreshCell = useCallback(async (cellId: number) => {
     try {
       const isSynth = cellId >= SYNTH_CELL_START
-      const [owner, expiry, pitch] = await Promise.all([
+      const [owner, expiry, synthWord] = await Promise.all([
         publicClient.readContract({ ...lc, functionName: 'cellOwner', args: [cellId] }),
         publicClient.readContract({ ...lc, functionName: 'cellExpiryLoop', args: [cellId] }),
         isSynth
-          ? publicClient.readContract({ ...lc, functionName: 'cellPitch', args: [cellId] })
+          ? publicClient.readContract({ ...lc, functionName: 'cellSynthData', args: [cellId] })
           : Promise.resolve(0),
       ])
       setCells((prev) => {
@@ -145,7 +151,7 @@ export function useLiveGrid(): LiveGrid {
         next[cellId] = {
           owner: owner === zeroAddress ? null : (owner as Address),
           expiryLoop: Number(expiry),
-          pitch: Number(pitch),
+          pitch: pitchOf(Number(synthWord)),
           pending: false,
         }
         return next
@@ -192,10 +198,10 @@ export function useLiveGrid(): LiveGrid {
             cellId?: number
             renter?: Address
             expiryLoop?: bigint
-            pitchIdx?: number
+            cellData?: number
           }
           if (a.cellId === undefined || !a.renter || a.expiryLoop === undefined) continue
-          applyEvent(a.cellId, a.renter, a.expiryLoop, a.pitchIdx ?? 0)
+          applyEvent(a.cellId, a.renter, a.expiryLoop, a.cellData ?? 0)
         }
       },
       onError: (e) => console.warn('CellRented watch error', e),
@@ -215,10 +221,11 @@ export function useLiveGrid(): LiveGrid {
     }
   }, [snapshot, applyEvent])
 
-  // Derive the live pattern/pitches bitmaps the grid + audio engine consume.
-  const { pattern, pitches, liveCellCount } = useMemo(() => {
+  // Derive the live pattern + synth-data words the grid + audio engine consume.
+  // synthData mirrors the contract: 16 bits per synth cell, bits 0-2 = pitch.
+  const { pattern, synthData, liveCellCount } = useMemo(() => {
     let p = 0n
-    let ps = 0n
+    let sd = 0n
     let count = 0
     for (let i = 0; i < CELLS; i++) {
       const c = cells[i]
@@ -226,17 +233,17 @@ export function useLiveGrid(): LiveGrid {
         p |= 1n << BigInt(i)
         count++
         if (i >= SYNTH_CELL_START) {
-          ps |= BigInt(c.pitch & 0x7) << BigInt((i - SYNTH_CELL_START) * 3)
+          sd |= BigInt(c.pitch & 0x7) << BigInt((i - SYNTH_CELL_START) * 16)
         }
       }
     }
-    return { pattern: p, pitches: ps, liveCellCount: count }
+    return { pattern: p, synthData: sd, liveCellCount: count }
   }, [cells, currentLoop])
 
   return {
     cells,
     pattern,
-    pitches,
+    synthData,
     currentLoop,
     blockNumber,
     lastRent,
