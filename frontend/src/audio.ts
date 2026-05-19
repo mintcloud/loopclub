@@ -69,14 +69,16 @@ function noteAt(synthData: bigint, synthCellOffset: number): string {
   return SYNTH_NOTES[idx] ?? SYNTH_NOTES[0]
 }
 
-export async function startAudio() {
-  if (seq) return
+// Build every voice without starting the sequencer. Idempotent — safe to call
+// from a one-shot cell preview as well as from startAudio(). Tone.start() needs
+// a user gesture; a cell click or a Play press satisfies that.
+export async function ensureVoices() {
+  if (kick) return
   await Tone.start()
   // iOS: switch off the default "ambient" audio session so the hardware
   // ring/silent switch doesn't mute Web Audio on the built-in speaker.
-  // The user explicitly pressed play, so 'playback' is the right category.
-  // Safari 16.4+ / iOS 17+; older iOS lacks the API and silently no-ops
-  // (headphone/Bluetooth output is unaffected by the silent switch anyway).
+  // The user explicitly pressed play / a cell, so 'playback' is the right
+  // category. Safari 16.4+ / iOS 17+; older iOS lacks the API and no-ops.
   if ('audioSession' in navigator) {
     try {
       (navigator as { audioSession: { type: string } }).audioSession.type = 'playback'
@@ -163,6 +165,11 @@ export async function startAudio() {
   }).connect(acidDrive)
   acid.portamento = 0.045 // glide between consecutive notes — the 303 slide
   acid.volume.value = -8
+}
+
+export async function startAudio() {
+  if (seq) return
+  await ensureVoices()
 
   const steps = Array.from({ length: STEPS }, (_, i) => i)
   seq = new Tone.Sequence(
@@ -196,29 +203,54 @@ export async function startAudio() {
   Tone.Transport.start()
 }
 
+// Stop the 16-step sequencer. The voices are deliberately kept alive so
+// audition-mode cell preview keeps working after Play is switched off.
 export function stopAudio() {
   Tone.Transport.stop()
   seq?.dispose()
   seq = null
-  kick?.dispose()
-  snareNoise?.dispose()
-  snareBody?.dispose()
-  snareFilter?.dispose()
-  clap?.dispose()
-  clapFilter?.dispose()
-  closedHat?.dispose()
-  openHat?.dispose()
-  cowbell?.dispose()
-  cowbellFilter?.dispose()
-  crash?.dispose()
-  ride?.dispose()
-  acid?.dispose()
-  acidDrive?.dispose()
-  kick = snareNoise = snareBody = snareFilter = clap = clapFilter = null
-  closedHat = openHat = cowbell = cowbellFilter = crash = ride = null
-  acid = acidDrive = null
 }
 
 export function audioRunning(): boolean {
   return seq !== null
+}
+
+// Play one cell's voice once, immediately — the audition-mode primitive. Lets a
+// player hear a sound before paying to rent the cell. Independent of the
+// sequencer: works whether or not the loop is playing. `pitchIdx` only matters
+// for synth-row cells (track 8); drum voices ignore it.
+export async function previewCell(cellId: number, pitchIdx = 0) {
+  await ensureVoices()
+  const track = Math.floor(cellId / STEPS)
+  const t = Tone.now()
+  switch (track) {
+    case 0:
+      kick?.triggerAttackRelease('C1', '8n', t)
+      break
+    case 1:
+      snareNoise?.triggerAttackRelease('16n', t)
+      snareBody?.triggerAttackRelease('G3', '16n', t)
+      break
+    case 2:
+      clap?.triggerAttackRelease('16n', t)
+      break
+    case 3:
+      closedHat?.triggerAttackRelease('C6', '32n', t)
+      break
+    case 4:
+      openHat?.triggerAttackRelease('C6', '8n', t)
+      break
+    case 5:
+      cowbell?.triggerAttackRelease([540, 800], '16n', t)
+      break
+    case 6:
+      crash?.triggerAttackRelease('C6', '1n', t)
+      break
+    case 7:
+      ride?.triggerAttackRelease('C7', '4n', t)
+      break
+    case 8:
+      acid?.triggerAttackRelease(SYNTH_NOTES[pitchIdx & 0x7] ?? SYNTH_NOTES[0], '8n', t)
+      break
+  }
 }

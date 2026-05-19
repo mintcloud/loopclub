@@ -9,6 +9,7 @@ import {
   MAX_TOGGLE_LOOPS,
 } from './config'
 import { ownerColor, shortAddr } from './owner'
+import { previewCell } from './audio'
 
 interface Props {
   cellId: number
@@ -100,9 +101,19 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }:
           <span className="popover-title">
             cell #{cellId} · {TRACK_LABELS[track]} {step + 1}
           </span>
-          <button className="popover-x" onClick={onClose} aria-label="close">
-            ✕
-          </button>
+          <div className="popover-head-btns">
+            <button
+              className="popover-play"
+              onClick={() => void previewCell(cellId, pitch)}
+              title="hear this sound"
+              aria-label="preview sound"
+            >
+              ▸
+            </button>
+            <button className="popover-x" onClick={onClose} aria-label="close">
+              ✕
+            </button>
+          </div>
         </div>
 
         {occupied ? (

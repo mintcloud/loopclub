@@ -16,6 +16,9 @@ interface GridProps {
   myAddress?: string | null
   currentLoop?: number
   lastRent?: RentEvent | null
+  // While true, cell clicks audition the sound instead of opening the popover.
+  // Used purely to give the grid a "tap to hear" hover cue.
+  auditionMode?: boolean
 }
 
 export function Grid({
@@ -27,6 +30,7 @@ export function Grid({
   myAddress,
   currentLoop,
   lastRent,
+  auditionMode,
 }: GridProps) {
   // Cells that just landed from a CellRented event get a one-shot pop animation.
   const [landed, setLanded] = useState<Set<number>>(() => new Set())
@@ -46,7 +50,7 @@ export function Grid({
   }, [lastRent])
 
   return (
-    <div className="grid">
+    <div className={`grid${auditionMode ? ' audition' : ''}`}>
       <div className="label step-axis-label">step</div>
       {Array.from({ length: STEPS }).map((_, step) => {
         const cls = ['step-num']
