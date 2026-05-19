@@ -33,7 +33,7 @@ When the contracts redeploy, update `docs/deployments.md` and the corresponding 
 - **Record + press** — `record()` snapshots the live grid into a Series and mints edition #1; `press(seriesId)` mints edition #N on the quadratic bonding curve.
 - **Library** — browses recorded series (Recent / Most Collab / My Loops), plays snapshots, presses copies, copies `?loop=<seriesId>` share links.
 - **Royalty claim** — series-keyed `claimRoyalty(seriesId)`; a claim button surfaces on a loop card when the connected wallet has an unclaimed share.
-- **Audio** — Tone.js drives a 4-second pattern (16 sixteenth-notes). Tracks 0–7 are drum voices (kick / snare / clap / closed hat / open hat / cowbell / crash / ride), all Tone.js built-ins; track 8 is a polysynth that plays the scale-degree pitch (one diatonic octave) stored on each synth cell.
+- **Audio** — Tone.js drives a 4-second pattern (16 sixteenth-notes). Kit 0 is a TR-808 synthesised from Tone.js built-ins: tracks 0–7 are kick / snare / clap / closed hat / open hat / cowbell / crash / ride; track 8 is a TB-303-style acid synth (resonant filter sweep + glide) that plays the scale-degree pitch stored on each synth cell as a low bassline. See `audio.ts`.
 - **Fast mode (session keys)** — opt-in, behind `VITE_ENABLE_SESSION_KEYS`. The user signs once to authorise an in-browser session key scoped to `Loopchain.toggle()` for one hour; every toggle after that is signed locally — no Privy round-trip. record/press/claim still go through the Privy client. Privy is unchanged as the login + root signer. See `src/sessionKey.ts` and `docs/checkpoints.md`.
 
 ## What's NOT wired yet
