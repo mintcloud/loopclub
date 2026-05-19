@@ -4,9 +4,12 @@ import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256, decodeEventLog } from 'viem'
 import { Grid, type CellStatus } from './Grid'
 import { CellPopover } from './CellPopover'
+import { RowToolsPopover } from './RowToolsPopover'
 import { ContributorStrip } from './ContributorStrip'
+import { RenewStrip } from './RenewStrip'
 import { Library, type LoopRecord } from './Library'
-import { config, megaethMainnet, LOOP_DURATION_SECONDS } from './config'
+import { useMyCells } from './useMyCells'
+import { config, megaethMainnet, LOOP_DURATION_SECONDS, SYNTH_CELL_START } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import { useLiveGrid } from './useLiveGrid'
@@ -15,6 +18,9 @@ import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep,
 
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
+
+// A single call inside a batched smart-wallet UserOperation.
+type Call = { to: `0x${string}`; data: `0x${string}` }
 
 export function App() {
   const { ready, authenticated, user, login, logout } = usePrivy()
@@ -31,6 +37,7 @@ export function App() {
     rect: DOMRect
     occupied?: { who: string; loopsLeft: number }
   } | null>(null)
+  const [openRow, setOpenRow] = useState<{ track: number; rect: DOMRect } | null>(null)
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
@@ -50,6 +57,9 @@ export function App() {
   // Step 4 — "fast mode": once armed, cell toggles are signed by an in-browser
   // session key and skip the Privy round-trip. record/press stay on Privy.
   const session = useSessionKey(smartAddress)
+
+  // A short per-wallet memory of the cells you've rented — backs the renew strip.
+  const { history, remember } = useMyCells(smartAddress)
 
   const playbackRef = useRef<LoopRecord | null>(null)
   playbackRef.current = playback
@@ -186,28 +196,25 @@ export function App() {
     }, 4000)
   }
 
-  // Build the call list for a paid action, prepending a one-time max USDm
-  // approval when the smart wallet hasn't yet authorised the Loopchain contract
-  // to pull payment. Both calls land in a single UserOperation, so the user
-  // signs once — and a fresh wallet can press/record without a separate step.
-  const withApproval = (
-    price: bigint,
-    action: { to: `0x${string}`; data: `0x${string}` },
-  ): { to: `0x${string}`; data: `0x${string}` }[] => {
-    const calls: { to: `0x${string}`; data: `0x${string}` }[] = []
-    if (allowance < price) {
-      calls.push({
+  // Build a call list for paid actions, prepending a one-time max USDm approval
+  // when the smart wallet hasn't yet authorised the Loopchain contract to pull
+  // payment. Everything lands in a single UserOperation, so the user signs once
+  // — and a fresh wallet can press/record/fill without a separate step.
+  const withApprovalCalls = (price: bigint, actions: Call[]): Call[] => {
+    if (allowance >= price) return actions
+    return [
+      {
         to: config.paymentTokenAddress,
         data: encodeFunctionData({
           abi: usdmAbi,
           functionName: 'approve',
           args: [config.loopchainAddress, maxUint256],
         }),
-      })
-    }
-    calls.push(action)
-    return calls
+      },
+      ...actions,
+    ]
   }
+  const withApproval = (price: bigint, action: Call): Call[] => withApprovalCalls(price, [action])
 
   const onToggle = (cellId: number, durationLoops: number, pitchIdx: number) => {
     if (!smartWalletClient || !smartAddress) return
@@ -227,6 +234,7 @@ export function App() {
     setOpenCell(null)
     // Light the cell instantly — marked pending until the tx confirms on chain.
     grid.applyOptimistic(cellId, smartAddress, durationLoops, pitchIdx)
+    remember([cellId])
     flash(`Renting cell ${cellId} for ${durationLoops}× ${LOOP_DURATION_SECONDS}s…`)
 
     const calls = withApproval(cost, {
@@ -263,6 +271,70 @@ export function App() {
         void grid.refreshCell(cellId)
         void refreshWallet()
       })
+  }
+
+  // Rent many cells in one batched UserOp — backs both row fills and renew.
+  // Each cell is a toggle() call; the batch is atomic, so if a player snipes a
+  // target between here and mining the whole batch reverts (rare — then retry).
+  // Callers are expected to pre-filter cells already held live by someone else.
+  const rentBatch = async (cellIds: number[], duration: number, verb: string) => {
+    if (!smartWalletClient || !smartAddress || cellIds.length === 0) return
+
+    const cost = rentPerLoop * BigInt(duration) * BigInt(cellIds.length)
+    if (usdmBalance < cost) {
+      flash(
+        `Need ${formatUnits(cost, 18)} USDm (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
+        true,
+      )
+      return
+    }
+
+    const pitchOf = (id: number) => (id >= SYNTH_CELL_START ? (grid.cells[id]?.pitch ?? 0) : 0)
+
+    // Light every cell instantly — pending until the batch confirms.
+    for (const id of cellIds) grid.applyOptimistic(id, smartAddress, duration, pitchOf(id))
+    remember(cellIds)
+    flash(`${verb} ${cellIds.length} cell${cellIds.length === 1 ? '' : 's'}…`)
+
+    const actions: Call[] = cellIds.map((id) => ({
+      to: config.loopchainAddress,
+      data: encodeFunctionData({
+        abi: loopchainAbi,
+        functionName: 'toggle',
+        args: [id, duration, pitchOf(id)],
+      }),
+    }))
+
+    try {
+      const txHash = await smartWalletClient.sendTransaction(
+        { calls: withApprovalCalls(cost, actions) },
+        { uiOptions: { showWalletUIs: false } },
+      )
+      await publicClient
+        .waitForTransactionReceipt({ hash: txHash as `0x${string}` })
+        .catch(() => {})
+    } catch (e: unknown) {
+      flash((e as Error).message ?? `${verb.toLowerCase()} failed`, true)
+    } finally {
+      // Reconcile every touched cell against on-chain truth (confirm or roll back).
+      for (const id of cellIds) void grid.refreshCell(id)
+      void refreshWallet()
+    }
+  }
+
+  // Fill a row from the RowToolsPopover — rents the chosen empty steps.
+  const onFillRow = (cellIds: number[], duration: number) => {
+    setOpenRow(null)
+    void rentBatch(cellIds, duration, 'Filling')
+  }
+
+  // Renew from the RenewStrip — re-rents your expired / expiring cells.
+  const onRenew = (cellIds: number[], duration: number) => {
+    void rentBatch(cellIds, duration, 'Renewing')
+  }
+
+  const handleRowLabelClick = (track: number, rect: DOMRect) => {
+    setOpenRow({ track, rect })
   }
 
   // Press copy #1 of a brand-new loop — calls record().
@@ -583,10 +655,23 @@ export function App() {
         currentLoop={grid.currentLoop}
         lastRent={playback ? null : grid.lastRent}
         auditionMode={!playback && auditionMode}
+        onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
       />
 
       {!playback && (
         <ContributorStrip cells={grid.cells} currentLoop={grid.currentLoop} myAddress={smartAddress} />
+      )}
+
+      {!playback && authenticated && smartAddress && (
+        <RenewStrip
+          history={history}
+          cells={grid.cells}
+          currentLoop={grid.currentLoop}
+          myAddress={smartAddress}
+          rentPerLoop={rentPerLoop}
+          busy={Boolean(busy)}
+          onRenew={onRenew}
+        />
       )}
 
       <div className="controls">
@@ -622,6 +707,18 @@ export function App() {
           occupied={openCell.occupied}
           onClose={() => setOpenCell(null)}
           onSubmit={(duration, pitch) => onToggle(openCell.id, duration, pitch)}
+        />
+      )}
+
+      {openRow !== null && !playback && (
+        <RowToolsPopover
+          track={openRow.track}
+          anchorRect={openRow.rect}
+          cells={grid.cells}
+          currentLoop={grid.currentLoop}
+          rentPerLoop={rentPerLoop}
+          onClose={() => setOpenRow(null)}
+          onApply={onFillRow}
         />
       )}
 
