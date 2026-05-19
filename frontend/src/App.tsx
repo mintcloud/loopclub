@@ -94,8 +94,8 @@ export function App() {
 
   // Feed the audio engine the live grid whenever it changes (unless replaying a loop).
   useEffect(() => {
-    if (!playback) setLiveState(grid.pattern, grid.pitches)
-  }, [grid.pattern, grid.pitches, playback])
+    if (!playback) setLiveState(grid.pattern, grid.synthData)
+  }, [grid.pattern, grid.synthData, playback])
 
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
@@ -140,10 +140,13 @@ export function App() {
             .catch(() => 0n),
         ])
         if (cancelled) return
-        const [pat, pit, mintedAtLoop, nextEdition, holders, cellsPerHolder] = info as readonly [
+        const [pat, synth, mintedAtLoop, nextEdition, , , , holders, cellsPerHolder] = info as readonly [
           bigint,
           bigint,
           bigint,
+          number,
+          number,
+          number,
           number,
           readonly `0x${string}`[],
           readonly number[],
@@ -152,7 +155,7 @@ export function App() {
           seriesId,
           tokenId: seriesId,
           pattern: pat,
-          pitches: pit,
+          synthData: synth,
           mintedAtLoop,
           holders,
           cellsPerHolder,
@@ -330,10 +333,13 @@ export function App() {
           })
           .catch(() => 0n),
       ])
-      const [pat, pit, mintedAtLoop, nextEdition, holders, cellsPerHolder] = info as readonly [
+      const [pat, synth, mintedAtLoop, nextEdition, , , , holders, cellsPerHolder] = info as readonly [
         bigint,
         bigint,
         bigint,
+        number,
+        number,
+        number,
         number,
         readonly `0x${string}`[],
         readonly number[],
@@ -343,7 +349,7 @@ export function App() {
           ? {
               ...prev,
               pattern: pat,
-              pitches: pit,
+              synthData: synth,
               mintedAtLoop,
               holders,
               cellsPerHolder,
@@ -425,7 +431,7 @@ export function App() {
 
   const enterPlayback = (record: LoopRecord) => {
     setPlayback(record)
-    setSnapshot(record.pattern, record.pitches)
+    setSnapshot(record.pattern, record.synthData)
     if (!audioRunning()) {
       void startAudio().then(() => setAudioOn(true))
     }
@@ -463,7 +469,7 @@ export function App() {
   const canRecord = authenticated && smartAddress && grid.pattern !== 0n && !playback
 
   const displayPattern = playback ? playback.pattern : grid.pattern
-  const displayPitches = playback ? playback.pitches : grid.pitches
+  const displaySynthData = playback ? playback.synthData : grid.synthData
 
   const basePriceStr = fmtUsdm(basePrice)
 
@@ -554,7 +560,7 @@ export function App() {
 
       <Grid
         pattern={displayPattern}
-        pitches={displayPitches}
+        synthData={displaySynthData}
         playingStep={playingStep}
         onCellClick={playback ? () => undefined : handleCellClick}
         cells={playback ? undefined : grid.cells}

@@ -7,7 +7,7 @@ export type CellStatus = 'free' | 'mine' | 'occupied'
 
 interface GridProps {
   pattern: bigint
-  pitches: bigint
+  synthData: bigint
   playingStep: number
   onCellClick: (cellId: number, rect: DOMRect, status: CellStatus) => void
   // Live mode: per-cell ownership. Omitted during loop playback, where the grid
@@ -20,7 +20,7 @@ interface GridProps {
 
 export function Grid({
   pattern,
-  pitches,
+  synthData,
   playingStep,
   onCellClick,
   cells,
@@ -63,7 +63,7 @@ export function Grid({
           key={track}
           track={track}
           pattern={pattern}
-          pitches={pitches}
+          synthData={synthData}
           playingStep={playingStep}
           onCellClick={onCellClick}
           cells={cells}
@@ -79,7 +79,7 @@ export function Grid({
 interface RowProps {
   track: number
   pattern: bigint
-  pitches: bigint
+  synthData: bigint
   playingStep: number
   onCellClick: (cellId: number, rect: DOMRect, status: CellStatus) => void
   cells?: CellState[]
@@ -91,7 +91,7 @@ interface RowProps {
 function Row({
   track,
   pattern,
-  pitches,
+  synthData,
   playingStep,
   onCellClick,
   cells,
@@ -127,7 +127,7 @@ function Row({
         let label = ''
         if (on && isSynth) {
           const offset = cellId - SYNTH_CELL_START
-          const pitchIdx = Number((pitches >> BigInt(offset * 3)) & 0x7n) % PITCH_LABELS.length
+          const pitchIdx = Number((synthData >> BigInt(offset * 16)) & 0x7n) % PITCH_LABELS.length
           label = PITCH_LABELS[pitchIdx]
         }
 

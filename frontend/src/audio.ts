@@ -1,28 +1,38 @@
 import * as Tone from 'tone'
-import { PITCH_LABELS, STEPS, SYNTH_CELL_START } from './config'
+import { STEPS, SYNTH_CELL_START } from './config'
 
+// Nine tracks: 8 drum voices + 1 synth row. The drum voices are all Tone.js
+// built-ins (no samples) — kit 0 of the sound-expansion grid.
 let kick: Tone.MembraneSynth | null = null
 let snare: Tone.NoiseSynth | null = null
-let hat: Tone.MetalSynth | null = null
+let clap: Tone.NoiseSynth | null = null
+let closedHat: Tone.MetalSynth | null = null
+let openHat: Tone.MetalSynth | null = null
+let cowbell: Tone.MetalSynth | null = null
+let crash: Tone.MetalSynth | null = null
+let ride: Tone.MetalSynth | null = null
 let synth: Tone.PolySynth | null = null
 let seq: Tone.Sequence | null = null
 
 let livePattern = 0n
-let livePitches = 0n
+let liveSynthData = 0n
 
 let snapshotPattern: bigint | null = null
-let snapshotPitches: bigint | null = null
+let snapshotSynthData: bigint | null = null
 
-export function setLiveState(pattern: bigint, pitches: bigint) {
+// One diatonic octave — the 8 scale degrees a synth cell's 3-bit pitch indexes.
+const SYNTH_NOTES = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'] as const
+
+export function setLiveState(pattern: bigint, synthData: bigint) {
   livePattern = pattern
-  livePitches = pitches
+  liveSynthData = synthData
 }
 
 /// When set, the sequencer plays the snapshot instead of live state.
 /// Pass nulls to clear and resume live playback.
-export function setSnapshot(pattern: bigint | null, pitches: bigint | null) {
+export function setSnapshot(pattern: bigint | null, synthData: bigint | null) {
   snapshotPattern = pattern
-  snapshotPitches = pitches
+  snapshotSynthData = synthData
 }
 
 export function snapshotActive(): boolean {
@@ -38,9 +48,10 @@ function bit(pattern: bigint, idx: number): boolean {
   return ((pattern >> BigInt(idx)) & 1n) === 1n
 }
 
-function pitchAtFrom(pitches: bigint, synthCellOffset: number): string {
-  const idx = Number((pitches >> BigInt(synthCellOffset * 3)) & 0x7n)
-  return `${PITCH_LABELS[idx % PITCH_LABELS.length]}4`
+// Synth word is 16 bits per cell; bits 0-2 are the pitch (scale-degree index).
+function noteAt(synthData: bigint, synthCellOffset: number): string {
+  const idx = Number((synthData >> BigInt(synthCellOffset * 16)) & 0x7n)
+  return SYNTH_NOTES[idx] ?? SYNTH_NOTES[0]
 }
 
 export async function startAudio() {
@@ -63,8 +74,18 @@ export async function startAudio() {
 
   kick = new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 4, envelope: { attack: 0.001, decay: 0.4, sustain: 0 } }).toDestination()
   snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 } }).toDestination()
-  hat = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 8000, octaves: 0.5 }).toDestination()
-  hat.volume.value = -18
+  clap = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.002, decay: 0.12, sustain: 0 } }).toDestination()
+  clap.volume.value = -6
+  closedHat = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 8000, octaves: 0.5 }).toDestination()
+  closedHat.volume.value = -20
+  openHat = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.4, release: 0.2 }, harmonicity: 5.1, modulationIndex: 32, resonance: 7000, octaves: 1 }).toDestination()
+  openHat.volume.value = -18
+  cowbell = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.18, release: 0.05 }, harmonicity: 1.5, modulationIndex: 16, resonance: 4000, octaves: 1.2 }).toDestination()
+  cowbell.volume.value = -16
+  crash = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 1.2, release: 0.6 }, harmonicity: 8, modulationIndex: 40, resonance: 9000, octaves: 1.5 }).toDestination()
+  crash.volume.value = -20
+  ride = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.4, release: 0.2 }, harmonicity: 6, modulationIndex: 28, resonance: 9500, octaves: 1 }).toDestination()
+  ride.volume.value = -22
   synth = new Tone.PolySynth(Tone.Synth, { envelope: { attack: 0.005, decay: 0.2, sustain: 0.1, release: 0.4 } }).toDestination()
   synth.volume.value = -8
 
@@ -72,15 +93,20 @@ export async function startAudio() {
   seq = new Tone.Sequence(
     (time, step) => {
       const p = snapshotPattern ?? livePattern
-      const ps = snapshotPitches ?? livePitches
-      // Track 0 (kick), 1 (snare), 2 (hat) — drums
-      if (bit(p, step + 0 * STEPS)) kick?.triggerAttackRelease('C2', '16n', time)
+      const sd = snapshotSynthData ?? liveSynthData
+      // Tracks 0-7 are drum voices, in grid-row order.
+      if (bit(p, step + 0 * STEPS)) kick?.triggerAttackRelease('C1', '8n', time)
       if (bit(p, step + 1 * STEPS)) snare?.triggerAttackRelease('16n', time)
-      if (bit(p, step + 2 * STEPS)) hat?.triggerAttackRelease('C5', '32n', time)
-      // Track 3 (synth)
-      const synthCellId = step + 3 * STEPS
+      if (bit(p, step + 2 * STEPS)) clap?.triggerAttackRelease('16n', time)
+      if (bit(p, step + 3 * STEPS)) closedHat?.triggerAttackRelease('C6', '32n', time)
+      if (bit(p, step + 4 * STEPS)) openHat?.triggerAttackRelease('C6', '8n', time)
+      if (bit(p, step + 5 * STEPS)) cowbell?.triggerAttackRelease('A4', '16n', time)
+      if (bit(p, step + 6 * STEPS)) crash?.triggerAttackRelease('C6', '1n', time)
+      if (bit(p, step + 7 * STEPS)) ride?.triggerAttackRelease('C7', '4n', time)
+      // Track 8 (synth) — pitched by the cell's stored scale degree.
+      const synthCellId = step + 8 * STEPS
       if (synthCellId >= SYNTH_CELL_START && bit(p, synthCellId)) {
-        const note = pitchAtFrom(ps, synthCellId - SYNTH_CELL_START)
+        const note = noteAt(sd, synthCellId - SYNTH_CELL_START)
         synth?.triggerAttackRelease(note, '8n', time)
       }
       Tone.getDraw().schedule(() => onStepListener?.(step), time)
@@ -98,9 +124,14 @@ export function stopAudio() {
   seq = null
   kick?.dispose()
   snare?.dispose()
-  hat?.dispose()
+  clap?.dispose()
+  closedHat?.dispose()
+  openHat?.dispose()
+  cowbell?.dispose()
+  crash?.dispose()
+  ride?.dispose()
   synth?.dispose()
-  kick = snare = hat = synth = null
+  kick = snare = clap = closedHat = openHat = cowbell = crash = ride = synth = null
 }
 
 export function audioRunning(): boolean {

@@ -1,12 +1,12 @@
-import { STEPS, TRACKS, TRACK_LABELS, SYNTH_CELL_START } from './config'
+import { STEPS, TRACKS, TRACK_LABELS } from './config'
 
 interface MiniGridProps {
   pattern: bigint
-  pitches: bigint
+  synthData: bigint
   playingStep?: number
 }
 
-export function MiniGrid({ pattern, pitches: _pitches, playingStep = -1 }: MiniGridProps) {
+export function MiniGrid({ pattern, synthData: _synthData, playingStep = -1 }: MiniGridProps) {
   return (
     <div className="mini-grid">
       {Array.from({ length: TRACKS }).map((_, track) => (
@@ -14,8 +14,7 @@ export function MiniGrid({ pattern, pitches: _pitches, playingStep = -1 }: MiniG
           {Array.from({ length: STEPS }).map((_, step) => {
             const cellId = step + track * STEPS
             const on = ((pattern >> BigInt(cellId)) & 1n) === 1n
-            const isSynth = cellId >= SYNTH_CELL_START
-            const trackName = TRACK_LABELS[isSynth ? 3 : track]
+            const trackName = TRACK_LABELS[track]
             const playing = playingStep === step
             const cls = ['mini-cell']
             if (on) cls.push('on', trackName)

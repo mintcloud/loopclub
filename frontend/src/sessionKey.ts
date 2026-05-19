@@ -68,7 +68,7 @@ const KERNEL_CANDIDATES = [KERNEL_V3_1, KERNEL_V3_3, KERNEL_V3_2, KERNEL_V3_0] a
 type KernelVersion = (typeof KERNEL_CANDIDATES)[number]
 
 // The only function the session key may call, on the only contract it may call.
-const TOGGLE_SELECTOR = toFunctionSelector('function toggle(uint8,uint16,uint8)')
+const TOGGLE_SELECTOR = toFunctionSelector('function toggle(uint8,uint16,uint16)')
 
 export class SessionKeyAddressMismatch extends Error {
   constructor(
