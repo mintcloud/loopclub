@@ -895,3 +895,109 @@ kbd {
   box-shadow: 0 0 0 2px var(--accent) inset;
   transform: translateY(-1px);
 }
+
+/* ───── Row fill tools ───── */
+.grid .label.fillable {
+  cursor: pointer;
+  transition: color 0.1s ease;
+}
+.grid .label.fillable:hover {
+  color: var(--accent);
+}
+.row-fill-hint {
+  margin-left: 4px;
+  font-size: 9px;
+  opacity: 0.32;
+  transition: opacity 0.1s ease, color 0.1s ease;
+}
+.grid .label.fillable:hover .row-fill-hint {
+  opacity: 1;
+  color: var(--accent);
+}
+.row-tools {
+  position: fixed;
+  z-index: 46;
+  background: var(--panel);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 256px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.65);
+}
+.row-tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+.row-tools-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  padding: 0.4rem 0.55rem;
+}
+.rt-label {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.rt-cost {
+  font-size: 10px;
+  color: var(--muted);
+}
+.row-tools-euclid {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.row-tools-euclid .popover-duration input {
+  width: 52px;
+}
+.row-tools-euclid button {
+  flex: 1;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* ───── Renew strip — your recent cells + one-click re-rent ───── */
+.renew-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 11px;
+  min-height: 1.6rem;
+}
+.renew-counts {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.rc {
+  padding: 0.13rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  font-variant-numeric: tabular-nums;
+}
+.rc.live {
+  color: var(--hat);
+  border-color: rgba(92, 255, 198, 0.32);
+}
+.rc.expiring {
+  color: var(--owned);
+  border-color: rgba(255, 194, 75, 0.45);
+}
+.rc.expired {
+  color: var(--muted);
+}
+.rc.taken {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.renew-strip button {
+  font-size: 11px;
+  padding: 0.32rem 0.7rem;
+}

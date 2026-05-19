@@ -19,6 +19,8 @@ interface GridProps {
   // While true, cell clicks audition the sound instead of opening the popover.
   // Used purely to give the grid a "tap to hear" hover cue.
   auditionMode?: boolean
+  // When set, the row label becomes a button that opens the row-fill menu.
+  onRowLabelClick?: (track: number, rect: DOMRect) => void
 }
 
 export function Grid({
@@ -31,6 +33,7 @@ export function Grid({
   currentLoop,
   lastRent,
   auditionMode,
+  onRowLabelClick,
 }: GridProps) {
   // Cells that just landed from a CellRented event get a one-shot pop animation.
   const [landed, setLanded] = useState<Set<number>>(() => new Set())
@@ -74,6 +77,7 @@ export function Grid({
           myAddress={myAddress}
           currentLoop={currentLoop}
           landed={landed}
+          onRowLabelClick={onRowLabelClick}
         />
       ))}
     </div>
@@ -90,6 +94,7 @@ interface RowProps {
   myAddress?: string | null
   currentLoop?: number
   landed: Set<number>
+  onRowLabelClick?: (track: number, rect: DOMRect) => void
 }
 
 function Row({
@@ -102,13 +107,24 @@ function Row({
   myAddress,
   currentLoop,
   landed,
+  onRowLabelClick,
 }: RowProps) {
   const liveMode = cells !== undefined
+  const fillable = liveMode && onRowLabelClick !== undefined
   return (
     <>
-      <div className="label">
+      <div
+        className={`label${fillable ? ' fillable' : ''}`}
+        onClick={
+          fillable
+            ? (e) => onRowLabelClick?.(track, e.currentTarget.getBoundingClientRect())
+            : undefined
+        }
+        title={fillable ? `fill the ${TRACK_LABELS[track]} row` : undefined}
+      >
         {liveMode && <span className={`track-dot ${TRACK_LABELS[track]}`} />}
         {TRACK_LABELS[track]}
+        {fillable && <span className="row-fill-hint">▦</span>}
       </div>
       {Array.from({ length: STEPS }).map((_, step) => {
         const cellId = step + track * STEPS
