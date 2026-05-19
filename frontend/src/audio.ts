@@ -1,17 +1,31 @@
 import * as Tone from 'tone'
 import { STEPS, SYNTH_CELL_START } from './config'
 
-// Nine tracks: 8 drum voices + 1 synth row. The drum voices are all Tone.js
-// built-ins (no samples) — kit 0 of the sound-expansion grid.
+// Kit 0 — a Roland TR-808 voiced entirely from Tone.js built-ins (no samples),
+// plus a TB-303-style acid synth on the last track. Each voice is synthesised
+// the way the original hardware makes the sound:
+//   kick    — sine + fast pitch drop                 (MembraneSynth)
+//   snare   — noise crack + tonal body               (NoiseSynth + Synth)
+//   clap    — bandpassed white-noise burst           (NoiseSynth + Filter)
+//   hats    — the 808 cymbal FM model itself         (MetalSynth)
+//   cowbell — two detuned square tones + bandpass    (PolySynth + Filter)
+//   crash   — long inharmonic cymbal                 (MetalSynth)
+//   ride    — brighter, shorter cymbal               (MetalSynth)
+//   synth   — acid: saw → resonant filter sweep + glide + drive (MonoSynth)
 let kick: Tone.MembraneSynth | null = null
-let snare: Tone.NoiseSynth | null = null
+let snareNoise: Tone.NoiseSynth | null = null
+let snareBody: Tone.Synth | null = null
+let snareFilter: Tone.Filter | null = null
 let clap: Tone.NoiseSynth | null = null
+let clapFilter: Tone.Filter | null = null
 let closedHat: Tone.MetalSynth | null = null
 let openHat: Tone.MetalSynth | null = null
-let cowbell: Tone.MetalSynth | null = null
+let cowbell: Tone.PolySynth | null = null
+let cowbellFilter: Tone.Filter | null = null
 let crash: Tone.MetalSynth | null = null
 let ride: Tone.MetalSynth | null = null
-let synth: Tone.PolySynth | null = null
+let acid: Tone.MonoSynth | null = null
+let acidDrive: Tone.Distortion | null = null
 let seq: Tone.Sequence | null = null
 
 let livePattern = 0n
@@ -20,8 +34,9 @@ let liveSynthData = 0n
 let snapshotPattern: bigint | null = null
 let snapshotSynthData: bigint | null = null
 
-// One diatonic octave — the 8 scale degrees a synth cell's 3-bit pitch indexes.
-const SYNTH_NOTES = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'] as const
+// One octave of an acid bassline — the 8 scale degrees a synth cell indexes,
+// pitched low (C2–C3) where a 303 line lives.
+const SYNTH_NOTES = ['C2', 'D2', 'E2', 'F2', 'G2', 'A2', 'B2', 'C3'] as const
 
 export function setLiveState(pattern: bigint, synthData: bigint) {
   livePattern = pattern
@@ -72,22 +87,82 @@ export async function startAudio() {
   // 60 BPM × 16th-notes = 250ms/step, 16 steps = 4s — matches LOOP_DURATION_SECONDS.
   Tone.Transport.bpm.value = 60
 
-  kick = new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 4, envelope: { attack: 0.001, decay: 0.4, sustain: 0 } }).toDestination()
-  snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 } }).toDestination()
-  clap = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.002, decay: 0.12, sustain: 0 } }).toDestination()
+  // ── Track 0 · bass drum — sine with a fast pitch drop and a long tail ──
+  kick = new Tone.MembraneSynth({
+    pitchDecay: 0.045,
+    octaves: 6,
+    envelope: { attack: 0.001, decay: 0.6, sustain: 0, release: 0.1 },
+  }).toDestination()
+
+  // ── Track 1 · snare — a white-noise crack over a short tonal body ──
+  snareFilter = new Tone.Filter({ type: 'highpass', frequency: 1200 }).toDestination()
+  snareNoise = new Tone.NoiseSynth({
+    noise: { type: 'white' },
+    envelope: { attack: 0.001, decay: 0.16, sustain: 0 },
+  }).connect(snareFilter)
+  snareNoise.volume.value = -8
+  snareBody = new Tone.Synth({
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 0.001, decay: 0.11, sustain: 0, release: 0.02 },
+  }).toDestination()
+  snareBody.volume.value = -11
+
+  // ── Track 2 · hand clap — a bandpassed white-noise burst ──
+  clapFilter = new Tone.Filter({ type: 'bandpass', frequency: 1100, Q: 1.2 }).toDestination()
+  clap = new Tone.NoiseSynth({
+    noise: { type: 'white' },
+    envelope: { attack: 0.002, decay: 0.22, sustain: 0 },
+  }).connect(clapFilter)
   clap.volume.value = -6
-  closedHat = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 8000, octaves: 0.5 }).toDestination()
-  closedHat.volume.value = -20
-  openHat = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.4, release: 0.2 }, harmonicity: 5.1, modulationIndex: 32, resonance: 7000, octaves: 1 }).toDestination()
+
+  // ── Tracks 3-4 · hi-hats — MetalSynth IS the 808 cymbal/hat FM model ──
+  closedHat = new Tone.MetalSynth({
+    envelope: { attack: 0.001, decay: 0.06, release: 0.01 },
+    harmonicity: 5.1, modulationIndex: 32, resonance: 6000, octaves: 1.5,
+  }).toDestination()
+  closedHat.volume.value = -16
+  openHat = new Tone.MetalSynth({
+    envelope: { attack: 0.001, decay: 0.5, release: 0.2 },
+    harmonicity: 5.1, modulationIndex: 32, resonance: 6000, octaves: 1.5,
+  }).toDestination()
   openHat.volume.value = -18
-  cowbell = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.18, release: 0.05 }, harmonicity: 1.5, modulationIndex: 16, resonance: 4000, octaves: 1.2 }).toDestination()
-  cowbell.volume.value = -16
-  crash = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 1.2, release: 0.6 }, harmonicity: 8, modulationIndex: 40, resonance: 9000, octaves: 1.5 }).toDestination()
+
+  // ── Track 5 · cowbell — two detuned square tones through a bandpass.
+  //    MetalSynth can't do this: its highpass guts a cowbell's body.
+  cowbellFilter = new Tone.Filter({ type: 'bandpass', frequency: 2640, Q: 1.4 }).toDestination()
+  cowbell = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: 'square' },
+    envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.05 },
+  }).connect(cowbellFilter)
+  cowbell.volume.value = -12
+
+  // ── Tracks 6-7 · crash + ride — long / short inharmonic cymbals ──
+  crash = new Tone.MetalSynth({
+    envelope: { attack: 0.001, decay: 1.6, release: 0.6 },
+    harmonicity: 5.1, modulationIndex: 40, resonance: 5000, octaves: 2,
+  }).toDestination()
   crash.volume.value = -20
-  ride = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.4, release: 0.2 }, harmonicity: 6, modulationIndex: 28, resonance: 9500, octaves: 1 }).toDestination()
+  ride = new Tone.MetalSynth({
+    envelope: { attack: 0.001, decay: 0.5, release: 0.3 },
+    harmonicity: 6.5, modulationIndex: 28, resonance: 6000, octaves: 1.5,
+  }).toDestination()
   ride.volume.value = -22
-  synth = new Tone.PolySynth(Tone.Synth, { envelope: { attack: 0.005, decay: 0.2, sustain: 0.1, release: 0.4 } }).toDestination()
-  synth.volume.value = -8
+
+  // ── Track 8 · acid synth — TB-303 shape: a sawtooth through a resonant
+  //    lowpass whose cutoff the filter envelope sweeps on every note, plus
+  //    portamento (the signature glide) and a touch of overdrive.
+  acidDrive = new Tone.Distortion({ distortion: 0.32, wet: 0.45 }).toDestination()
+  acid = new Tone.MonoSynth({
+    oscillator: { type: 'sawtooth' },
+    filter: { type: 'lowpass', rolloff: -24, Q: 7 },
+    envelope: { attack: 0.005, decay: 0.18, sustain: 0.25, release: 0.2 },
+    filterEnvelope: {
+      attack: 0.01, decay: 0.28, sustain: 0.15, release: 0.25,
+      baseFrequency: 120, octaves: 4.2, exponent: 2,
+    },
+  }).connect(acidDrive)
+  acid.portamento = 0.045 // glide between consecutive notes — the 303 slide
+  acid.volume.value = -8
 
   const steps = Array.from({ length: STEPS }, (_, i) => i)
   seq = new Tone.Sequence(
@@ -96,18 +171,21 @@ export async function startAudio() {
       const sd = snapshotSynthData ?? liveSynthData
       // Tracks 0-7 are drum voices, in grid-row order.
       if (bit(p, step + 0 * STEPS)) kick?.triggerAttackRelease('C1', '8n', time)
-      if (bit(p, step + 1 * STEPS)) snare?.triggerAttackRelease('16n', time)
+      if (bit(p, step + 1 * STEPS)) {
+        snareNoise?.triggerAttackRelease('16n', time)
+        snareBody?.triggerAttackRelease('G3', '16n', time)
+      }
       if (bit(p, step + 2 * STEPS)) clap?.triggerAttackRelease('16n', time)
       if (bit(p, step + 3 * STEPS)) closedHat?.triggerAttackRelease('C6', '32n', time)
       if (bit(p, step + 4 * STEPS)) openHat?.triggerAttackRelease('C6', '8n', time)
-      if (bit(p, step + 5 * STEPS)) cowbell?.triggerAttackRelease('A4', '16n', time)
+      if (bit(p, step + 5 * STEPS)) cowbell?.triggerAttackRelease([540, 800], '16n', time)
       if (bit(p, step + 6 * STEPS)) crash?.triggerAttackRelease('C6', '1n', time)
       if (bit(p, step + 7 * STEPS)) ride?.triggerAttackRelease('C7', '4n', time)
-      // Track 8 (synth) — pitched by the cell's stored scale degree.
+      // Track 8 (acid synth) — pitched by the cell's stored scale degree.
       const synthCellId = step + 8 * STEPS
       if (synthCellId >= SYNTH_CELL_START && bit(p, synthCellId)) {
         const note = noteAt(sd, synthCellId - SYNTH_CELL_START)
-        synth?.triggerAttackRelease(note, '8n', time)
+        acid?.triggerAttackRelease(note, '8n', time)
       }
       Tone.getDraw().schedule(() => onStepListener?.(step), time)
     },
@@ -123,15 +201,22 @@ export function stopAudio() {
   seq?.dispose()
   seq = null
   kick?.dispose()
-  snare?.dispose()
+  snareNoise?.dispose()
+  snareBody?.dispose()
+  snareFilter?.dispose()
   clap?.dispose()
+  clapFilter?.dispose()
   closedHat?.dispose()
   openHat?.dispose()
   cowbell?.dispose()
+  cowbellFilter?.dispose()
   crash?.dispose()
   ride?.dispose()
-  synth?.dispose()
-  kick = snare = clap = closedHat = openHat = cowbell = crash = ride = synth = null
+  acid?.dispose()
+  acidDrive?.dispose()
+  kick = snareNoise = snareBody = snareFilter = clap = clapFilter = null
+  closedHat = openHat = cowbell = cowbellFilter = crash = ride = null
+  acid = acidDrive = null
 }
 
 export function audioRunning(): boolean {
