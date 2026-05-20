@@ -14,6 +14,9 @@ interface Props {
   busy: boolean
   // Re-rent the given cells in one batched tx.
   onRenew: (cellIds: number[], duration: number) => void
+  // Highlight the renewable cells on the grid while the user is hovering the
+  // renew button — so they can see what's about to be re-rented.
+  onPreview?: (cellIds: number[] | null) => void
 }
 
 // A short history of the cells you've rented, with a one-click renew. Renew
@@ -27,6 +30,7 @@ export function RenewStrip({
   rentPerLoop,
   busy,
   onRenew,
+  onPreview,
 }: Props) {
   const summary = useMemo(() => {
     let healthy = 0
@@ -78,6 +82,10 @@ export function RenewStrip({
           className={summary.expiring > 0 ? 'hot' : 'primary'}
           disabled={!canRenew}
           onClick={() => onRenew(summary.renewable, DEFAULT_TOGGLE_LOOPS)}
+          onMouseEnter={() => onPreview?.(summary.renewable)}
+          onMouseLeave={() => onPreview?.(null)}
+          onFocus={() => onPreview?.(summary.renewable)}
+          onBlur={() => onPreview?.(null)}
           title={`Re-rent ${summary.renewable.length} cell${
             summary.renewable.length === 1 ? '' : 's'
           } for ${DEFAULT_TOGGLE_LOOPS} loops — cells a player has taken are skipped`}

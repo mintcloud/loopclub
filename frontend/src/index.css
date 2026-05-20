@@ -890,29 +890,108 @@ kbd {
   border-color: var(--accent);
   color: var(--accent);
 }
-/* In audition mode every cell reads as a "tap to hear" pad. */
+/* In audition mode every cell reads as a "tap to hear" pad — green-mint so it
+ * doesn't read like an edit hover. */
 .grid.audition .cell:hover {
-  box-shadow: 0 0 0 2px var(--accent) inset;
+  box-shadow: 0 0 0 2px var(--hat) inset;
   transform: translateY(-1px);
+}
+/* A click in audition mode flashes green and fades out — ephemeral on purpose,
+ * so the user reads it as "I tried this sound" not "I just edited the grid". */
+.cell.auditioning {
+  animation: auditionFlash 0.55s ease-out;
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes auditionFlash {
+  0% {
+    background: var(--hat);
+    border-color: var(--hat);
+    transform: scale(1.18);
+    box-shadow: 0 0 14px var(--hat);
+    opacity: 1;
+  }
+  60% {
+    background: var(--hat);
+    border-color: var(--hat);
+    transform: scale(1.05);
+    box-shadow: 0 0 6px rgba(92, 255, 198, 0.55);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: none;
+    opacity: 1;
+  }
+}
+
+/* Preview-fill — drawn while the user hovers a row-tool or the renew button.
+ * Yellow/gold (--owned) so it can't be confused with audition's mint green or
+ * with a track colour. Mirrors the sync-badge pulse to flag "ephemeral intent". */
+.cell.preview-fill:not(.on) {
+  background: rgba(255, 194, 75, 0.16);
+  border-color: var(--owned);
+  box-shadow: 0 0 0 1px var(--owned) inset, 0 0 8px rgba(255, 194, 75, 0.35);
+  animation: previewPulse 1.1s ease-in-out infinite;
+}
+.cell.preview-fill.on {
+  /* On cells we'd add to (lapsed but still showing as 'on' optimistically) —
+   * keep the on colour, just ring it. */
+  box-shadow: 0 0 0 2px var(--owned) inset, 0 0 10px rgba(255, 194, 75, 0.45);
+  animation: previewPulse 1.1s ease-in-out infinite;
+}
+@keyframes previewPulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.25); }
 }
 
 /* ───── Row fill tools ───── */
 .grid .label.fillable {
   cursor: pointer;
-  transition: color 0.1s ease;
+  transition: color 0.1s ease, border-color 0.1s ease, background 0.1s ease;
+  color: var(--text);
+  /* A subtle chip outline + chevron makes the affordance obvious on mobile,
+   * where there's no hover. Padding kept tight so the grid still fits. */
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  padding: 0.1rem 0.4rem 0.1rem 0.3rem;
+  margin-right: 4px;
 }
 .grid .label.fillable:hover {
   color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(124, 92, 255, 0.08);
 }
 .row-fill-hint {
-  margin-left: 4px;
-  font-size: 9px;
-  opacity: 0.32;
-  transition: opacity 0.1s ease, color 0.1s ease;
+  margin-left: 5px;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.75;
+  color: var(--accent);
+  transition: opacity 0.1s ease, color 0.1s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
 }
 .grid .label.fillable:hover .row-fill-hint {
   opacity: 1;
-  color: var(--accent);
+  transform: translateY(1px);
+}
+/* In audition mode the row labels are read-only — match the dim, no-pointer
+ * style the rest of the edit affordances pick up. */
+.grid .label.fillable-disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+  pointer-events: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  padding: 0.1rem 0.4rem 0.1rem 0.3rem;
+  margin-right: 4px;
+}
+.grid .label.fillable-disabled .row-fill-hint {
+  color: var(--muted);
+  opacity: 0.5;
 }
 .row-tools {
   position: fixed;

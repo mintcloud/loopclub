@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from 'react'
 // store for the renew strip. It survives a refresh (localStorage) so a beat you
 // were building doesn't vanish from view just because its rent lapsed.
 
-const CAP = 32
+// Keep the strip readable: only the last dozen-or-so cells you've touched. A
+// larger cap let renew accumulate into "28 expired" stacks that obscured what
+// the button would actually do.
+const CAP = 12
 const keyFor = (addr: string) => `loopchain.mycells.v1.${addr.toLowerCase()}`
 
 export interface MyCells {

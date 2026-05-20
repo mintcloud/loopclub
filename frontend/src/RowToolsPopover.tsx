@@ -12,6 +12,9 @@ interface Props {
   onClose: () => void
   // Apply a fill — rents every cellId for `duration` loops in one batched tx.
   onApply: (cellIds: number[], duration: number) => void
+  // Show / clear the "these cells will light up if you click" highlight on the
+  // grid. Called with the target cell ids on enter, with null on leave / close.
+  onPreview?: (cellIds: number[] | null) => void
 }
 
 interface PopoverPos {
@@ -48,6 +51,7 @@ export function RowToolsPopover({
   rentPerLoop,
   onClose,
   onApply,
+  onPreview,
 }: Props) {
   const [duration, setDuration] = useState(DEFAULT_TOGGLE_LOOPS)
   const [hits, setHits] = useState(4)
@@ -91,12 +95,19 @@ export function RowToolsPopover({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // Always drop the preview when this popover unmounts — guards against leaving
+  // a stale highlight on the grid if it's torn down mid-hover.
+  useEffect(() => () => onPreview?.(null), [onPreview])
+
   const fmtCost = (n: number) => (n * rentUsdm * duration).toFixed(3)
 
   const apply = (steps: number[]) => {
     const ids = targetsFor(steps)
     if (ids.length > 0) onApply(ids, duration)
   }
+
+  const previewSteps = (steps: number[]) => onPreview?.(targetsFor(steps))
+  const clearPreview = () => onPreview?.(null)
 
   const euclidSteps = useMemo(() => spread(hits, STEPS), [hits])
   const euclidTargets = targetsFor(euclidSteps)
@@ -137,6 +148,10 @@ export function RowToolsPopover({
                 key={p.key}
                 disabled={n === 0}
                 onClick={() => apply(p.steps)}
+                onMouseEnter={() => previewSteps(p.steps)}
+                onMouseLeave={clearPreview}
+                onFocus={() => previewSteps(p.steps)}
+                onBlur={clearPreview}
                 title={n === 0 ? 'those steps are already filled' : `rents ${n} cell${n === 1 ? '' : 's'}`}
               >
                 <span className="rt-label">{p.label}</span>
@@ -157,7 +172,14 @@ export function RowToolsPopover({
               onChange={(e) => setHits(Math.max(1, Math.min(STEPS, Number(e.target.value) || 1)))}
             />
           </label>
-          <button disabled={euclidTargets.length === 0} onClick={() => apply(euclidSteps)}>
+          <button
+            disabled={euclidTargets.length === 0}
+            onClick={() => apply(euclidSteps)}
+            onMouseEnter={() => previewSteps(euclidSteps)}
+            onMouseLeave={clearPreview}
+            onFocus={() => previewSteps(euclidSteps)}
+            onBlur={clearPreview}
+          >
             {euclidTargets.length === 0
               ? 'spread — filled'
               : `spread ${hits} · ${fmtCost(euclidTargets.length)}`}
