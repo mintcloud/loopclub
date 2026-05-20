@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from 'react'
+import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import { STEPS, TRACKS, TRACK_LABELS, SYNTH_CELL_START, PITCH_LABELS, EXPIRING_SOON_LOOPS } from './config'
 import type { CellState, RentEvent } from './useLiveGrid'
 import { ownerColor, sameAddr, shortAddr } from './owner'
@@ -21,6 +21,9 @@ interface GridProps {
   auditionMode?: boolean
   // When set, the row label becomes a button that opens the row-fill menu.
   onRowLabelClick?: (track: number, rect: DOMRect) => void
+  // Cells the user is hovering on in a tools popover — drawn with a distinct
+  // "will-be-activated" highlight so they can see what a click would do.
+  previewCells?: number[] | null
 }
 
 export function Grid({
@@ -34,9 +37,13 @@ export function Grid({
   lastRent,
   auditionMode,
   onRowLabelClick,
+  previewCells,
 }: GridProps) {
   // Cells that just landed from a CellRented event get a one-shot pop animation.
   const [landed, setLanded] = useState<Set<number>>(() => new Set())
+  // Ephemeral set of cells that just got an audition click — they flash a green
+  // pulse and fade out, matching the "I'm just trying it, this won't rent" mood.
+  const [audited, setAudited] = useState<Set<number>>(() => new Set())
 
   useEffect(() => {
     if (!lastRent) return
@@ -51,6 +58,24 @@ export function Grid({
     }, 720)
     return () => clearTimeout(t)
   }, [lastRent])
+
+  const previewSet = useMemo(() => new Set(previewCells ?? []), [previewCells])
+
+  // Intercept clicks: in audition mode, flash the cell green and clear it after
+  // the animation runs, so taps read as ephemeral previews instead of edits.
+  const handleCellClick = (cellId: number, rect: DOMRect, status: CellStatus) => {
+    if (auditionMode) {
+      setAudited((prev) => new Set(prev).add(cellId))
+      setTimeout(() => {
+        setAudited((prev) => {
+          const next = new Set(prev)
+          next.delete(cellId)
+          return next
+        })
+      }, 600)
+    }
+    onCellClick(cellId, rect, status)
+  }
 
   return (
     <div className={`grid${auditionMode ? ' audition' : ''}`}>
@@ -72,11 +97,14 @@ export function Grid({
           pattern={pattern}
           synthData={synthData}
           playingStep={playingStep}
-          onCellClick={onCellClick}
+          onCellClick={handleCellClick}
           cells={cells}
           myAddress={myAddress}
           currentLoop={currentLoop}
           landed={landed}
+          audited={audited}
+          previewSet={previewSet}
+          auditionMode={auditionMode}
           onRowLabelClick={onRowLabelClick}
         />
       ))}
@@ -94,6 +122,9 @@ interface RowProps {
   myAddress?: string | null
   currentLoop?: number
   landed: Set<number>
+  audited: Set<number>
+  previewSet: Set<number>
+  auditionMode?: boolean
   onRowLabelClick?: (track: number, rect: DOMRect) => void
 }
 
@@ -107,24 +138,37 @@ function Row({
   myAddress,
   currentLoop,
   landed,
+  audited,
+  previewSet,
+  auditionMode,
   onRowLabelClick,
 }: RowProps) {
   const liveMode = cells !== undefined
-  const fillable = liveMode && onRowLabelClick !== undefined
+  // Row labels are only tappable when the row-fill menu is wired AND we're not
+  // in audition mode — audition is read-only by design, so the fill affordance
+  // gets visibly disabled to match.
+  const fillable = liveMode && onRowLabelClick !== undefined && !auditionMode
+  const fillableDisabled = liveMode && onRowLabelClick !== undefined && auditionMode
   return (
     <>
       <div
-        className={`label${fillable ? ' fillable' : ''}`}
+        className={`label${fillable ? ' fillable' : ''}${fillableDisabled ? ' fillable-disabled' : ''}`}
         onClick={
           fillable
             ? (e) => onRowLabelClick?.(track, e.currentTarget.getBoundingClientRect())
             : undefined
         }
-        title={fillable ? `fill the ${TRACK_LABELS[track]} row` : undefined}
+        title={
+          fillable
+            ? `fill the ${TRACK_LABELS[track]} row`
+            : fillableDisabled
+              ? 'exit audition mode to edit'
+              : undefined
+        }
       >
         {liveMode && <span className={`track-dot ${TRACK_LABELS[track]}`} />}
         {TRACK_LABELS[track]}
-        {fillable && <span className="row-fill-hint">▦</span>}
+        {(fillable || fillableDisabled) && <span className="row-fill-hint">▼</span>}
       </div>
       {Array.from({ length: STEPS }).map((_, step) => {
         const cellId = step + track * STEPS
@@ -163,6 +207,10 @@ function Row({
         if (pending) cls.push('pending')
         if (expiring) cls.push('expiring')
         if (landed.has(cellId)) cls.push('just-landed')
+        if (audited.has(cellId)) cls.push('auditioning')
+        // preview is only drawn on cells the click would actually rent — i.e.
+        // empty / lapsed ones; never on a cell another player live-holds.
+        if (previewSet.has(cellId) && status !== 'occupied') cls.push('preview-fill')
 
         const style: CSSProperties = {}
         if (on && liveMode && owner && !mine) {

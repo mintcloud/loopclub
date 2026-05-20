@@ -44,6 +44,9 @@ export function App() {
   // Audition mode: while on, clicking any cell plays its voice once — no
   // popover, no rent, no transaction. Lets you hear a sound before you buy it.
   const [auditionMode, setAuditionMode] = useState(false)
+  // Cells a tools popover (row fill / renew) is previewing — drawn on the grid
+  // with a "will-be-activated" highlight so the click target is visible.
+  const [previewCells, setPreviewCells] = useState<number[] | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [playback, setPlayback] = useState<LoopRecord | null>(null)
@@ -113,6 +116,15 @@ export function App() {
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
   }, [])
+
+  // Toggling audition mid-edit is a quiet UX trap — popovers and hover-previews
+  // are edit affordances, so they get dismissed when the user enters audition.
+  useEffect(() => {
+    if (!auditionMode) return
+    setOpenCell(null)
+    setOpenRow(null)
+    setPreviewCells(null)
+  }, [auditionMode])
 
   // Once the smart wallet resolves after connect, surface the deposit address so
   // the user can copy it and fund the account fast. Shown once per connect.
@@ -546,7 +558,10 @@ export function App() {
   }
 
   const userEmail = user?.email?.address ?? user?.google?.email ?? null
-  const canRecord = authenticated && smartAddress && grid.pattern !== 0n && !playback
+  // Audition mode is read-only: while it's on, every edit-flow button is
+  // disabled so the UI matches the "I'm just trying sounds" mental model.
+  const canRecord =
+    authenticated && smartAddress && grid.pattern !== 0n && !playback && !auditionMode
 
   const displayPattern = playback ? playback.pattern : grid.pattern
   const displaySynthData = playback ? playback.synthData : grid.synthData
@@ -575,11 +590,13 @@ export function App() {
               onClick={onRecord}
               disabled={!canRecord || busy?.startsWith('Pressing')}
               title={
-                playback
-                  ? 'Exit playback to record the live grid'
-                  : grid.pattern === 0n
-                    ? 'Toggle some cells first'
-                    : `Press copy #1 — ${basePriceStr} USDm`
+                auditionMode
+                  ? 'Exit audition to record the live grid'
+                  : playback
+                    ? 'Exit playback to record the live grid'
+                    : grid.pattern === 0n
+                      ? 'Toggle some cells first'
+                      : `Press copy #1 — ${basePriceStr} USDm`
               }
             >
               {busy === 'Pressing copy #1…' ? 'Pressing…' : `✦ press copy #1 · ${basePriceStr} USDm`}
@@ -656,6 +673,7 @@ export function App() {
         lastRent={playback ? null : grid.lastRent}
         auditionMode={!playback && auditionMode}
         onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
+        previewCells={playback ? null : previewCells}
       />
 
       {!playback && (
@@ -669,8 +687,9 @@ export function App() {
           currentLoop={grid.currentLoop}
           myAddress={smartAddress}
           rentPerLoop={rentPerLoop}
-          busy={Boolean(busy)}
+          busy={Boolean(busy) || auditionMode}
           onRenew={onRenew}
+          onPreview={setPreviewCells}
         />
       )}
 
@@ -717,8 +736,12 @@ export function App() {
           cells={grid.cells}
           currentLoop={grid.currentLoop}
           rentPerLoop={rentPerLoop}
-          onClose={() => setOpenRow(null)}
+          onClose={() => {
+            setOpenRow(null)
+            setPreviewCells(null)
+          }}
           onApply={onFillRow}
+          onPreview={setPreviewCells}
         />
       )}
 
