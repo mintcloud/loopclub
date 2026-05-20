@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
-import { STEPS, TRACK_LABELS, DEFAULT_TOGGLE_LOOPS, MAX_TOGGLE_LOOPS } from './config'
+import { STEPS, TRACK_LABELS, MAX_TOGGLE_LOOPS } from './config'
 import type { CellState } from './useLiveGrid'
 
 interface Props {
@@ -53,7 +53,9 @@ export function RowToolsPopover({
   onApply,
   onPreview,
 }: Props) {
-  const [duration, setDuration] = useState(DEFAULT_TOGGLE_LOOPS)
+  // Row fills lay down a section of the song, not a one-shot accent — so they
+  // default to the max duration. The per-cell popover keeps the shorter default.
+  const [duration, setDuration] = useState(MAX_TOGGLE_LOOPS)
   const [hits, setHits] = useState(4)
   const [pos, setPos] = useState<PopoverPos | null>(null)
   const ref = useRef<HTMLDivElement>(null)
