@@ -573,52 +573,62 @@ export function App() {
       <header className="header">
         <div className="header-left">
           <h1>Loopchain</h1>
-          <SyncBadge blockNumber={grid.blockNumber} />
         </div>
         <div className="right">
-          <button onClick={onAudioToggle}>{audioOn ? '◼ stop' : '▶ play'}</button>
-          <button
-            className={auditionMode ? 'primary' : ''}
-            onClick={() => setAuditionMode((v) => !v)}
-            title="Audition — click any cell to hear its sound. No rent, no transaction."
-          >
-            🔊 audition
-          </button>
-          {authenticated && (
-            <button
-              className={canRecord ? 'primary' : ''}
-              onClick={onRecord}
-              disabled={!canRecord || busy?.startsWith('Pressing')}
-              title={
-                auditionMode
-                  ? 'Exit audition to record the live grid'
-                  : playback
-                    ? 'Exit playback to record the live grid'
-                    : grid.pattern === 0n
-                      ? 'Toggle some cells first'
-                      : `Press copy #1 — ${basePriceStr} USDm`
-              }
-            >
-              {busy === 'Pressing copy #1…' ? 'Pressing…' : `✦ press copy #1 · ${basePriceStr} USDm`}
+          <div className="deck-controls" role="group" aria-label="Deck">
+            <button className="deck-btn" onClick={onAudioToggle}>
+              <span className="deck-label">{audioOn ? '◼ Stop' : '▶ Play'}</span>
             </button>
-          )}
+            <button
+              className={`deck-btn ${auditionMode ? 'active' : ''}`}
+              onClick={() => setAuditionMode((v) => !v)}
+              title="Audition — click any cell to hear its sound. No rent, no transaction."
+            >
+              <span className="deck-label">🔊 Audition</span>
+            </button>
+            {authenticated && (
+              <button
+                className={`deck-btn press ${canRecord ? 'active' : ''}`}
+                onClick={onRecord}
+                disabled={!canRecord || busy?.startsWith('Pressing')}
+                title={
+                  auditionMode
+                    ? 'Exit audition to record the live grid'
+                    : playback
+                      ? 'Exit playback to record the live grid'
+                      : grid.pattern === 0n
+                        ? 'Toggle some cells first'
+                        : `Press Edition #1 — ${basePriceStr} USDm`
+                }
+              >
+                <span className="deck-label">
+                  {busy === 'Pressing copy #1…' ? 'Pressing…' : '✦ Press Edition #1'}
+                </span>
+                <span className="deck-sub">{basePriceStr} USDm</span>
+              </button>
+            )}
+          </div>
           {authenticated && <FastMode session={session} ready={!!smartAddress} />}
           {!ready ? null : !authenticated ? (
             <button className="primary" onClick={login}>
               Connect
             </button>
           ) : (
-            <>
+            <div className="account-group">
               <span className="balance">
                 {smartAddress ? `${smartAddress.slice(0, 6)}…${smartAddress.slice(-4)}` : '…'}
                 {' · '}
                 {formatUnits(usdmBalance, 18).slice(0, 6)} USDm
               </span>
-              <button onClick={() => setShowFund(true)} title="Show your deposit address" disabled={!smartAddress}>
-                ⊕ fund
+              <button
+                className="wallet-btn"
+                onClick={() => setShowFund(true)}
+                title="Wallet — fund or disconnect"
+                disabled={!smartAddress}
+              >
+                ⊕ My wallet
               </button>
-              <button onClick={logout}>logout</button>
-            </>
+            </div>
           )}
         </div>
       </header>
@@ -662,19 +672,22 @@ export function App() {
         </div>
       )}
 
-      <Grid
-        pattern={displayPattern}
-        synthData={displaySynthData}
-        playingStep={playingStep}
-        onCellClick={playback ? () => undefined : handleCellClick}
-        cells={playback ? undefined : grid.cells}
-        myAddress={smartAddress}
-        currentLoop={grid.currentLoop}
-        lastRent={playback ? null : grid.lastRent}
-        auditionMode={!playback && auditionMode}
-        onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
-        previewCells={playback ? null : previewCells}
-      />
+      <div className="grid-wrap">
+        <Grid
+          pattern={displayPattern}
+          synthData={displaySynthData}
+          playingStep={playingStep}
+          onCellClick={playback ? () => undefined : handleCellClick}
+          cells={playback ? undefined : grid.cells}
+          myAddress={smartAddress}
+          currentLoop={grid.currentLoop}
+          lastRent={playback ? null : grid.lastRent}
+          auditionMode={!playback && auditionMode}
+          onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
+          previewCells={playback ? null : previewCells}
+        />
+        <SyncBadge blockNumber={grid.blockNumber} />
+      </div>
 
       {!playback && (
         <ContributorStrip cells={grid.cells} currentLoop={grid.currentLoop} myAddress={smartAddress} />
@@ -750,7 +763,15 @@ export function App() {
       )}
 
       {showFund && smartAddress && (
-        <FundModal address={smartAddress} usdmBalance={usdmBalance} onClose={() => setShowFund(false)} />
+        <FundModal
+          address={smartAddress}
+          usdmBalance={usdmBalance}
+          onClose={() => setShowFund(false)}
+          onDisconnect={() => {
+            setShowFund(false)
+            logout()
+          }}
+        />
       )}
 
       {error && <div className="toast error">{error}</div>}
@@ -872,15 +893,18 @@ function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => vo
   )
 }
 
-// Deposit-address modal — pops on first connect and re-openable via the header "fund" button.
+// Wallet modal — fund the smart wallet and (per the new account-group) sign out.
+// Pops on first connect and re-openable via the header "⊕ My wallet" button.
 function FundModal({
   address,
   usdmBalance,
   onClose,
+  onDisconnect,
 }: {
   address: `0x${string}`
   usdmBalance: bigint
   onClose: () => void
+  onDisconnect: () => void
 }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
@@ -895,7 +919,7 @@ function FundModal({
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Fund your wallet ⊕</h3>
+        <h3>My wallet ⊕</h3>
         <p className="muted">
           Send USDm on MegaETH Mainnet to your smart-wallet address below — it bankrolls cell rent and
           presses. You currently hold {formatUnits(usdmBalance, 18).slice(0, 6)} USDm.
@@ -906,8 +930,11 @@ function FundModal({
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        <p className="muted">Deposits land in a few seconds. Reopen this any time via the “⊕ fund” button.</p>
-        <div className="row">
+        <p className="muted">Deposits land in a few seconds. Reopen this any time via the “⊕ My wallet” button.</p>
+        <div className="row wallet-modal-actions">
+          <button className="disconnect" onClick={onDisconnect}>
+            Disconnect
+          </button>
           <button onClick={onClose}>close</button>
         </div>
       </div>
