@@ -264,9 +264,24 @@ export function App() {
     // (calls.length === 2) we fall back to the Privy client, which sets the
     // max-uint256 allowance; every later toggle then takes the fast path.
     const fast = session.armed && calls.length === 1
+    // TEMP DEBUG (fast-mode diagnosis 2026-05-21) — revert before merging.
+    console.log('[fastmode] onToggle dispatch', {
+      sessionArmed: session.armed,
+      sessionStatus: session.status,
+      callsLength: calls.length,
+      allowance: allowance.toString(),
+      cost: cost.toString(),
+      fast,
+      expiresAt: session.expiresAt,
+      now: Date.now(),
+    })
     const submit: Promise<`0x${string}`> = fast
-      ? session.send(calls[0])
-      : smartWalletClient.sendTransaction({ calls }, { uiOptions: { showWalletUIs: false } })
+      ? session.send(calls[0]).then((h) => {
+          console.log('[fastmode] session.send OK', h)
+          return h
+        })
+      : (console.log('[fastmode] slow path — calls:', calls),
+        smartWalletClient.sendTransaction({ calls }, { uiOptions: { showWalletUIs: false } }))
     submit
       .then(async (txHash) => {
         try {

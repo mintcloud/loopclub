@@ -87,3 +87,10 @@ export const SESSION_KEY_TTL_MS = 60 * 60 * 1000
 // localStorage slot for the persisted session. Bump the suffix to invalidate
 // every existing session (e.g. after a contract redeploy or policy change).
 export const SESSION_KEY_STORAGE = 'loopchain.sessionkey.v1'
+
+// TEMP DEBUG (fast-mode diagnosis 2026-05-21) — expose env + computed config on
+// window so devtools can read `__lc.config.enableSessionKeys` etc. directly.
+// Revert before merging.
+if (typeof window !== 'undefined') {
+  ;(window as unknown as { __lc: unknown }).__lc = { env: import.meta.env, config }
+}
