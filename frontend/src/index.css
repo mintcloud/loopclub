@@ -1049,20 +1049,11 @@ kbd {
 /* ───── Row fill tools ───── */
 .grid .label.fillable {
   cursor: pointer;
-  transition: color 0.1s ease, border-color 0.1s ease, background 0.1s ease;
+  transition: color 0.1s ease;
   color: var(--text);
-  /* A subtle chip outline + chevron makes the affordance obvious on mobile,
-   * where there's no hover. Padding kept tight so the grid still fits. */
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--panel);
-  padding: 0.1rem 0.4rem 0.1rem 0.3rem;
-  margin-right: 4px;
 }
 .grid .label.fillable:hover {
   color: var(--accent);
-  border-color: var(--accent);
-  background: rgba(124, 92, 255, 0.08);
 }
 .row-fill-hint {
   margin-left: 5px;
@@ -1084,11 +1075,6 @@ kbd {
   cursor: not-allowed;
   opacity: 0.35;
   pointer-events: none;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--panel);
-  padding: 0.1rem 0.4rem 0.1rem 0.3rem;
-  margin-right: 4px;
 }
 .grid .label.fillable-disabled .row-fill-hint {
   color: var(--muted);
