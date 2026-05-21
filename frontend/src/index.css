@@ -685,6 +685,75 @@ button.primary:disabled {
   justify-content: center;
   gap: 0.4rem;
 }
+/* Tiered click affordances — one row per tier (try / toggle / max). The popover
+   is the discovery surface for the 1/2/3-click gesture, so each row makes the
+   click count explicit alongside the keyboard shortcut. */
+.tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+.tier-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, transform 80ms;
+}
+.tier-row:hover:not(.disabled) {
+  border-color: var(--accent-dim);
+  background: rgba(255, 255, 255, 0.04);
+}
+.tier-row:active:not(.disabled) {
+  transform: translateY(1px);
+}
+.tier-row.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tier-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.tier-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.tier-sub {
+  font-size: 11px;
+}
+.tier-gesture {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.tier-gesture-text {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tier-row.tier-toggle:hover:not(.disabled) {
+  border-color: var(--accent);
+}
+.tier-row.tier-max:hover:not(.disabled) {
+  border-color: var(--hot, #ff7849);
+  background: rgba(255, 120, 73, 0.08);
+}
+.tier-row.tier-try:hover:not(.disabled) {
+  border-color: rgba(120, 220, 160, 0.5);
+}
 .popover-arrow {
   position: absolute;
   width: 11px;

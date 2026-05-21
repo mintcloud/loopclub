@@ -2,14 +2,21 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256, decodeEventLog } from 'viem'
-import { Grid, type CellStatus } from './Grid'
+import { Grid, type CellStatus, type CellTier } from './Grid'
 import { CellPopover } from './CellPopover'
 import { RowToolsPopover } from './RowToolsPopover'
 import { ContributorStrip } from './ContributorStrip'
 import { RenewStrip } from './RenewStrip'
 import { Library, type LoopRecord } from './Library'
 import { useMyCells } from './useMyCells'
-import { config, megaethMainnet, LOOP_DURATION_SECONDS, SYNTH_CELL_START } from './config'
+import {
+  config,
+  megaethMainnet,
+  LOOP_DURATION_SECONDS,
+  SYNTH_CELL_START,
+  DEFAULT_TOGGLE_LOOPS,
+  MAX_TOGGLE_LOOPS,
+} from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import { useLiveGrid } from './useLiveGrid'
@@ -539,18 +546,48 @@ export function App() {
     }
   }
 
-  // Route a grid click: in audition mode, just play the cell's sound. Otherwise
-  // a cell held by someone else opens a read-only info card; free / own cells
-  // open the toggle popover.
-  const handleCellClick = (id: number, rect: DOMRect, status: CellStatus) => {
-    if (auditionMode) {
-      void previewCell(id, grid.cells[id]?.pitch ?? 0)
-      return
-    }
+  // Resolve a cell-tier intent. Single source of truth for try / toggle / max —
+  // both the grid's gesture dispatch (1/2/3 clicks) and the popover's tier rows
+  // funnel through this. `pitchOverride` lets the popover supply a user-chosen
+  // pitch when the synth row is up; everything else falls back to the cell's
+  // current stored pitch (so a re-toggle preserves the existing note).
+  const handleCellTier = useCallback(
+    (id: number, tier: CellTier, pitchOverride?: number) => {
+      if (tier === 'try') {
+        void previewCell(id, pitchOverride ?? grid.cells[id]?.pitch ?? 0)
+        return
+      }
+      // Audition lock: never rents from a tier event.
+      if (auditionMode) {
+        flash('Audition lock is on — exit to rent', true)
+        return
+      }
+      const cell = grid.cells[id]
+      const owner = cell?.owner ?? null
+      const isOccupied =
+        owner && smartAddress && owner.toLowerCase() !== smartAddress.toLowerCase()
+      if (isOccupied) return // can't toggle someone else's cell
+
+      const loops = tier === 'max' ? MAX_TOGGLE_LOOPS : DEFAULT_TOGGLE_LOOPS
+      const pitch = pitchOverride ?? cell?.pitch ?? 0
+      onToggle(id, loops, pitch)
+    },
+    // onToggle is intentionally captured from closure; grid.cells changes every
+    // tick but we want the latest value at click time, which the closure gives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [auditionMode, smartAddress, grid.cells],
+  )
+
+  // 500ms hover-hold opens the popover — discovery surface for the gesture.
+  const handleCellHover = (id: number, rect: DOMRect, status: CellStatus) => {
     if (status === 'occupied') {
       const c = grid.cells[id]
-      if (c.owner) {
-        setOpenCell({ id, rect, occupied: { who: c.owner, loopsLeft: c.expiryLoop - grid.currentLoop } })
+      if (c?.owner) {
+        setOpenCell({
+          id,
+          rect,
+          occupied: { who: c.owner, loopsLeft: c.expiryLoop - grid.currentLoop },
+        })
         return
       }
     }
@@ -677,7 +714,8 @@ export function App() {
           pattern={displayPattern}
           synthData={displaySynthData}
           playingStep={playingStep}
-          onCellClick={playback ? () => undefined : handleCellClick}
+          onCellTier={playback ? undefined : (id, tier) => handleCellTier(id, tier)}
+          onCellHover={playback ? undefined : handleCellHover}
           cells={playback ? undefined : grid.cells}
           myAddress={smartAddress}
           currentLoop={grid.currentLoop}
@@ -737,8 +775,14 @@ export function App() {
           cellId={openCell.id}
           anchorRect={openCell.rect}
           occupied={openCell.occupied}
+          auditionLocked={auditionMode}
           onClose={() => setOpenCell(null)}
-          onSubmit={(duration, pitch) => onToggle(openCell.id, duration, pitch)}
+          onTier={(tier, pitch) => {
+            handleCellTier(openCell.id, tier, pitch)
+            // Try keeps the popover open so you can audition repeatedly; toggle
+            // and max commit a rent, so dismiss to clear the affordance.
+            if (tier !== 'try') setOpenCell(null)
+          }}
         />
       )}
 

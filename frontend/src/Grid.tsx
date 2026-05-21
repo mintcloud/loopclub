@@ -1,23 +1,35 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { STEPS, TRACKS, TRACK_LABELS, SYNTH_CELL_START, PITCH_LABELS, EXPIRING_SOON_LOOPS } from './config'
 import type { CellState, RentEvent } from './useLiveGrid'
 import { ownerColor, sameAddr, shortAddr } from './owner'
 
 export type CellStatus = 'free' | 'mine' | 'occupied'
+// 1 click = audition / 2 = toggle@DEFAULT / 3 = toggle@MAX. See CLICK_TIER_WINDOW_MS.
+export type CellTier = 'try' | 'toggle' | 'max'
+
+// How long we wait after the first click before settling on a tier. The third
+// click fires immediately, so this only bounds single→double resolution.
+const CLICK_TIER_WINDOW_MS = 240
+// Hover-hold delay before the cell popover opens — gives the user a chance to
+// click without ever seeing the popover, and only surfaces it on intent.
+const HOVER_HOLD_MS = 500
 
 interface GridProps {
   pattern: bigint
   synthData: bigint
   playingStep: number
-  onCellClick: (cellId: number, rect: DOMRect, status: CellStatus) => void
+  // Fired once the click count for a cell has resolved (1, 2 or ≥3).
+  onCellTier?: (cellId: number, tier: CellTier, rect: DOMRect, status: CellStatus) => void
+  // Fired after the user has hovered a cell for HOVER_HOLD_MS — opens the popover.
+  onCellHover?: (cellId: number, rect: DOMRect, status: CellStatus) => void
   // Live mode: per-cell ownership. Omitted during loop playback, where the grid
   // shows a static snapshot with no owners and falls back to track colours.
   cells?: CellState[]
   myAddress?: string | null
   currentLoop?: number
   lastRent?: RentEvent | null
-  // While true, cell clicks audition the sound instead of opening the popover.
-  // Used purely to give the grid a "tap to hear" hover cue.
+  // While on, the toggle/max tiers are inert — only audition (1 click) fires.
+  // Cosmetic cue lets the grid read as "tap to hear, no edits".
   auditionMode?: boolean
   // When set, the row label becomes a button that opens the row-fill menu.
   onRowLabelClick?: (track: number, rect: DOMRect) => void
@@ -30,7 +42,8 @@ export function Grid({
   pattern,
   synthData,
   playingStep,
-  onCellClick,
+  onCellTier,
+  onCellHover,
   cells,
   myAddress,
   currentLoop,
@@ -61,21 +74,114 @@ export function Grid({
 
   const previewSet = useMemo(() => new Set(previewCells ?? []), [previewCells])
 
-  // Intercept clicks: in audition mode, flash the cell green and clear it after
-  // the animation runs, so taps read as ephemeral previews instead of edits.
-  const handleCellClick = (cellId: number, rect: DOMRect, status: CellStatus) => {
-    if (auditionMode) {
-      setAudited((prev) => new Set(prev).add(cellId))
-      setTimeout(() => {
-        setAudited((prev) => {
-          const next = new Set(prev)
-          next.delete(cellId)
-          return next
-        })
-      }, 600)
+  // One in-flight click sequence at a time — a mouse only has one cursor, so we
+  // don't need a per-cell map.
+  const clickRef = useRef<{
+    cellId: number
+    count: number
+    timer: number
+    rect: DOMRect
+    status: CellStatus
+  } | null>(null)
+  // Tracks the pending hover-hold so we can cancel on leave or click.
+  const hoverRef = useRef<{ cellId: number; timer: number } | null>(null)
+
+  const flashAudition = useCallback((cellId: number) => {
+    setAudited((prev) => new Set(prev).add(cellId))
+    setTimeout(() => {
+      setAudited((prev) => {
+        const next = new Set(prev)
+        next.delete(cellId)
+        return next
+      })
+    }, 600)
+  }, [])
+
+  // Dispatch whatever sequence is currently buffered, then clear it.
+  const flushClicks = useCallback(() => {
+    const c = clickRef.current
+    if (!c) return
+    clearTimeout(c.timer)
+    clickRef.current = null
+    const tier: CellTier = c.count >= 3 ? 'max' : c.count === 2 ? 'toggle' : 'try'
+    // Audition lock: only the 'try' tier fires; toggle/max are swallowed.
+    if (auditionMode && tier !== 'try') return
+    if (tier === 'try') flashAudition(c.cellId)
+    onCellTier?.(c.cellId, tier, c.rect, c.status)
+  }, [auditionMode, flashAudition, onCellTier])
+
+  // Keep flushClicks fresh inside the setTimeout closure — auditionMode toggling
+  // mid-sequence would otherwise dispatch the wrong action.
+  const flushRef = useRef(flushClicks)
+  useEffect(() => {
+    flushRef.current = flushClicks
+  }, [flushClicks])
+
+  // Clean up any pending timers when the grid unmounts.
+  useEffect(() => {
+    return () => {
+      if (clickRef.current) clearTimeout(clickRef.current.timer)
+      if (hoverRef.current) clearTimeout(hoverRef.current.timer)
     }
-    onCellClick(cellId, rect, status)
-  }
+  }, [])
+
+  const handleCellClick = useCallback(
+    (cellId: number, rect: DOMRect, status: CellStatus) => {
+      // A click cancels any pending hover-popover — user is already engaging.
+      if (hoverRef.current) {
+        clearTimeout(hoverRef.current.timer)
+        hoverRef.current = null
+      }
+
+      // If a sequence on a different cell is still open, dispatch it first so it
+      // doesn't get lost.
+      if (clickRef.current && clickRef.current.cellId !== cellId) {
+        flushRef.current()
+      }
+
+      const existing = clickRef.current
+      const fire = () => flushRef.current()
+
+      if (existing && existing.cellId === cellId) {
+        clearTimeout(existing.timer)
+        const nextCount = existing.count + 1
+        if (nextCount >= 3) {
+          clickRef.current = { ...existing, count: nextCount }
+          fire()
+          return
+        }
+        const timer = window.setTimeout(fire, CLICK_TIER_WINDOW_MS)
+        clickRef.current = { ...existing, count: nextCount, timer, rect }
+      } else {
+        const timer = window.setTimeout(fire, CLICK_TIER_WINDOW_MS)
+        clickRef.current = { cellId, count: 1, timer, rect, status }
+      }
+    },
+    [],
+  )
+
+  const handleCellEnter = useCallback(
+    (cellId: number, rect: DOMRect, status: CellStatus) => {
+      if (!onCellHover) return
+      // Click sequence in flight — don't surface the popover, the user is
+      // gesturing, not exploring.
+      if (clickRef.current) return
+      if (hoverRef.current) clearTimeout(hoverRef.current.timer)
+      const timer = window.setTimeout(() => {
+        hoverRef.current = null
+        onCellHover(cellId, rect, status)
+      }, HOVER_HOLD_MS)
+      hoverRef.current = { cellId, timer }
+    },
+    [onCellHover],
+  )
+
+  const handleCellLeave = useCallback(() => {
+    if (hoverRef.current) {
+      clearTimeout(hoverRef.current.timer)
+      hoverRef.current = null
+    }
+  }, [])
 
   return (
     <div className={`grid${auditionMode ? ' audition' : ''}`}>
@@ -98,6 +204,8 @@ export function Grid({
           synthData={synthData}
           playingStep={playingStep}
           onCellClick={handleCellClick}
+          onCellEnter={handleCellEnter}
+          onCellLeave={handleCellLeave}
           cells={cells}
           myAddress={myAddress}
           currentLoop={currentLoop}
@@ -118,6 +226,8 @@ interface RowProps {
   synthData: bigint
   playingStep: number
   onCellClick: (cellId: number, rect: DOMRect, status: CellStatus) => void
+  onCellEnter: (cellId: number, rect: DOMRect, status: CellStatus) => void
+  onCellLeave: () => void
   cells?: CellState[]
   myAddress?: string | null
   currentLoop?: number
@@ -134,6 +244,8 @@ function Row({
   synthData,
   playingStep,
   onCellClick,
+  onCellEnter,
+  onCellLeave,
   cells,
   myAddress,
   currentLoop,
@@ -221,12 +333,12 @@ function Row({
         if (liveMode) {
           if (status === 'occupied' && owner) {
             const n = Math.max(0, Math.round(loopsLeft))
-            title = `rented by ${shortAddr(owner)} · ${n} loop${n === 1 ? '' : 's'} left`
+            title = `rented by ${shortAddr(owner)} · ${n} loop${n === 1 ? '' : 's'} left · click = try`
           } else if (status === 'mine') {
             const n = Math.max(0, Math.round(loopsLeft))
-            title = `your cell · ${n} loop${n === 1 ? '' : 's'} left${pending ? ' · confirming…' : ''}`
+            title = `your cell · ${n} loop${n === 1 ? '' : 's'} left${pending ? ' · confirming…' : ''} · 1c try · 2c +16 · 3c +32`
           } else {
-            title = `cell ${cellId} — tap to rent`
+            title = `1 click = try · 2 clicks = toggle (16) · 3 clicks = max (32) · hover for menu`
           }
         }
 
@@ -236,6 +348,8 @@ function Row({
             className={cls.join(' ')}
             style={style}
             onClick={(e) => onCellClick(cellId, e.currentTarget.getBoundingClientRect(), status)}
+            onMouseEnter={(e) => onCellEnter(cellId, e.currentTarget.getBoundingClientRect(), status)}
+            onMouseLeave={onCellLeave}
             title={title}
           >
             {label}
