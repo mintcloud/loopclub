@@ -44,6 +44,12 @@ export function useSessionKey(smartAddress: Hex | null): SessionKey {
   const [expiresAt, setExpiresAt] = useState<number | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const ctxRef = useRef<SessionContext | null>(null)
+  // Rapid clicks (onToggle is fire-and-forget) used to race on the bundler's
+  // nonce → second UserOp reverted with AA25. Chain sends through a promise
+  // queue so each session.send() reads its nonce only after the previous
+  // submission is bundler-accepted. Catch on the chain itself to avoid
+  // poisoning the queue when a single send rejects.
+  const sendQueueRef = useRef<Promise<unknown>>(Promise.resolve())
 
   // Restore a still-valid session from localStorage once the smart wallet
   // resolves — the returning-user path, no signature required.
@@ -135,7 +141,9 @@ export function useSessionKey(smartAddress: Hex | null): SessionKey {
   const send = useCallback(async (call: { to: Hex; data: Hex }) => {
     const ctx = ctxRef.current
     if (!ctx) throw new Error('Fast mode is not armed.')
-    return sendViaSession(ctx, call)
+    const next = sendQueueRef.current.then(() => sendViaSession(ctx, call))
+    sendQueueRef.current = next.catch(() => undefined)
+    return next
   }, [])
 
   return {
