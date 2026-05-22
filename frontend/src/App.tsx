@@ -12,6 +12,7 @@ import { useMyCells } from './useMyCells'
 import { config, megaethMainnet, LOOP_DURATION_SECONDS, SYNTH_CELL_START } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
+import logoUrl from '../../design-system/assets/loopchain-logo-transparent.png'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
 import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep, previewCell } from './audio'
@@ -572,7 +573,7 @@ export function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <h1>Loopchain</h1>
+          <img className="wordmark" src={logoUrl} alt="Loopchain" />
         </div>
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">
@@ -610,7 +611,7 @@ export function App() {
           </div>
           {authenticated && <FastMode session={session} ready={!!smartAddress} />}
           {!ready ? null : !authenticated ? (
-            <button className="primary" onClick={login}>
+            <button className="btn-chrome" onClick={login}>
               Connect
             </button>
           ) : (
@@ -652,12 +653,12 @@ export function App() {
               </span>
             </div>
             {!authenticated ? (
-              <button className="primary pb-press" onClick={login}>
+              <button className="btn-chrome pb-press" onClick={login}>
                 Connect to press
               </button>
             ) : (
               <button
-                className="hot pb-press"
+                className="btn-hot pb-press"
                 onClick={() => onPressSeries(playback)}
                 disabled={pressingSeriesId === playback.seriesId}
               >
@@ -881,7 +882,7 @@ function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => vo
         <p className="muted">Your loop is live on chain. Share it — anyone can press the next copy.</p>
         <div className="share-url">
           <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
-          <button className="primary" onClick={copy}>
+          <button className="btn-chrome" onClick={copy}>
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
@@ -926,7 +927,7 @@ function FundModal({
         </p>
         <div className="share-url">
           <input readOnly value={address} onFocus={(e) => e.currentTarget.select()} />
-          <button className="primary" onClick={copy}>
+          <button className="btn-chrome" onClick={copy}>
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>

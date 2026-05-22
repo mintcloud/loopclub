@@ -1,0 +1,165 @@
+/* ============================================================
+   Loopchain Design System — LED cells + grid
+   16-step × N-track sequencer matrix. Cells are LEDs set into a
+   dark chrome bezel; lit cells halate in their track colour.
+   ============================================================ */
+
+.grid {
+  display: grid;
+  grid-template-columns: 70px repeat(16, 1fr);
+  gap: 4px;
+  user-select: none;
+}
+.grid .label {
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.track-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0; margin-right: 4px;
+}
+.track-dot.kick     { background: var(--kick); }
+.track-dot.snare    { background: var(--snare); }
+.track-dot.hat      { background: var(--hat); }
+.track-dot.synth    { background: var(--synth); }
+.track-dot.clap     { background: var(--clap); }
+.track-dot.open-hat { background: var(--open-hat); }
+.track-dot.cowbell  { background: var(--cowbell); }
+.track-dot.crash    { background: var(--crash); }
+.track-dot.ride     { background: var(--ride); }
+
+/* OFF cell — recessed dark bezel, soft inner shadow reads as a depression. */
+.cell {
+  aspect-ratio: 1 / 1;
+  background: #050510;
+  border: 1px solid #0e0e1c;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.1s ease;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    inset 0 0 4px rgba(0,0,0,.4);
+}
+.cell:hover { transform: translateY(-1px); }
+.cell:hover:not(.on) {
+  background: #0a0a16;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    inset 0 0 4px rgba(0,0,0,.3);
+}
+
+/* ON cell — bright LED bloom with halation glow. Track variants set --led. */
+.cell.on {
+  color: rgba(8,8,18,.88);
+  border-color: rgba(255,255,255,.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.45),
+    inset 0 1px 0 rgba(255,255,255,.65),
+    0 0 0 1px var(--led, var(--accent)),
+    0 0 10px var(--led, var(--accent)),
+    0 0 22px color-mix(in oklab, var(--led, var(--accent)) 45%, transparent);
+}
+.cell.on.mine     { --led: var(--accent); background: var(--accent); color: #fff; }
+.cell.on.other    { --led: var(--cell-color, var(--accent)); background: var(--cell-color, var(--accent)); }
+.cell.on.kick     { --led: var(--kick);     background: var(--kick); }
+.cell.on.snare    { --led: var(--snare);    background: var(--snare); }
+.cell.on.hat      { --led: var(--hat);      background: var(--hat);     color: #08222a; }
+.cell.on.synth    { --led: var(--synth);    background: var(--synth);   color: #051a2c; }
+.cell.on.clap     { --led: var(--clap);     background: var(--clap); }
+.cell.on.open-hat { --led: var(--open-hat); background: var(--open-hat); color: #08222a; }
+.cell.on.cowbell  { --led: var(--cowbell);  background: var(--cowbell); }
+.cell.on.crash    { --led: var(--crash);    background: var(--crash); }
+.cell.on.ride     { --led: var(--ride);     background: var(--ride); }
+
+/* Playhead — stacked outline so the LED rim is preserved underneath. */
+.cell.playing {
+  outline: 2px solid rgba(255,255,255,.95);
+  outline-offset: -2px;
+}
+/* Hovering a fill/renew button highlights affected cells without lighting them. */
+.cell.preview {
+  outline: 2px dashed rgba(124, 92, 255, 0.85);
+  outline-offset: -2px;
+}
+/* Downbeat — chrome stripe on the 1, 5, 9, 13 (every 4 steps). */
+.cell.beat-1 {
+  border-left: 2px solid;
+  border-image: linear-gradient(180deg, #c8cdd8, #2d3340, #c8cdd8) 1;
+}
+.cell.pending {
+  outline: 2px dashed rgba(255, 255, 255, 0.72);
+  outline-offset: -3px;
+  animation: pendingPulse 1s ease-in-out infinite;
+}
+.cell.just-landed { animation: landPop 0.7s ease-out; z-index: 2; }
+@keyframes pendingPulse {
+  0%, 100% { outline-color: rgba(255,255,255,.72); }
+  50%      { outline-color: rgba(255,255,255,.18); }
+}
+@keyframes landPop {
+  0%   { transform: scale(.5);  filter: brightness(1.9); }
+  55%  { transform: scale(1.2); filter: brightness(1.35); }
+  100% { transform: scale(1);   filter: brightness(1); }
+}
+
+/* Step header — numbers above the grid. */
+.step-num {
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.02em;
+}
+.step-num.downbeat {
+  color: var(--accent);
+  font-weight: 600;
+  border-left: 2px solid var(--accent-dim);
+}
+.step-num.playing {
+  color: white;
+  background: rgba(124, 92, 255, 0.18);
+  border-radius: 3px;
+}
+
+/* Track-label affordance — hovering hints at the row-fill popover. */
+.grid .label.track-tools {
+  cursor: pointer;
+  transition: color 0.1s ease, border-color 0.1s ease;
+  padding-right: 0.4rem;
+}
+.grid .label.track-tools:hover { color: var(--text); }
+.grid .label.track-tools::after {
+  content: '⋯';
+  margin-left: 0.35rem;
+  color: var(--muted);
+  font-size: 12px;
+  opacity: 0.6;
+}
+.grid .label.track-tools:hover::after { opacity: 1; color: var(--accent); }
+
+/* MiniGrid — 16×N thumbnail used inside loop cards. */
+.mini-grid { display: flex; flex-direction: column; gap: 2px; }
+.mini-row  { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.mini-cell {
+  aspect-ratio: 1 / 1; background: var(--panel-2);
+  border-radius: 2px; border: 1px solid transparent;
+  min-height: 8px;
+}
+.mini-cell.beat-1     { border-left: 1px solid var(--accent-dim); }
+.mini-cell.on.kick    { background: var(--kick); }
+.mini-cell.on.snare   { background: var(--snare); }
+.mini-cell.on.hat     { background: var(--hat); }
+.mini-cell.on.synth   { background: var(--synth); }
+.mini-cell.playing    { outline: 1px solid #fff; outline-offset: -1px; }

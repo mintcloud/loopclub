@@ -1,0 +1,52 @@
+/* ============================================================
+   Loopchain Design System — Colors
+   Surfaces, text, accents, instrument LEDs, role states.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces & text — pure black stage so the chrome wordmark reflects. */
+  --bg:        #020205;
+  --bg-elev:   #07070d;
+  --panel:     #14142a;
+  --panel-2:   #1c1c34;
+  --border:    #2a2a44;
+  --text:      #e6e6f0;
+  --muted:     #8888a0;
+
+  /* Brand accents — violet for "your cell" identity, never the primary CTA. */
+  --accent:     #7c5cff;
+  --accent-dim: #5a3ec0;
+
+  /* Instrument / track LEDs — vivid neon, contrast vs the chrome chrome. */
+  --kick:   #ff5c7c;
+  --snare:  #ffaf5c;
+  --hat:    #5cffc6;
+  --synth:  #5cb6ff;
+  /* Extended track palette — present in the live frontend. */
+  --clap:     #ff8a5c;
+  --open-hat: #5cffaf;
+  --cowbell:  #b98cff;
+  --crash:    #ff5cd6;
+  --ride:     #5c9fff;
+
+  /* Role / state */
+  --owned:    #ffc24b;
+  --contrib:  #5cffc6;
+  --danger:   #ff5c5c;
+  --hot:      #ff2d1f;
+
+  /* MegaETH soft palette — decorative / marketing surfaces only. */
+  --moon-white: #ECE8E8;
+  --full-moon:  #DFD9D9;
+  --night-sky:  #19191A;
+  --peach:      #F5AF94;
+  --coral:      #F5949D;
+  --hot-pink:   #FF8AA8;
+  --magenta:    #F786C6;
+  --mint-soft:  #90D79F;
+  --teal-mint:  #6DD0A9;
+  --sky-soft:   #7EAAD4;
+  --cyan-soft:  #70BAD2;
+}

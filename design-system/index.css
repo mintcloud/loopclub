@@ -1,0 +1,40 @@
+/* ============================================================
+   Loopchain Design System — Entry point.
+   Import this single file and the whole system is available.
+
+   Usage from the frontend:
+     // frontend/src/main.tsx (or main.css)
+     @import 'design-system/index.css';
+     // OR with relative paths if not using workspaces:
+     @import '../../design-system/index.css';
+
+   NOTE: every @import must appear before the first style rule —
+   the CSS spec ignores @import rules that follow a style rule,
+   which would silently drop every component stylesheet.
+   ============================================================ */
+
+/* 1 — Tokens (CSS custom properties only — no rules yet) */
+@import './tokens/colors.css';
+@import './tokens/chrome.css';
+@import './tokens/type.css';
+@import './tokens/space.css';
+
+/* 2 — Components — global utility classes, ready to use */
+@import './components/buttons.css';
+@import './components/cells-grid.css';
+@import './components/popovers.css';
+@import './components/strips-badges.css';
+@import './components/library.css';
+@import './components/banner-modal-toast.css';
+
+/* 3 — Base — apply tokens to the page root */
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100vh; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  line-height: var(--lh-base);
+  -webkit-font-smoothing: antialiased;
+}

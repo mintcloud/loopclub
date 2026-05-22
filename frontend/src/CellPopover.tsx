@@ -155,10 +155,10 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }:
             </div>
 
             <div className="popover-actions">
-              <button className="primary" onClick={() => onSubmit(duration, pitch)}>
+              <button className="btn-chrome" onClick={() => onSubmit(duration, pitch)}>
                 toggle <kbd>T</kbd>
               </button>
-              <button className="hot" onClick={() => onSubmit(MAX_TOGGLE_LOOPS, pitch)}>
+              <button className="btn-hot" onClick={() => onSubmit(MAX_TOGGLE_LOOPS, pitch)}>
                 max <kbd>M</kbd>
               </button>
             </div>

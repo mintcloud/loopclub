@@ -1,0 +1,77 @@
+/* ============================================================
+   Loopchain Design System — Buttons
+   .btn       — default ghost (cancel, secondary actions)
+   .btn-chrome — primary CTA, chrome metallic finish
+   .btn-hot   — urgent CTA (press now, time-sensitive actions)
+   ============================================================ */
+
+.btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.1s ease, background 0.1s ease, transform 0.06s ease;
+}
+.btn:hover  { border-color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Primary action — silver chrome with flat printed-legend text.
+   Hairline highlight at the top edge; dark band lives at ~75% so labels
+   stay legible. Reads like a real metal pad from a drum machine. */
+.btn-chrome {
+  background: var(--chrome-fill-button);
+  border: 1px solid var(--chrome-border);
+  color: #0a0a12;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 2px 5px rgba(0,0,0,.55);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-chrome:hover  { filter: brightness(1.06); border-color: var(--chrome-border); }
+.btn-chrome:active {
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,.4),
+    inset 0 -1px 0 rgba(255,255,255,.3);
+  filter: brightness(0.98);
+}
+.btn-chrome:disabled {
+  background: var(--panel-2);
+  border-color: var(--border);
+  color: var(--muted);
+  box-shadow: none;
+  filter: none;
+}
+
+/* Urgent CTA — LED-red, glowing. Sparingly: "press now" only. */
+.btn-hot {
+  background: var(--hot-fill);
+  border: 1px solid var(--hot-border);
+  color: white;
+  box-shadow: var(--hot-glow);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-hot:hover { filter: brightness(1.08); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }

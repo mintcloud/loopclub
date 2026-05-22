@@ -1,6 +1,7 @@
 * text=auto eol=lf
 *.sol linguist-language=Solidity
 *.png binary
+*.ttf binary
 *.jpg binary
 *.gif binary
 *.ico binary

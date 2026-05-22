@@ -1,0 +1,139 @@
+/* ============================================================
+   Loopchain Design System — Strips & badges
+   Sync badge (block-pulse heartbeat)
+   Fast-mode pill (session-key chrome chip)
+   Contributor strip (player colour key)
+   Renew strip (your recent cells + one-click re-rent)
+   Chrome pill (generic chrome chip)
+   ============================================================ */
+
+/* ── Sync badge — pulses every new block. */
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--r-pill);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hat);
+  box-shadow: 0 0 6px var(--hat);
+  animation: blockPulse 0.5s ease-out;
+}
+@keyframes blockPulse {
+  0%   { transform: scale(2.4); opacity: 0.85; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Chrome pill — generic chrome chip used for status (fast mode, etc).
+   Works as <button> or <span>. */
+.chrome-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--chrome-fill-button);
+  border: 1px solid var(--chrome-border);
+  color: #0a0a12;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--r-pill);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 2px 5px rgba(0,0,0,.55);
+  white-space: nowrap;
+  cursor: default;
+}
+/* Tiny ✕ inside an interactive chrome pill (armed fast-mode). */
+.chrome-pill-x {
+  background: transparent; border: none; color: rgba(10,10,18,.6);
+  font-size: 11px; line-height: 1; padding: 0 0.2rem; margin-left: 0.15rem;
+  cursor: pointer; border-radius: var(--r-pill);
+}
+.chrome-pill-x:hover { color: var(--hot, #ff2d1f); }
+
+/* ── Fast-mode (session keys). Both states share .chrome-pill styling. */
+.fastmode-btn,
+.fastmode-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: var(--chrome-fill-button);
+  border: 1px solid var(--chrome-border);
+  color: #0a0a12;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--r-pill);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 2px 5px rgba(0,0,0,.55);
+  cursor: pointer;
+}
+.fastmode-btn:hover:not(:disabled) { filter: brightness(1.06); }
+.fastmode-bolt { color: #c0224a; }
+@keyframes boltPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+/* ── Contributor strip — per-wallet colour chips below the grid. */
+.contrib-strip {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  min-height: 1.4rem;
+}
+.contrib-strip.empty { color: var(--muted); }
+.contrib-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.contrib-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.contrib-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-pill); padding: 0.2rem 0.55rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.contrib-chip.mine { border-color: var(--accent); color: var(--text); }
+.contrib-dot   { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.contrib-count { color: var(--muted); background: var(--panel-2); border-radius: var(--r-sm); padding: 0 0.32rem; font-size: 10px; }
+
+/* ── Renew strip — your recent cells + one-click re-rent. */
+.renew-strip {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  font-family: var(--font-mono); font-size: 11px;
+  min-height: 1.6rem;
+}
+.renew-strip.urgent .rc.expiring { box-shadow: 0 0 8px rgba(255, 194, 75, 0.4); }
+.renew-counts { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.rc {
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+.rc.live     { color: var(--hat);   border-color: rgba(92, 255, 198, 0.32); }
+.rc.expiring { color: var(--owned); border-color: rgba(255, 194, 75, 0.45); }
+.rc.expired  { color: var(--muted); }
+.rc.taken    { color: var(--muted); opacity: 0.7; }
+.renew-strip > button {
+  font-size: 11px;
+  padding: 0.35rem 0.75rem;
+}

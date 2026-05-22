@@ -4,6 +4,7 @@ import { PrivyProvider } from '@privy-io/react-auth'
 import { SmartWalletsProvider } from '@privy-io/react-auth/smart-wallets'
 import { App } from './App'
 import { config, megaethMainnet } from './config'
+import '../../design-system/index.css'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
