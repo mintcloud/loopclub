@@ -124,7 +124,13 @@ export function Grid({
     [dispatchCellClick],
   )
 
-  const handleCellEnter = useCallback(
+  // Arm the hover-hold timer for a cell. Shared by mouseEnter and mouseMove:
+  // mouseEnter alone isn't enough because a click cancels the pending timer
+  // (handleCellClick) and no second mouseEnter fires while the cursor stays put
+  // — so after any click the popover would never appear again until you left
+  // and re-entered the cell. Re-arming on mouseMove fixes that: rest or nudge
+  // the cursor on a cell and the popover surfaces, click or no prior click.
+  const armHover = useCallback(
     (cellId: number, rect: DOMRect, status: CellStatus) => {
       if (!onCellHover) return
       // Click sequence in flight — don't surface the popover, the user is
@@ -138,6 +144,17 @@ export function Grid({
       hoverRef.current = { cellId, timer }
     },
     [onCellHover, clickPending],
+  )
+
+  const handleCellEnter = armHover
+
+  const handleCellMove = useCallback(
+    (cellId: number, rect: DOMRect, status: CellStatus) => {
+      // A timer is already counting down for this cell — let it run.
+      if (hoverRef.current?.cellId === cellId) return
+      armHover(cellId, rect, status)
+    },
+    [armHover],
   )
 
   const handleCellLeave = useCallback(() => {
@@ -169,6 +186,7 @@ export function Grid({
           playingStep={playingStep}
           onCellClick={handleCellClick}
           onCellEnter={handleCellEnter}
+          onCellMove={handleCellMove}
           onCellLeave={handleCellLeave}
           cells={cells}
           myAddress={myAddress}
@@ -191,6 +209,7 @@ interface RowProps {
   playingStep: number
   onCellClick: (cellId: number) => void
   onCellEnter: (cellId: number, rect: DOMRect, status: CellStatus) => void
+  onCellMove: (cellId: number, rect: DOMRect, status: CellStatus) => void
   onCellLeave: () => void
   cells?: CellState[]
   myAddress?: string | null
@@ -209,6 +228,7 @@ function Row({
   playingStep,
   onCellClick,
   onCellEnter,
+  onCellMove,
   onCellLeave,
   cells,
   myAddress,
@@ -313,6 +333,7 @@ function Row({
             style={style}
             onClick={() => onCellClick(cellId)}
             onMouseEnter={(e) => onCellEnter(cellId, e.currentTarget.getBoundingClientRect(), status)}
+            onMouseMove={(e) => onCellMove(cellId, e.currentTarget.getBoundingClientRect(), status)}
             onMouseLeave={onCellLeave}
             title={title}
           >
