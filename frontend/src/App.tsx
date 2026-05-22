@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256, decodeEventLog } from 'viem'
-import { Grid, type CellStatus, type CellTier } from './Grid'
+import { Grid, type CellStatus } from './Grid'
 import { CellPopover } from './CellPopover'
 import { RowToolsPopover } from './RowToolsPopover'
 import { ContributorStrip } from './ContributorStrip'
@@ -16,6 +16,7 @@ import {
   SYNTH_CELL_START,
   DEFAULT_TOGGLE_LOOPS,
   MAX_TOGGLE_LOOPS,
+  type CellTier,
 } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
@@ -714,7 +715,7 @@ export function App() {
           pattern={displayPattern}
           synthData={displaySynthData}
           playingStep={playingStep}
-          onCellTier={playback ? undefined : (id, tier) => handleCellTier(id, tier)}
+          onCellTier={playback ? undefined : handleCellTier}
           onCellHover={playback ? undefined : handleCellHover}
           cells={playback ? undefined : grid.cells}
           myAddress={smartAddress}
