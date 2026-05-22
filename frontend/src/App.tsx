@@ -611,7 +611,7 @@ export function App() {
           </div>
           {authenticated && <FastMode session={session} ready={!!smartAddress} />}
           {!ready ? null : !authenticated ? (
-            <button className="btn-chrome" onClick={login}>
+            <button className="btn-chrome connect-btn" onClick={login}>
               Connect
             </button>
           ) : (

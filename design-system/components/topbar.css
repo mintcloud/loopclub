@@ -81,18 +81,26 @@
     inset 0 1px 2px rgba(0, 0, 0, 0.4),
     inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
-/* Engaged toggle (audition on / press-ready) — the pad reads as pressed
-   into the deck and lit with the accent LED ring. */
+/* Engaged toggle (audition on / press-ready) — the pad is pushed into
+   the deck, so its chrome flips to the darker pressed reflection
+   (--chrome-fill-pressed): a dim graphite surface instead of silver.
+   That surface change — not the accent ring — is the primary "on" cue,
+   so an engaged pad is unmistakable even at a glance. The accent ring
+   stays on as a quiet secondary identity hint. Light ink, since the
+   surface is now dark. */
 .deck-btn.active {
-  filter: brightness(0.95);
+  background: var(--chrome-fill-pressed);
+  border-color: var(--chrome-border);
+  color: #e9e9f2;
+  filter: none;
   box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.5),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 2px 6px rgba(0, 0, 0, 0.7),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
     0 0 0 1px var(--accent),
-    0 0 12px rgba(124, 92, 255, 0.5);
+    0 0 9px rgba(124, 92, 255, 0.32);
 }
 .deck-btn.active:hover:not(:disabled) {
-  filter: brightness(1);
+  filter: brightness(1.14);
   transform: none;
 }
 .deck-btn .deck-label {
@@ -109,7 +117,7 @@
   letter-spacing: var(--ls-meta);
   font-variant-numeric: tabular-nums;
 }
-.deck-btn.active .deck-sub { color: rgba(10, 10, 18, 0.72); }
+.deck-btn.active .deck-sub { color: rgba(233, 233, 242, 0.66); }
 .deck-btn:disabled {
   background: var(--panel-2);
   border-color: var(--border);
@@ -151,6 +159,16 @@
   color: var(--muted);
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* ───── Connect button — pre-auth CTA ─────
+   Shown before the deck tray / account chip exist. Pair with .btn-chrome
+   in the markup (`class="btn-chrome connect-btn"`); this only stretches it
+   to the shared cluster height so the header baseline never jumps when
+   the user connects. */
+.connect-btn {
+  height: var(--topbar-cluster-h);
+  padding: 0 var(--space-5);
 }
 
 /* ───── Grid-anchored sync badge ─────

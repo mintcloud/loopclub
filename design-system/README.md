@@ -100,8 +100,9 @@ import logoUrl from 'design-system/assets/loopchain-logo-transparent.png';
 | `.contrib-strip` + `.contrib-chip` | per-wallet colour key under the grid   |
 | `.renew-strip` + `.rc.*`       | recent cells + one-click renew            |
 | `.deck-controls` + `.deck-btn` | header deck-pad tray (Play / Audition / Press) |
-| `.deck-btn.active`             | engaged deck pad — pressed-in + accent LED ring |
+| `.deck-btn.active`             | engaged deck pad — dark pressed-chrome reflection |
 | `.account-group` + `.wallet-btn` | header chip — balance + "⊕ My wallet"   |
+| `.connect-btn`                 | pre-auth CTA — `.btn-chrome` at cluster height |
 | `.grid-wrap` + `.sync-badge`   | grid-anchored block-pulse heartbeat       |
 | `.playback-banner` + `.pb-*`   | replay state banner above the grid        |
 | `.modal-bg` + `.modal`         | centred dialog                            |
@@ -129,7 +130,7 @@ intent. Read those files directly when you need detail.
 --owned --contrib --danger --hot
 
 /* Chrome system */
---chrome-fill --chrome-fill-button --chrome-border --chrome-shadow
+--chrome-fill --chrome-fill-button --chrome-fill-pressed --chrome-border --chrome-shadow
 --rainbow-rim --rainbow-glow
 --hot-fill --hot-border --hot-glow
 

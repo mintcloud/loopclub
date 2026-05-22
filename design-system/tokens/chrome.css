@@ -21,6 +21,14 @@
      never crosses the label text on a button. */
   --chrome-fill-button: linear-gradient(180deg,
     #ffffff 0%, #e8ebf2 15%, #c8cdd8 48%, #2d3340 75%, #6c7380 90%, #c8cdd8 100%);
+
+  /* Pressed / engaged chrome — the pad pushed down into the deck, so its
+     mirror finish now catches a darker scene. Same band rhythm as
+     --chrome-fill-button but no white highlight and the dark trough
+     widened: the surface reads as dim graphite rather than silver, which
+     is the primary cue for a toggled-on pad (use light ink on top). */
+  --chrome-fill-pressed: linear-gradient(180deg,
+    #9aa0ac 0%, #767c8a 13%, #44495a 42%, #111319 72%, #23262f 88%, #4a4f5c 100%);
   --chrome-border: #0e1018;
   --chrome-shadow: 0 4px 12px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.7);
 
