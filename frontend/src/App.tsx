@@ -37,6 +37,11 @@ export function App() {
   const grid = useLiveGrid()
 
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
+  // usdmBalance starts at 0n and only becomes real after the first chain read
+  // resolves — which can take tens of seconds behind a slow/rate-limited RPC.
+  // `balanceLoaded` gates the pre-flight "not enough balance" guards so they
+  // don't fire against that placeholder zero and block every rent on startup.
+  const [balanceLoaded, setBalanceLoaded] = useState(false)
   const [allowance, setAllowance] = useState<bigint>(0n)
   const [basePrice, setBasePrice] = useState<bigint>(1n * 10n ** 18n) // default 1 USDm; refreshed from chain
   const [rentPerLoop, setRentPerLoop] = useState<bigint>(4n * 10n ** 15n) // default 0.004 USDm/loop; refreshed from chain
@@ -104,6 +109,7 @@ export function App() {
         ])
         setUsdmBalance(bal as bigint)
         setAllowance(allow as bigint)
+        setBalanceLoaded(true)
       }
     } catch (e) {
       console.error('wallet refresh failed', e)
@@ -115,6 +121,12 @@ export function App() {
     const id = setInterval(refreshWallet, WALLET_POLL_MS)
     return () => clearInterval(id)
   }, [refreshWallet])
+
+  // A new (or cleared) smart wallet means the cached balance is stale — drop
+  // the loaded flag so the pre-flight guards wait for a fresh read.
+  useEffect(() => {
+    setBalanceLoaded(false)
+  }, [smartAddress])
 
   // Feed the audio engine the live grid whenever it changes (unless replaying a loop).
   useEffect(() => {
@@ -243,7 +255,10 @@ export function App() {
     // same one-time approval the press/record flows do — without it the call
     // reverts with ERC20InsufficientAllowance during paymaster simulation.
     const cost = rentPerLoop * BigInt(durationLoops)
-    if (usdmBalance < cost) {
+    // Only enforce the balance guard once a real balance has loaded — otherwise
+    // the placeholder 0n blocks every rent during the first poll. If the read
+    // hasn't landed yet we let the tx through; it reverts cleanly if truly short.
+    if (balanceLoaded && usdmBalance < cost) {
       flash(
         `Need ${formatUnits(cost, 18)} USDm to rent (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
         true,
@@ -301,7 +316,7 @@ export function App() {
     if (!smartWalletClient || !smartAddress || cellIds.length === 0) return
 
     const cost = rentPerLoop * BigInt(duration) * BigInt(cellIds.length)
-    if (usdmBalance < cost) {
+    if (balanceLoaded && usdmBalance < cost) {
       flash(
         `Need ${formatUnits(cost, 18)} USDm (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
         true,
@@ -364,7 +379,7 @@ export function App() {
       flash('Grid is empty — toggle some cells first', true)
       return
     }
-    if (usdmBalance < basePrice) {
+    if (balanceLoaded && usdmBalance < basePrice) {
       flash(`Need ${formatUnits(basePrice, 18)} USDm to press (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`, true)
       return
     }
@@ -461,7 +476,7 @@ export function App() {
   // Press copy #N of an existing loop — calls press(seriesId).
   const onPressSeries = async (record: LoopRecord) => {
     if (!smartWalletClient) return
-    if (usdmBalance < record.nextPressPrice) {
+    if (balanceLoaded && usdmBalance < record.nextPressPrice) {
       flash(
         `Need ${formatUnits(record.nextPressPrice, 18)} USDm to press (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
         true,
