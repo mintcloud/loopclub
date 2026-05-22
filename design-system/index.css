@@ -26,6 +26,7 @@
 @import './components/strips-badges.css';
 @import './components/library.css';
 @import './components/banner-modal-toast.css';
+@import './components/topbar.css';
 
 /* 3 — Base — apply tokens to the page root */
 * { box-sizing: border-box; }

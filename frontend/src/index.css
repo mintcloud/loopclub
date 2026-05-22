@@ -7,7 +7,7 @@
 
    This file keeps ONLY what the design system intentionally does
    not own:
-     - the app layout shell (.app, .header, .deck-controls, …)
+     - the app layout shell (.app, .header skeleton, .header-left)
      - app-only components the design system has no recipe for
      - a few targeted overrides where the design-system rule is
        not yet correct for this frontend — see the
@@ -67,111 +67,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   gap: 0.7rem;
 }
 .muted { color: var(--muted); font-size: 12px; }
-.balance { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* ───── Deck controls (play / audition / press) — drum-machine-ish row ─────
-   Grouped, recessed panel housing identical-footprint pads so the head
-   reads like a deck control strip, not three loose buttons. */
-.deck-controls {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  padding: 5px;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
-}
-/* The pads carry the design system's chrome surface — the same metallic
-   recipe as .btn-chrome / .chrome-pill in the toggle popover (see
-   design-system/components/buttons.css + tokens/chrome.css) — so the deck
-   reads as a row of TR-808 metal pads sitting in a dark tray. */
-.deck-btn {
-  min-width: 118px;
-  height: 46px;
-  padding: 4px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  background: var(--chrome-fill-button);
-  border: 1px solid var(--chrome-border);
-  border-radius: 6px;
-  color: #0a0a12;
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
-    0 2px 5px rgba(0, 0, 0, 0.55);
-  transition: filter 0.1s ease, transform 0.06s ease, box-shadow 0.1s ease;
-}
-.deck-btn:hover:not(:disabled) {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-}
-.deck-btn:active:not(:disabled) {
-  transform: translateY(0);
-  filter: brightness(0.98);
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.4),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.3);
-}
-/* Engaged toggle (audition on / press-ready) — the pad reads as pressed
-   into the deck and lit with the accent LED ring. */
-.deck-btn.active {
-  filter: brightness(0.95);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.5),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.25),
-    0 0 0 1px var(--accent),
-    0 0 12px rgba(124, 92, 255, 0.5);
-}
-.deck-btn.active:hover:not(:disabled) {
-  filter: brightness(1);
-  transform: none;
-}
-.deck-btn .deck-label {
-  font-weight: 600;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-.deck-btn .deck-sub {
-  font-size: 10px;
-  color: rgba(10, 10, 18, 0.62);
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.deck-btn.active .deck-sub { color: rgba(10, 10, 18, 0.72); }
-.deck-btn:disabled {
-  background: var(--panel-2);
-  border-color: var(--border);
-  color: var(--muted);
-  box-shadow: none;
-  filter: none;
-  cursor: not-allowed;
-}
-.deck-btn:disabled .deck-sub { color: var(--muted); }
+/* ───── Top-bar clusters (.deck-controls, .deck-btn, .account-group,
+   .wallet-btn, .balance) and the grid-anchored .sync-badge now live in
+   the design system — design-system/components/topbar.css. The header
+   skeleton below (.header / .right / .header-left) stays app-level. ───── */
 
-/* ───── Account group (balance + my wallet) — kept close together ───── */
-.account-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 5px 8px 5px 12px;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.account-group .balance { white-space: nowrap; }
-.wallet-btn {
-  height: 36px;
-  padding: 0 0.85rem;
-  border-radius: 6px;
-  font-size: 12px;
-  letter-spacing: 0.01em;
-}
+/* Wallet modal actions — Privy-specific, so it stays in the frontend. */
 .wallet-modal-actions { justify-content: space-between !important; }
 .wallet-modal-actions .disconnect {
   border-color: var(--border);
@@ -182,20 +84,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--danger);
 }
 
-/* ───── Grid wrap — positions the block-sync badge inside the grid so the
-   chain heartbeat lives where the music plays instead of crowding the
-   header. (The .sync-badge look itself comes from the design system.) ───── */
-.grid-wrap {
-  position: relative;
-}
-.grid-wrap .sync-badge {
-  position: absolute;
-  right: 6px;
-  bottom: -14px;
-  z-index: 3;
-  background: rgba(20, 20, 42, 0.88);
-  backdrop-filter: blur(6px);
-}
 /* "Connecting" sync state — the design system always pulses .sync-dot;
    this dims it instead while we have no block yet. */
 .sync-badge.connecting .sync-dot {

@@ -167,11 +167,22 @@ free to migrate them into the appropriate `design-system/components/*.css`
 file. Open a PR with the change so the design system catches up.
 
 The design system intentionally does NOT contain:
-- App-level layout (`.app`, `.header` skeleton)
-- Privy / wallet-specific UI
+- App-level layout (`.app`, the `.header` flex skeleton, `.header-left`)
+- Privy / wallet-specific UI (`.wallet-modal-actions`, the disconnect button)
 - Anything that depends on contract / chain state
 
 These belong in the frontend.
+
+> **Top-bar reorg (PR #4) — already migrated.** The header's two grouped
+> clusters — `.deck-controls` (the Play / Audition / Press pad tray) and
+> `.account-group` (balance + `.wallet-btn`), plus the grid-anchored
+> `.sync-badge` positioning — now live in `components/topbar.css`. They were
+> added app-side before this design system existed and the handoff predates
+> that PR, so the clusters were folded in afterwards and re-expressed in
+> tokens (chrome surface, `--r-lg` radii, `--space-*`, `--fs-*`). The two
+> clusters share `--topbar-cluster-h` so the header reads as one aligned
+> strip. The `.header` flex skeleton itself stays app-level — only the
+> reusable clusters moved.
 
 ---
 

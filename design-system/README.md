@@ -29,7 +29,8 @@ design-system/
 │   ├── popovers.css        ← .cell-popover, .row-tools, .keyboard
 │   ├── strips-badges.css   ← .sync-badge, .chrome-pill, .fastmode-*, .contrib-*, .renew-strip
 │   ├── library.css         ← .library, .loop-card, role badges, tabs
-│   └── banner-modal-toast.css ← .playback-banner, .modal, .toast, .wordmark
+│   ├── banner-modal-toast.css ← .playback-banner, .modal, .toast, .wordmark
+│   └── topbar.css          ← .deck-controls, .deck-btn, .account-group, grid-anchored sync badge
 ├── assets/
 │   ├── loopchain-logo-transparent.png  ← canonical wordmark (use this)
 │   ├── loopchain-logo-cropped.png      ← black-bg variant
@@ -98,6 +99,10 @@ import logoUrl from 'design-system/assets/loopchain-logo-transparent.png';
 | `.role-badge.owned/.contrib`   | NFT / contributor badge                   |
 | `.contrib-strip` + `.contrib-chip` | per-wallet colour key under the grid   |
 | `.renew-strip` + `.rc.*`       | recent cells + one-click renew            |
+| `.deck-controls` + `.deck-btn` | header deck-pad tray (Play / Audition / Press) |
+| `.deck-btn.active`             | engaged deck pad — pressed-in + accent LED ring |
+| `.account-group` + `.wallet-btn` | header chip — balance + "⊕ My wallet"   |
+| `.grid-wrap` + `.sync-badge`   | grid-anchored block-pulse heartbeat       |
 | `.playback-banner` + `.pb-*`   | replay state banner above the grid        |
 | `.modal-bg` + `.modal`         | centred dialog                            |
 | `.toast`                       | bottom-centred transient status           |

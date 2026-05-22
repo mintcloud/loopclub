@@ -622,7 +622,7 @@ export function App() {
                 {formatUnits(usdmBalance, 18).slice(0, 6)} USDm
               </span>
               <button
-                className="wallet-btn"
+                className="btn wallet-btn"
                 onClick={() => setShowFund(true)}
                 title="Wallet — fund or disconnect"
                 disabled={!smartAddress}
