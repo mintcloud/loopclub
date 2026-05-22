@@ -1075,7 +1075,13 @@ kbd {
  * so the user reads it as "I tried this sound" not "I just edited the grid". */
 .cell.auditioning {
   animation: auditionFlash 0.55s ease-out;
-  pointer-events: none;
+  /* NB: no `pointer-events: none` here. The audition flash lasts ~0.6s, and a
+   * single click fires 'try' (which starts this flash) immediately — so during
+   * a double/triple-click the flash is already on when the 2nd/3rd click lands.
+   * Killing pointer events would swallow those follow-up clicks (and block the
+   * mouseenter/mousemove that arms the hover popover), which is exactly the
+   * "double-click only auditions, never toggles" bug. The cell must stay
+   * interactive through the flash. */
   z-index: 2;
 }
 @keyframes auditionFlash {
