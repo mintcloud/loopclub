@@ -621,9 +621,14 @@ button.primary:disabled {
   position: fixed;
   inset: 0;
   z-index: 45;
+  /* Non-blocking — clicks fall through to the grid so a dismiss-click still
+     counts toward the cell's click-tier gesture. Only .cell-popover catches
+     pointer events. Outside-click dismissal is handled by a document listener. */
+  pointer-events: none;
 }
 .cell-popover {
   position: fixed;
+  pointer-events: auto;
   background: var(--panel);
   border: 1px solid var(--accent-dim);
   border-radius: 8px;

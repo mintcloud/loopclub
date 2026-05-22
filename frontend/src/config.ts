@@ -81,6 +81,11 @@ export const LOOP_DURATION_SECONDS = 4
 export const DEFAULT_TOGGLE_LOOPS = 16
 export const MAX_TOGGLE_LOOPS = 32
 
+// Cell-click tiers: 1 click = try (audition), 2 = toggle, 3 = max. Shared by
+// the grid cells and the popover's piano keys so the gesture is identical
+// wherever a sound can be triggered.
+export type CellTier = 'try' | 'toggle' | 'max'
+
 // A cell with this many loops (or fewer) of rent left renders as "expiring" —
 // it desaturates and pulses so the grid reads as time-bounded, contested state.
 export const EXPIRING_SOON_LOOPS = 2

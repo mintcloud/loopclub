@@ -7,9 +7,10 @@ import {
   STEPS,
   DEFAULT_TOGGLE_LOOPS,
   MAX_TOGGLE_LOOPS,
+  type CellTier,
 } from './config'
-import type { CellTier } from './Grid'
 import { ownerColor, shortAddr } from './owner'
+import { useClickTier } from './useClickTier'
 
 interface Props {
   cellId: number
@@ -108,8 +109,27 @@ export function CellPopover({
     return () => window.removeEventListener('keydown', onKey)
   }, [pitch, onClose, onTier, occupied, auditionLocked])
 
+  // Dismiss on any pointer-down outside the panel. The backdrop is
+  // pointer-events:none (see .popover-layer) so this click ALSO lands on the
+  // grid cell underneath — that's deliberate: a click that closes the popover
+  // still counts toward the cell's click-tier gesture, so a double-click reads
+  // as two clicks, not one. (Previously the backdrop swallowed the first click.)
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [onClose])
+
   return (
-    <div className="popover-layer" onClick={onClose}>
+    // The layer is pointer-events:none — it never catches clicks, so a click
+    // that dismisses the popover passes straight through to the grid cell and
+    // still counts toward its click-tier gesture. Only the panel below is
+    // interactive.
+    <div className="popover-layer">
       <div
         ref={popoverRef}
         className={`cell-popover ${pos?.placement ?? 'above'}`}
@@ -118,7 +138,6 @@ export function CellPopover({
           left: pos?.left ?? 0,
           visibility: pos ? 'visible' : 'hidden',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="popover-head">
           <span className="popover-title">
@@ -146,7 +165,7 @@ export function CellPopover({
         {isSynth && !occupied && (
           <div className="pitch-picker">
             <span className="pitch-label">pitch</span>
-            <Keyboard selected={pitch} onSelect={setPitch} />
+            <Keyboard selected={pitch} onSelect={setPitch} onTier={onTier} />
           </div>
         )}
 
@@ -245,7 +264,21 @@ const BLACK_KEYS: Array<{ note: string; offset: number }> = [
   { note: 'A#', offset: 6 },
 ]
 
-function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: number) => void }) {
+function Keyboard({
+  selected,
+  onSelect,
+  onTier,
+}: {
+  selected: number
+  onSelect: (idx: number) => void
+  // Same tier callback the cell uses — clicking a key 1×/2×/3× runs
+  // try / toggle / max at that key's pitch.
+  onTier: (tier: CellTier, pitchIdx: number) => void
+}) {
+  // Each piano key carries the same 1/2/3-click gesture as a grid cell, keyed
+  // by its pitch index so rapid clicks on one key resolve to a single tier.
+  const { click: dispatchKeyClick } = useClickTier((pitchIdx, tier) => onTier(tier, pitchIdx))
+
   return (
     <div className="keyboard">
       <div className="keyboard-whites">
@@ -258,8 +291,13 @@ function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: nu
               key={i}
               type="button"
               className={cls.join(' ')}
-              onClick={() => onSelect(k.pitchIdx)}
-              title={`${PITCH_LABELS[k.pitchIdx]} (degree ${k.pitchIdx})`}
+              onClick={() => {
+                // Highlight the key immediately; the tier (try/toggle/max)
+                // settles ~240ms later once the click count is known.
+                onSelect(k.pitchIdx)
+                dispatchKeyClick(k.pitchIdx)
+              }}
+              title={`${PITCH_LABELS[k.pitchIdx]} — 1 click try · 2 toggle · 3 max`}
             >
               <span className="key-label">{k.note}</span>
             </button>
@@ -276,7 +314,9 @@ function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: nu
           />
         ))}
       </div>
-      <div className="keyboard-caption muted">selected: {PITCH_LABELS[selected]}</div>
+      <div className="keyboard-caption muted">
+        {PITCH_LABELS[selected]} selected · 1× try · 2× toggle · 3× max
+      </div>
     </div>
   )
 }
