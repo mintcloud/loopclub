@@ -585,7 +585,7 @@ export function App() {
               onClick={() => setAuditionMode((v) => !v)}
               title="Audition — click any cell to hear its sound. No rent, no transaction."
             >
-              <span className="deck-label">🔊 Audition</span>
+              <span className="deck-label">♪ Audition</span>
             </button>
             {authenticated && (
               <button
