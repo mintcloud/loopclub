@@ -1,66 +1,44 @@
-:root {
-  color-scheme: dark;
-  --bg: #0a0a12;
-  --panel: #14142a;
-  --panel-2: #1c1c34;
-  --border: #2a2a44;
-  --text: #e6e6f0;
-  --muted: #8888a0;
-  --accent: #7c5cff;
-  --accent-dim: #5a3ec0;
-  --kick: #ff5c7c;
-  --snare: #ffaf5c;
-  --clap: #ff8a5c;
-  --hat: #5cffc6;
-  --open-hat: #5cffaf;
-  --cowbell: #b98cff;
-  --crash: #ff5cd6;
-  --ride: #5c9fff;
-  --synth: #5cb6ff;
-  --danger: #ff5c5c;
-  --owned: #ffc24b;
-  --contrib: #5cffc6;
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: var(--bg);
-  color: var(--text);
-}
+/* ============================================================
+   Loopchain — app-level styles.
 
-* { box-sizing: border-box; }
+   The visual design system (tokens, buttons, LED cells, popovers,
+   library cards, strips, badges, modals, wordmark) now lives in
+   ../../design-system/ and is imported FIRST in main.tsx.
 
-html, body, #root { margin: 0; min-height: 100vh; }
+   This file keeps ONLY what the design system intentionally does
+   not own:
+     - the app layout shell (.app, .header skeleton, .header-left)
+     - app-only components the design system has no recipe for
+     - a few targeted overrides where the design-system rule is
+       not yet correct for this frontend — see the
+       "DESIGN-SYSTEM OVERRIDES" section at the bottom.
 
+   Tokens (--bg, --accent, --r-md, --font-mono, …) all come from
+   the design system; this file only references them.
+   ============================================================ */
+
+/* #root fills the viewport — the design system covers html/body. */
+#root { min-height: 100vh; }
+
+/* Bare <button> fallback. The design system styles buttons as
+   classes (.btn / .btn-chrome / .btn-hot), but a number of app
+   buttons are still bare <button> elements (modal "close", card
+   "play"/"stop"/"share", playback "back to live jam"). This keeps
+   them on the ghost style they had before the migration. */
 button {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--border);
   padding: 0.5rem 0.9rem;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 13px;
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
   cursor: pointer;
 }
 button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
-button.primary:hover { background: var(--accent-dim); }
-button.hot {
-  background: #ff2d1f;
-  border-color: #ff2d1f;
-  color: white;
-  box-shadow: 0 0 12px rgba(255, 45, 31, 0.55);
-}
-button.hot:hover {
-  background: #ff5436;
-  border-color: #ff5436;
-  box-shadow: 0 0 18px rgba(255, 84, 54, 0.75);
-}
 
-a { color: var(--accent); }
-
+/* ───── App shell ───── */
 .app {
   max-width: 960px;
   margin: 0 auto;
@@ -77,97 +55,25 @@ a { color: var(--accent); }
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border);
 }
-.header h1 {
-  margin: 0;
-  font-size: 1.4rem;
-  letter-spacing: -0.02em;
-}
 .header .right {
   display: flex;
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
 }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
 .muted { color: var(--muted); font-size: 12px; }
-.balance { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* ───── Deck controls (play / audition / press) — drum-machine-ish row ─────
-   Grouped, recessed panel housing identical-footprint pads so the head
-   reads like a deck control strip, not three loose buttons. */
-.deck-controls {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  padding: 5px;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
-}
-.deck-btn {
-  min-width: 118px;
-  height: 46px;
-  padding: 4px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  background: linear-gradient(180deg, var(--panel-2) 0%, #181830 100%);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.45);
-  transition: border-color 0.1s ease, transform 0.06s ease, box-shadow 0.1s ease;
-}
-.deck-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-.deck-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5) inset;
-}
-.deck-btn.active {
-  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
-  border-color: var(--accent);
-  color: white;
-  box-shadow: 0 0 12px rgba(124, 92, 255, 0.45);
-}
-.deck-btn .deck-label {
-  font-weight: 600;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-.deck-btn .deck-sub {
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.deck-btn.active .deck-sub { color: rgba(255, 255, 255, 0.78); }
-.deck-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* ───── Top-bar clusters (.deck-controls, .deck-btn, .account-group,
+   .wallet-btn, .balance) and the grid-anchored .sync-badge now live in
+   the design system — design-system/components/topbar.css. The header
+   skeleton below (.header / .right / .header-left) stays app-level. ───── */
 
-/* ───── Account group (balance + my wallet) — kept close together ───── */
-.account-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 5px 8px 5px 12px;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.account-group .balance { white-space: nowrap; }
-.wallet-btn {
-  height: 36px;
-  padding: 0 0.85rem;
-  border-radius: 6px;
-  font-size: 12px;
-  letter-spacing: 0.01em;
-}
+/* Wallet modal actions — Privy-specific, so it stays in the frontend. */
 .wallet-modal-actions { justify-content: space-between !important; }
 .wallet-modal-actions .disconnect {
   border-color: var(--border);
@@ -178,727 +84,20 @@ a { color: var(--accent); }
   color: var(--danger);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 70px repeat(16, 1fr);
-  gap: 4px;
-  user-select: none;
-}
-.grid .label {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 0.6rem;
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-.cell {
-  aspect-ratio: 1 / 1;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--panel);
-  cursor: pointer;
-  transition: transform 0.06s ease, box-shadow 0.06s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: var(--muted);
-}
-.cell:hover { transform: translateY(-1px); }
-.cell.on { background: var(--accent); border-color: var(--accent); color: white; }
-.cell.on.kick     { background: var(--kick);     border-color: var(--kick);  }
-.cell.on.snare    { background: var(--snare);    border-color: var(--snare); }
-.cell.on.clap     { background: var(--clap);     border-color: var(--clap); }
-.cell.on.hat      { background: var(--hat);      border-color: var(--hat); color: #08222a; }
-.cell.on.open-hat { background: var(--open-hat); border-color: var(--open-hat); color: #08222a; }
-.cell.on.cowbell  { background: var(--cowbell);  border-color: var(--cowbell); }
-.cell.on.crash    { background: var(--crash);    border-color: var(--crash); }
-.cell.on.ride     { background: var(--ride);     border-color: var(--ride); color: #051a2c; }
-.cell.on.synth    { background: var(--synth);    border-color: var(--synth); color: #051a2c; }
-.cell.playing { box-shadow: 0 0 0 2px white inset; }
-.cell.beat-1 { border-left: 2px solid var(--accent-dim); }
-
-.step-num {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: var(--muted);
-  padding: 2px 0;
-  border-bottom: 1px solid var(--border);
-  letter-spacing: 0.02em;
-}
-.step-num.downbeat {
-  color: var(--accent);
-  font-weight: 600;
-  border-left: 2px solid var(--accent-dim);
-}
-.step-num.playing {
-  color: white;
-  background: rgba(124, 92, 255, 0.18);
-  border-radius: 3px;
-}
-.step-axis-label {
-  font-size: 10px;
-  opacity: 0.6;
-}
-
-.controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 0.5rem;
-  font-size: 12px;
-}
-.toast {
-  position: fixed;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  padding: 0.6rem 1rem;
-  border-radius: 6px;
-  font-size: 12px;
-  color: var(--text);
-  z-index: 50;
-  max-width: 80vw;
-}
-.toast.error { border-color: var(--danger); color: var(--danger); }
-
-.modal-bg {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 40;
-}
-.modal {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem;
-  min-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-.modal h3 { margin: 0; font-size: 14px; }
-.modal label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 0.3rem; }
-.modal input, .modal select {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.4rem 0.6rem;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 13px;
-}
-.modal .row { display: flex; gap: 0.5rem; justify-content: flex-end; }
-
-.pitch-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.pitch-picker .pitch-label {
-  font-size: 12px;
-  color: var(--muted);
-}
-.keyboard {
-  --black-w: 18px;
-  position: relative;
-  width: 100%;
-  height: 92px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px;
-}
-.keyboard-whites {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
-  height: 70px;
-}
-.keyboard-blacks {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  height: 44px;
-  pointer-events: none;
-}
-.key {
-  position: relative;
-  border-radius: 0 0 4px 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 0 4px;
-  font-family: inherit;
-  font-size: 10px;
-  border: 1px solid var(--border);
-  transition: background 0.08s ease, transform 0.06s ease;
-}
-.key.white {
-  background: linear-gradient(180deg, #f5f5fa 0%, #d8d8e2 100%);
-  color: #14142a;
-}
-.key.white:hover:not(:disabled):not(.active) {
-  background: linear-gradient(180deg, #ffffff 0%, #e8e8f2 100%);
-  transform: translateY(1px);
-}
-.key.white.active {
-  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 0 8px rgba(124, 92, 255, 0.5);
-}
-.key.white.disabled {
-  background: linear-gradient(180deg, #2a2a44 0%, #1c1c34 100%);
-  color: var(--muted);
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.key.black {
-  position: absolute;
-  top: 0;
-  width: var(--black-w);
-  height: 44px;
-  background: linear-gradient(180deg, #1a1a2a 0%, #06060c 100%);
-  border: 1px solid #000;
-  border-radius: 0 0 3px 3px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-.key-label {
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.keyboard-caption {
-  position: absolute;
-  bottom: 4px;
-  right: 8px;
-  font-size: 10px;
-}
-
-/* ───── Save / save loop button glow ───── */
-button.primary:disabled {
-  background: var(--panel-2);
-  border-color: var(--border);
-  color: var(--muted);
-  box-shadow: none;
-}
-
-/* ───── Playback banner + press-edition CTA (above grid when replaying a loop) ───── */
-.playback-banner {
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(90deg, rgba(124, 92, 255, 0.18), rgba(92, 182, 255, 0.18));
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 0.7rem 0.85rem;
-  font-size: 12px;
-  gap: 0.6rem;
-}
-.playback-banner strong { color: var(--accent); }
-.pb-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-}
-.pb-cta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--accent-dim);
-  border-radius: 6px;
-  padding: 0.65rem 0.8rem;
-}
-.pb-cta-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.22rem;
-}
-.pb-cta-copy .pb-headline { font-size: 13px; }
-.pb-cta-copy .pb-sub { color: var(--muted); line-height: 1.45; }
-.pb-press {
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-size: 13px;
-  padding: 0.6rem 1rem;
-}
-@media (max-width: 560px) {
-  .pb-status { flex-direction: column; align-items: stretch; }
-  .pb-cta { flex-direction: column; align-items: stretch; }
-  .pb-press { width: 100%; }
-}
-
-/* ───── Library ───── */
-.library {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border);
-}
-.library-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.library-header h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  letter-spacing: -0.01em;
-}
-.tabs { display: flex; gap: 0.35rem; }
-.tab {
-  font-size: 12px;
-  padding: 0.35rem 0.7rem;
-  background: var(--panel);
-  border: 1px solid var(--border);
-}
-.tab.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
-.library-empty {
-  text-align: center;
-  padding: 1.5rem;
-  font-size: 13px;
-}
-.error-line {
-  color: var(--danger);
-  padding: 0.4rem 0;
-}
-
-.library-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.85rem;
-}
-.loop-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  transition: border-color 0.1s ease, transform 0.06s ease;
-}
-.loop-card:hover { border-color: var(--accent-dim); }
-/* role affordances — the connected wallet's relationship to a loop */
-.loop-card.role-contrib { border-color: var(--contrib); }
-.loop-card.role-owned {
-  border-color: var(--owned);
-  box-shadow: 0 0 0 1px rgba(255, 194, 75, 0.5), 0 0 12px rgba(255, 194, 75, 0.18);
-}
-/* the actively-playing card keeps the accent highlight (declared last to win) */
-.loop-card.playing {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 0 14px rgba(124, 92, 255, 0.35);
-}
-.loop-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-}
-.loop-card-head .token-id {
-  color: var(--accent);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-.loop-card-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 11px;
-}
-.loop-card-foot .owner {
-  font-family: ui-monospace, monospace;
-}
-.card-actions {
-  display: flex;
-  gap: 0.3rem;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.card-actions button,
-.card-actions a {
-  font-size: 11px;
-  padding: 0.3rem 0.55rem;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-}
-.card-actions button:hover,
-.card-actions a:hover {
-  border-color: var(--accent);
-}
-.card-actions a.nft-link {
-  color: var(--owned);
-  border-color: rgba(255, 194, 75, 0.4);
-}
-.card-actions a.nft-link:hover { border-color: var(--owned); }
-
-/* role badges inside a loop card */
-.role-badges {
-  display: flex;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-.role-badge {
-  font-size: 10px;
-  padding: 0.13rem 0.42rem;
-  border-radius: 3px;
-  letter-spacing: 0.02em;
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-.role-badge.owned {
-  color: var(--owned);
-  border-color: rgba(255, 194, 75, 0.45);
-  background: rgba(255, 194, 75, 0.1);
-}
-.role-badge.contrib {
-  color: var(--contrib);
-  border-color: rgba(92, 255, 198, 0.4);
-  background: rgba(92, 255, 198, 0.09);
-}
-
-/* ───── MiniGrid (used inside cards) ───── */
-.mini-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.mini-row {
-  display: grid;
-  grid-template-columns: repeat(16, 1fr);
-  gap: 2px;
-}
-.mini-cell {
-  aspect-ratio: 1 / 1;
-  background: var(--panel-2);
-  border-radius: 2px;
-  border: 1px solid transparent;
-  min-height: 8px;
-}
-.mini-cell.beat-1 { border-left: 1px solid var(--accent-dim); }
-.mini-cell.on { background: var(--accent); }
-.mini-cell.on.kick     { background: var(--kick); }
-.mini-cell.on.snare    { background: var(--snare); }
-.mini-cell.on.clap     { background: var(--clap); }
-.mini-cell.on.hat      { background: var(--hat); }
-.mini-cell.on.open-hat { background: var(--open-hat); }
-.mini-cell.on.cowbell  { background: var(--cowbell); }
-.mini-cell.on.crash    { background: var(--crash); }
-.mini-cell.on.ride     { background: var(--ride); }
-.mini-cell.on.synth    { background: var(--synth); }
-.mini-cell.playing { box-shadow: 0 0 0 1px white inset; }
-
-/* ───── Cell popover (contextual toggle) ───── */
-.popover-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 45;
-  /* Non-blocking — clicks fall through to the grid so a dismiss-click still
-     counts toward the cell's click-tier gesture. Only .cell-popover catches
-     pointer events. Outside-click dismissal is handled by a document listener. */
-  pointer-events: none;
-}
-.cell-popover {
-  position: fixed;
-  pointer-events: auto;
-  background: var(--panel);
-  border: 1px solid var(--accent-dim);
-  border-radius: 8px;
-  padding: 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  min-width: 234px;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.65);
-}
-.popover-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-.popover-title {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.popover-x {
-  padding: 0.1rem 0.35rem;
-  font-size: 11px;
-  line-height: 1;
-  background: transparent;
-  border-color: transparent;
-  color: var(--muted);
-}
-.popover-x:hover { border-color: var(--border); color: var(--text); }
-.popover-duration {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  font-size: 12px;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-.popover-duration input {
-  width: 72px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.35rem 0.5rem;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 13px;
-}
-.popover-cost { font-size: 11px; }
-.popover-actions {
-  display: flex;
-  gap: 0.4rem;
-}
-.popover-actions button {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-}
-/* Tiered click affordances — one row per tier (try / toggle / max). The popover
-   is the discovery surface for the 1/2/3-click gesture, so each row makes the
-   click count explicit alongside the keyboard shortcut. */
-.tier-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin-top: 0.15rem;
-}
-.tier-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--panel-2);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  transition: background 120ms, border-color 120ms, transform 80ms;
-}
-.tier-row:hover:not(.disabled) {
-  border-color: var(--accent-dim);
-  background: rgba(255, 255, 255, 0.04);
-}
-.tier-row:active:not(.disabled) {
-  transform: translateY(1px);
-}
-.tier-row.disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.tier-main {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-.tier-label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.tier-sub {
-  font-size: 11px;
-}
-.tier-gesture {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
-}
-.tier-gesture-text {
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.tier-row.tier-toggle:hover:not(.disabled) {
-  border-color: var(--accent);
-}
-.tier-row.tier-max:hover:not(.disabled) {
-  border-color: var(--hot, #ff7849);
-  background: rgba(255, 120, 73, 0.08);
-}
-.tier-row.tier-try:hover:not(.disabled) {
-  border-color: rgba(120, 220, 160, 0.5);
-}
-.popover-arrow {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  background: var(--panel);
-  transform: translateX(-50%) rotate(45deg);
-}
-.cell-popover.above .popover-arrow {
-  bottom: -6px;
-  border-right: 1px solid var(--accent-dim);
-  border-bottom: 1px solid var(--accent-dim);
-}
-.cell-popover.below .popover-arrow {
-  top: -6px;
-  border-left: 1px solid var(--accent-dim);
-  border-top: 1px solid var(--accent-dim);
-}
-kbd {
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 600;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 3px;
-  padding: 0.08rem 0.32rem;
-  line-height: 1;
-}
-
-/* ───── Share modal ───── */
-.share-url {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-.share-url input {
-  flex: 1;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.4rem 0.55rem;
-  border-radius: 4px;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-}
-
-/* ───── Block-sync badge — pinned to the bottom-right of the grid as a
-   living "pulse" indicator, so the chain heartbeat lives where the music
-   plays instead of crowding the header. */
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-.grid-wrap {
-  position: relative;
-}
-.grid-wrap .sync-badge {
-  position: absolute;
-  right: 6px;
-  bottom: -14px;
-  z-index: 3;
-  background: rgba(20, 20, 42, 0.88);
-  backdrop-filter: blur(6px);
-}
-.sync-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 11px;
-  color: var(--muted);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  padding: 0.22rem 0.6rem;
-  border-radius: 999px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.sync-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--hat);
-  box-shadow: 0 0 6px var(--hat);
-}
-.sync-badge:not(.connecting) .sync-dot {
-  animation: blockPulse 0.5s ease-out;
-}
+/* "Connecting" sync state — the design system always pulses .sync-dot;
+   this dims it instead while we have no block yet. */
 .sync-badge.connecting .sync-dot {
   background: var(--muted);
   box-shadow: none;
   animation: dim 1.2s ease-in-out infinite;
-}
-@keyframes blockPulse {
-  0% { transform: scale(2.4); opacity: 0.85; }
-  100% { transform: scale(1); opacity: 1; }
 }
 @keyframes dim {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
 
-/* ───── Fast mode — session-key status (Step 4) ───── */
-.fastmode-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 12px;
-  padding: 0.4rem 0.7rem;
-  border-radius: 999px;
-  background: var(--panel-2);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  white-space: nowrap;
-}
-.fastmode-btn:hover:not(:disabled) {
-  background: rgba(124, 92, 255, 0.14);
-  border-color: var(--accent);
-}
-.fastmode-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 11px;
-  color: var(--text);
-  background: rgba(124, 92, 255, 0.12);
-  border: 1px solid var(--accent);
-  padding: 0.22rem 0.3rem 0.22rem 0.6rem;
-  border-radius: 999px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  box-shadow: 0 0 10px rgba(124, 92, 255, 0.35);
-}
-.fastmode-bolt {
-  color: var(--owned);
-  animation: boltPulse 2.4s ease-in-out infinite;
-}
-@keyframes boltPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
+/* ───── Fast mode — app-only states the design system doesn't carry.
+   (.fastmode-btn / .fastmode-badge chrome look come from the system.) ───── */
 .fastmode-off {
   padding: 0 0.32rem;
   font-size: 10px;
@@ -919,115 +118,60 @@ kbd {
   box-shadow: none;
 }
 
-/* ───── Live grid — cells coloured by who rented them ───── */
-.track-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-  margin-right: 4px;
-}
-.track-dot.kick     { background: var(--kick); }
-.track-dot.snare    { background: var(--snare); }
-.track-dot.clap     { background: var(--clap); }
-.track-dot.hat      { background: var(--hat); }
-.track-dot.open-hat { background: var(--open-hat); }
-.track-dot.cowbell  { background: var(--cowbell); }
-.track-dot.crash    { background: var(--crash); }
-.track-dot.ride     { background: var(--ride); }
-.track-dot.synth    { background: var(--synth); }
-
-.cell.on.mine {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-.cell.on.other {
-  background: var(--cell-color, var(--accent));
-  border-color: var(--cell-color, var(--accent));
-  color: rgba(8, 8, 18, 0.82);
-}
-/* optimistic — our toggle tx is in flight, not yet confirmed on chain */
-.cell.pending {
-  outline: 2px dashed rgba(255, 255, 255, 0.72);
-  outline-offset: -3px;
-  animation: pendingPulse 1s ease-in-out infinite;
-}
-/* rent is nearly up — anyone can grab the cell soon */
-.cell.expiring {
-  animation: expirePulse 1.4s ease-in-out infinite;
-}
-/* a CellRented event just landed — one-shot pop */
-.cell.just-landed {
-  animation: landPop 0.7s ease-out;
-  z-index: 2;
-}
-@keyframes pendingPulse {
-  0%, 100% { outline-color: rgba(255, 255, 255, 0.72); }
-  50%      { outline-color: rgba(255, 255, 255, 0.18); }
-}
-@keyframes expirePulse {
-  0%, 100% { opacity: 0.72; }
-  50%      { opacity: 0.38; }
-}
-@keyframes landPop {
-  0%   { transform: scale(0.5);  filter: brightness(1.9); }
-  55%  { transform: scale(1.2);  filter: brightness(1.35); }
-  100% { transform: scale(1);    filter: brightness(1); }
-}
-
-/* ───── Contributor strip (live-grid colour key) ───── */
-.contrib-strip {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  font-size: 11px;
-  min-height: 1.4rem;
-}
-.contrib-strip.empty {
-  color: var(--muted);
-}
-.contrib-label {
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.contrib-list {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-.contrib-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  font-family: ui-monospace, monospace;
-}
-.contrib-chip.mine {
-  border-color: var(--accent);
-  color: var(--text);
-}
-.contrib-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.contrib-count {
-  color: var(--muted);
-  background: var(--panel-2);
-  border-radius: 4px;
-  padding: 0 0.32rem;
+/* ───── Step axis label (above the grid) ───── */
+.step-axis-label {
   font-size: 10px;
+  opacity: 0.6;
 }
 
-/* ───── Cell popover — "claimed by another player" variant ───── */
+/* ───── Footer controls row (cell count + chain link) ───── */
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+  font-size: 12px;
+}
+
+/* ───── Modal form fields — the design system's .modal recipe styles
+   h3 / p / .row / .share-url, but not raw label/input/select. ───── */
+.modal label {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.modal input, .modal select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* ───── Pitch keyboard — key caption (design system styles the keys
+   themselves, but not the white-key letter label). ───── */
+.key-label {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ───── Library — empty / error states the design system doesn't carry. ───── */
+.library-empty {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 13px;
+}
+.error-line {
+  color: var(--danger);
+  padding: 0.4rem 0;
+}
+
+/* ───── Cell popover — "claimed by another player" variant.
+   App-only: depends on chain ownership state. ───── */
 .popover-claimed {
   display: flex;
   flex-direction: column;
@@ -1047,7 +191,7 @@ kbd {
   flex-shrink: 0;
 }
 
-/* ───── Audition mode + cell preview ───── */
+/* ───── Cell popover — preview play button in the head. ───── */
 .popover-head-btns {
   display: flex;
   align-items: center;
@@ -1065,50 +209,9 @@ kbd {
   border-color: var(--accent);
   color: var(--accent);
 }
-/* In audition mode every cell reads as a "tap to hear" pad — green-mint so it
- * doesn't read like an edit hover. */
-.grid.audition .cell:hover {
-  box-shadow: 0 0 0 2px var(--hat) inset;
-  transform: translateY(-1px);
-}
-/* A click in audition mode flashes green and fades out — ephemeral on purpose,
- * so the user reads it as "I tried this sound" not "I just edited the grid". */
-.cell.auditioning {
-  animation: auditionFlash 0.55s ease-out;
-  /* NB: no `pointer-events: none` here. The audition flash lasts ~0.6s, and a
-   * single click fires 'try' (which starts this flash) immediately — so during
-   * a double/triple-click the flash is already on when the 2nd/3rd click lands.
-   * Killing pointer events would swallow those follow-up clicks (and block the
-   * mouseenter/mousemove that arms the hover popover), which is exactly the
-   * "double-click only auditions, never toggles" bug. The cell must stay
-   * interactive through the flash. */
-  z-index: 2;
-}
-@keyframes auditionFlash {
-  0% {
-    background: var(--hat);
-    border-color: var(--hat);
-    transform: scale(1.18);
-    box-shadow: 0 0 14px var(--hat);
-    opacity: 1;
-  }
-  60% {
-    background: var(--hat);
-    border-color: var(--hat);
-    transform: scale(1.05);
-    box-shadow: 0 0 6px rgba(92, 255, 198, 0.55);
-    opacity: 0.85;
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: none;
-    opacity: 1;
-  }
-}
 
 /* Preview-fill — drawn while the user hovers a row-tool or the renew button.
- * Yellow/gold (--owned) so it can't be confused with audition's mint green or
- * with a track colour. Mirrors the sync-badge pulse to flag "ephemeral intent". */
+ * Yellow/gold (--owned) so it can't be confused with a track colour. */
 .cell.preview-fill:not(.on) {
   background: rgba(255, 194, 75, 0.16);
   border-color: var(--owned);
@@ -1126,7 +229,18 @@ kbd {
   50%      { filter: brightness(1.25); }
 }
 
-/* ───── Row fill tools ───── */
+/* rent is nearly up — anyone can grab the cell soon */
+.cell.expiring {
+  animation: expirePulse 1.4s ease-in-out infinite;
+}
+@keyframes expirePulse {
+  0%, 100% { opacity: 0.72; }
+  50%      { opacity: 0.38; }
+}
+
+/* ───── Row fill tools — track-label affordance.
+   The frontend uses .label.fillable + a .row-fill-hint span (rather than
+   the design system's .label.track-tools ::after glyph). ───── */
 .grid .label.fillable {
   cursor: pointer;
   transition: color 0.1s ease;
@@ -1149,102 +263,111 @@ kbd {
   opacity: 1;
   transform: translateY(1px);
 }
-/* In audition mode the row labels are read-only — match the dim, no-pointer
- * style the rest of the edit affordances pick up. */
-.grid .label.fillable-disabled {
-  cursor: not-allowed;
-  opacity: 0.35;
-  pointer-events: none;
-}
-.grid .label.fillable-disabled .row-fill-hint {
-  color: var(--muted);
-  opacity: 0.5;
-}
-.row-tools {
-  position: fixed;
-  pointer-events: auto;
-  z-index: 46;
-  background: var(--panel);
-  border: 1px solid var(--accent-dim);
-  border-radius: 8px;
-  padding: 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  width: 256px;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.65);
-}
-.row-tools-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-}
-.row-tools-grid button {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.12rem;
-  padding: 0.4rem 0.55rem;
-}
-.rt-label {
-  font-size: 12px;
-  letter-spacing: 0.02em;
-}
-.rt-cost {
-  font-size: 10px;
-  color: var(--muted);
-}
-.row-tools-euclid {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.row-tools-euclid .popover-duration input {
-  width: 52px;
-}
-.row-tools-euclid button {
-  flex: 1;
-  font-size: 11px;
-  white-space: nowrap;
+
+/* ───── Playback banner — responsive stacking (design system styles the
+   banner itself; this is the narrow-viewport layout only). ───── */
+@media (max-width: 560px) {
+  .pb-status { flex-direction: column; align-items: stretch; }
+  .pb-cta { flex-direction: column; align-items: stretch; }
+  .pb-press { width: 100%; }
 }
 
-/* ───── Renew strip — your recent cells + one-click re-rent ───── */
-.renew-strip {
+/* ============================================================
+   DESIGN-SYSTEM OVERRIDES
+   Targeted corrections where the current design-system rule is
+   not yet right for this frontend. These win the cascade because
+   index.css is imported AFTER design-system/index.css.
+   Worth upstreaming into the design system later.
+   ============================================================ */
+
+/* The popovers are positioned from getBoundingClientRect() (viewport
+   coordinates) and the page scrolls, so they must be position: fixed.
+   The design system currently sets them to position: absolute, which
+   would drift on scroll. */
+.popover-layer { position: fixed; }
+.cell-popover  { position: fixed; }
+.row-tools     { position: fixed; }
+
+/* Click-tier gesture (1c try / 2c toggle / 3c max): the popover layer
+   must let clicks fall through to the grid so a dismiss-click still
+   counts toward the cell's click-tier gesture. Only the popovers
+   themselves opt back in. */
+.popover-layer { pointer-events: none; }
+.cell-popover  { pointer-events: auto; }
+.row-tools     { pointer-events: auto; }
+
+/* Tiered click rows inside the cell popover — design system has no
+   recipe yet. One row per tier (try / toggle / max); each row makes
+   the click count explicit alongside the keyboard shortcut. */
+.tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+.tier-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.6rem;
-  flex-wrap: wrap;
-  font-size: 11px;
-  min-height: 1.6rem;
-}
-.renew-counts {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-.rc {
-  padding: 0.13rem 0.48rem;
-  border-radius: 999px;
+  padding: 0.5rem 0.6rem;
   border: 1px solid var(--border);
-  background: var(--panel);
-  font-variant-numeric: tabular-nums;
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: background 120ms, border-color 120ms, transform 80ms;
 }
-.rc.live {
-  color: var(--hat);
-  border-color: rgba(92, 255, 198, 0.32);
+.tier-row:hover:not(.disabled) {
+  border-color: var(--accent-dim);
+  background: rgba(255, 255, 255, 0.04);
 }
-.rc.expiring {
-  color: var(--owned);
-  border-color: rgba(255, 194, 75, 0.45);
-}
-.rc.expired {
+.tier-row:active:not(.disabled) { transform: translateY(1px); }
+.tier-row.disabled { opacity: 0.45; cursor: not-allowed; }
+.tier-main { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.tier-label { font-size: 13px; font-weight: 600; }
+.tier-sub { font-size: 11px; }
+.tier-gesture { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+.tier-gesture-text {
+  font-size: 10px;
   color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
-.rc.taken {
-  color: var(--muted);
-  opacity: 0.7;
+.tier-row.tier-toggle:hover:not(.disabled) { border-color: var(--accent); }
+.tier-row.tier-max:hover:not(.disabled) {
+  border-color: var(--hot, #ff7849);
+  background: rgba(255, 120, 73, 0.08);
 }
-.renew-strip button {
-  font-size: 11px;
-  padding: 0.32rem 0.7rem;
+.tier-row.tier-try:hover:not(.disabled) {
+  border-color: rgba(120, 220, 160, 0.5);
 }
+
+/* 1-click 'try' flash: a brief mint-green pulse on the cell when the
+   user previews a sound without renting. NB: the cell must stay
+   interactive through the flash — pointer-events:none here would
+   swallow follow-up clicks in a 2/3-click gesture (and block the
+   mouseenter/mousemove that arms the hover popover). */
+.cell.auditioning {
+  animation: auditionFlash 0.55s ease-out;
+  z-index: 2;
+}
+@keyframes auditionFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(120, 220, 160, 0.0); }
+  20%  { box-shadow: 0 0 0 4px rgba(120, 220, 160, 0.55); background: rgba(120, 220, 160, 0.22); }
+  100% { box-shadow: 0 0 0 0 rgba(120, 220, 160, 0.0); }
+}
+
+/* The design system only styles the arrow for the "above" placement.
+   Restore the "below" placement arrow (popover flipped under the cell). */
+.cell-popover.below .popover-arrow {
+  top: -6px;
+  border-left: 1px solid var(--accent-dim);
+  border-top: 1px solid var(--accent-dim);
+}
+
+/* The pitch keyboard renders 8 white keys (C–C, one full octave); the
+   design system grids 7 columns, which would wrap the last key. */
+.keyboard-whites { grid-template-columns: repeat(8, 1fr); }

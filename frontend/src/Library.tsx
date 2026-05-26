@@ -376,7 +376,7 @@ export function Library({
                       <button onClick={() => onPlay(r)}>▶ play</button>
                     )}
                     <button
-                      className="primary"
+                      className="btn-chrome"
                       onClick={() => onPress(r)}
                       disabled={isPressing}
                       title={`Press copy #${r.nextEdition} of loop #${r.seriesId.toString()}`}
@@ -385,7 +385,7 @@ export function Library({
                     </button>
                     {roy && roy.claimable > 0n && (
                       <button
-                        className="primary"
+                        className="btn-chrome"
                         onClick={() => onClaimRoyalty(r)}
                         disabled={isClaiming}
                         title={`Claim your royalty share of loop #${r.seriesId.toString()}`}

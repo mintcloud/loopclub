@@ -1,0 +1,47 @@
+/* ============================================================
+   Loopchain Design System — Chrome system
+   The liquid-mercury gradients lifted from the canonical wordmark.
+   Use for primary actions, marquee labels, instrument bezels.
+   ============================================================ */
+
+:root {
+  /* Full 9-stop gradient for large chrome surfaces. */
+  --chrome-fill: linear-gradient(180deg,
+    #ffffff 0%,
+    #f0f3f8 10%,
+    #c8cdd8 22%,
+    #5a6270 40%,
+    #0e1018 52%,
+    #2d3340 64%,
+    #6c7380 78%,
+    #d4dae5 92%,
+    #ffffff 100%);
+
+  /* Simpler 6-stop gradient for buttons. Dark band sits at ~75% so it
+     never crosses the label text on a button. */
+  --chrome-fill-button: linear-gradient(180deg,
+    #ffffff 0%, #e8ebf2 15%, #c8cdd8 48%, #2d3340 75%, #6c7380 90%, #c8cdd8 100%);
+
+  /* Pressed / engaged chrome — the pad pushed down into the deck, so its
+     mirror finish now catches a darker scene. Same band rhythm as
+     --chrome-fill-button but no white highlight and the dark trough
+     widened: the surface reads as dim graphite rather than silver, which
+     is the primary cue for a toggled-on pad (use light ink on top). */
+  --chrome-fill-pressed: linear-gradient(180deg,
+    #9aa0ac 0%, #767c8a 13%, #44495a 42%, #111319 72%, #23262f 88%, #4a4f5c 100%);
+  --chrome-border: #0e1018;
+  --chrome-shadow: 0 4px 12px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.7);
+
+  /* Rainbow refraction — the prismatic rim of the wordmark.
+     Use only as a stroke/border-image, never as a fill. */
+  --rainbow-rim: linear-gradient(95deg,
+    #ff3366 0%,  #ff8a3c 18%, #ffd23c 34%,
+    #5cff7a 50%, #3cc8ff 66%, #6c5cff 82%, #ff5cb8 100%);
+  --rainbow-glow: 0 0 0 1px rgba(255, 92, 184, .6), 0 0 14px rgba(92, 200, 255, .35);
+
+  /* "Press now" red — saturated LED gradient lifted from the wordmark
+     left-edge orange-red. Reserved for one-shot urgent actions. */
+  --hot-fill:   linear-gradient(180deg, #ff8a78 0%, #ff5436 45%, #b81f3a 80%, #ff7a8c 100%);
+  --hot-border: #7a0e22;
+  --hot-glow:   0 0 18px rgba(255,45,31,.55), inset 0 1px 0 rgba(255,255,255,.4);
+}

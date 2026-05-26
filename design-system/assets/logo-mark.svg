@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Loopchain mark">
+  <rect width="64" height="64" rx="10" fill="#14142a"></rect>
+  
+  <g>
+    <rect x="8" y="10" width="11" height="11" rx="2" fill="#ff5c7c"></rect>
+    <rect x="22" y="10" width="11" height="11" rx="2" fill="#2a2a44"></rect>
+    <rect x="36" y="10" width="11" height="11" rx="2" fill="#2a2a44"></rect>
+    <rect x="50" y="10" width="6" height="11" rx="2" fill="#ff5c7c"></rect>
+
+    <rect x="8" y="23" width="11" height="11" rx="2" fill="#2a2a44"></rect>
+    <rect x="22" y="23" width="11" height="11" rx="2" fill="#ffaf5c"></rect>
+    <rect x="36" y="23" width="11" height="11" rx="2" fill="#2a2a44"></rect>
+    <rect x="50" y="23" width="6" height="11" rx="2" fill="#2a2a44"></rect>
+
+    <rect x="8" y="36" width="11" height="11" rx="2" fill="#5cffc6"></rect>
+    <rect x="22" y="36" width="11" height="11" rx="2" fill="#2a2a44"></rect>
+    <rect x="36" y="36" width="11" height="11" rx="2" fill="#5cffc6"></rect>
+    <rect x="50" y="36" width="6" height="11" rx="2" fill="#2a2a44"></rect>
+
+    <rect x="8" y="49" width="11" height="11" rx="2" fill="#2a2a44"></rect>
+    <rect x="22" y="49" width="11" height="11" rx="2" fill="#5cb6ff"></rect>
+    <rect x="36" y="49" width="11" height="11" rx="2" fill="#2a2a44"></rect>
+    <rect x="50" y="49" width="6" height="11" rx="2" fill="#5cb6ff"></rect>
+  </g>
+</svg>

@@ -22,9 +22,6 @@ interface Props {
   // button clicks always fire 'commit'; the piano keyboard inside can also
   // fire 'preview' on a 2-click gesture, same as the grid cells.
   onTier: (tier: CellTier, pitchIdx: number, phase: ClickPhase) => void
-  // While on, the toggle/max rows render disabled — they explain why instead
-  // of just being inert, so the "audition lock" mode reads clearly.
-  auditionLocked?: boolean
   // When set, the cell is held by another player — the popover renders a
   // read-only "claimed" card instead of the toggle controls (try still works).
   occupied?: { who: string; loopsLeft: number }
@@ -47,7 +44,6 @@ export function CellPopover({
   anchorRect,
   onClose,
   onTier,
-  auditionLocked,
   occupied,
 }: Props) {
   const [pitch, setPitch] = useState(0)
@@ -98,7 +94,7 @@ export function CellPopover({
         onTier('try', pitch, 'commit')
         return
       }
-      if (occupied || auditionLocked) return
+      if (occupied) return
       if (k === 't') {
         e.preventDefault()
         onTier('toggle', pitch, 'commit')
@@ -109,7 +105,7 @@ export function CellPopover({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pitch, onClose, onTier, occupied, auditionLocked])
+  }, [pitch, onClose, onTier, occupied])
 
   // Dismiss on any pointer-down outside the panel. The backdrop is
   // pointer-events:none (see .popover-layer) so this click ALSO lands on the
@@ -186,10 +182,8 @@ export function CellPopover({
             gesture="2 clicks"
             hotkey="T"
             kind="toggle"
-            disabled={Boolean(occupied) || auditionLocked}
-            disabledReason={
-              occupied ? "someone else's cell" : auditionLocked ? 'audition lock on' : undefined
-            }
+            disabled={Boolean(occupied)}
+            disabledReason={occupied ? "someone else's cell" : undefined}
             onClick={() => onTier('toggle', pitch, 'commit')}
           />
           <TierRow
@@ -198,10 +192,8 @@ export function CellPopover({
             gesture="3 clicks"
             hotkey="M"
             kind="max"
-            disabled={Boolean(occupied) || auditionLocked}
-            disabledReason={
-              occupied ? "someone else's cell" : auditionLocked ? 'audition lock on' : undefined
-            }
+            disabled={Boolean(occupied)}
+            disabledReason={occupied ? "someone else's cell" : undefined}
             onClick={() => onTier('max', pitch, 'commit')}
           />
         </div>

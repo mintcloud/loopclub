@@ -79,7 +79,7 @@ export function RenewStrip({
       </div>
       {summary.renewable.length > 0 ? (
         <button
-          className={summary.expiring > 0 ? 'hot' : 'primary'}
+          className={summary.expiring > 0 ? 'btn-hot' : 'btn-chrome'}
           disabled={!canRenew}
           onClick={() => onRenew(summary.renewable, DEFAULT_TOGGLE_LOOPS)}
           onMouseEnter={() => onPreview?.(summary.renewable)}

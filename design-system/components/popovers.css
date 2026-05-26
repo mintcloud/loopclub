@@ -1,0 +1,129 @@
+/* ============================================================
+   Loopchain Design System — Popovers
+   Cell popover (toggle controls / claimed view)
+   Row tools popover (per-row fill menu)
+   Pitch keyboard (synth row picker)
+   ============================================================ */
+
+.popover-layer { position: absolute; inset: 0; z-index: 45; }
+
+.cell-popover {
+  position: absolute;
+  background: var(--panel);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--r-lg);
+  padding: 0.7rem;
+  display: flex; flex-direction: column; gap: 0.55rem;
+  min-width: 240px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  box-shadow: var(--shadow-popover);
+}
+.popover-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.popover-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.popover-x {
+  padding: 0.1rem 0.35rem; font-size: 11px; line-height: 1;
+  background: transparent; border-color: transparent; color: var(--muted);
+}
+.popover-x:hover { border-color: var(--border); color: var(--text); }
+.popover-duration {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-size: 12px; color: var(--muted); text-transform: uppercase;
+}
+.popover-duration input {
+  width: 72px; background: var(--panel-2); border: 1px solid var(--border);
+  color: var(--text); padding: 0.35rem 0.5rem; border-radius: var(--r-sm);
+  font-family: inherit; font-size: 13px;
+}
+.popover-cost { font-size: 11px; color: var(--muted); }
+.popover-actions { display: flex; gap: 0.4rem; }
+.popover-actions button {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+}
+.popover-arrow {
+  position: absolute; width: 11px; height: 11px;
+  background: var(--panel); transform: translateX(-50%) rotate(45deg);
+}
+.cell-popover.above .popover-arrow {
+  bottom: -6px;
+  border-right: 1px solid var(--accent-dim);
+  border-bottom: 1px solid var(--accent-dim);
+}
+kbd {
+  font-family: inherit; font-size: 10px; font-weight: 600;
+  background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.28);
+  border-radius: 3px; padding: 0.08rem 0.32rem; line-height: 1;
+}
+
+/* Row tools — per-row fill popover (4·on·4 / offbeat / 8ths / full / euclid). */
+.row-tools {
+  position: absolute;
+  z-index: 46;
+  background: var(--panel);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--r-lg);
+  padding: 0.7rem;
+  display: flex; flex-direction: column; gap: 0.55rem;
+  width: 256px;
+  box-shadow: var(--shadow-popover);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.row-tools-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;
+}
+.row-tools-grid button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
+  padding: 0.45rem 0.6rem;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-sm);
+  color: var(--text); font-family: var(--font-mono); font-size: 12px;
+  cursor: pointer; text-align: left;
+}
+.row-tools-grid button:hover:not(:disabled) { border-color: var(--accent); }
+.row-tools-grid button:disabled { opacity: 0.5; cursor: not-allowed; }
+.rt-label { font-size: 12px; letter-spacing: 0.02em; }
+.rt-cost  { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.row-tools-euclid { display: flex; align-items: center; gap: 0.5rem; }
+.row-tools-euclid .popover-duration input { width: 52px; }
+.row-tools-euclid button {
+  flex: 1; font-size: 11px; white-space: nowrap;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--r-sm); padding: 0.4rem 0.55rem; font-family: var(--font-mono); cursor: pointer;
+}
+.row-tools-euclid button:hover:not(:disabled) { border-color: var(--accent); }
+.row-tools-euclid button:disabled { opacity: 0.5; cursor: not-allowed; }
+.row-tools .muted { color: var(--muted); font-size: 10px; }
+
+/* Pitch keyboard — used inside the cell popover for synth row cells. */
+.pitch-picker { display: flex; flex-direction: column; gap: 0.4rem; }
+.pitch-label  { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.keyboard {
+  --black-w: 18px;
+  position: relative; width: 100%; height: 92px;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 6px;
+}
+.keyboard-whites { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; height: 70px; }
+.keyboard-blacks { position: absolute; top: 6px; left: 6px; right: 6px; height: 44px; pointer-events: none; }
+.key {
+  position: relative; border-radius: 0 0 4px 4px; cursor: pointer;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0 0 4px; font-family: inherit; font-size: 10px;
+  border: 1px solid var(--border);
+}
+.key.white { background: linear-gradient(180deg, #f5f5fa 0%, #d8d8e2 100%); color: #14142a; }
+.key.white:hover:not(.disabled):not(.active) { background: linear-gradient(180deg, #ffffff 0%, #e8e8f2 100%); }
+.key.white.active {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
+  color: white; border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 8px rgba(124,92,255,.5);
+}
+.key.white.disabled { background: linear-gradient(180deg, #2a2a44 0%, #1c1c34 100%); color: var(--muted); cursor: not-allowed; opacity: 0.55; }
+.key.black {
+  position: absolute; top: 0;
+  width: var(--black-w); height: 44px;
+  background: linear-gradient(180deg, #1a1a2a 0%, #06060c 100%);
+  border: 1px solid #000; border-radius: 0 0 3px 3px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.6);
+}
+.keyboard-caption { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: var(--muted); }

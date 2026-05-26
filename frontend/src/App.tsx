@@ -20,6 +20,7 @@ import {
 } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
+import logoUrl from '../../design-system/assets/loopchain-logo-transparent.png'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
 import type { ClickPhase } from './useClickTier'
@@ -55,9 +56,6 @@ export function App() {
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
-  // Audition mode: while on, clicking any cell plays its voice once — no
-  // popover, no rent, no transaction. Lets you hear a sound before you buy it.
-  const [auditionMode, setAuditionMode] = useState(false)
   // Cells a tools popover (row fill / renew) is previewing — drawn on the grid
   // with a "will-be-activated" highlight so the click target is visible.
   const [previewCells, setPreviewCells] = useState<number[] | null>(null)
@@ -137,15 +135,6 @@ export function App() {
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
   }, [])
-
-  // Toggling audition mid-edit is a quiet UX trap — popovers and hover-previews
-  // are edit affordances, so they get dismissed when the user enters audition.
-  useEffect(() => {
-    if (!auditionMode) return
-    setOpenCell(null)
-    setOpenRow(null)
-    setPreviewCells(null)
-  }, [auditionMode])
 
   // Once the smart wallet resolves after connect, surface the deposit address so
   // the user can copy it and fund the account fast. Shown once per connect.
@@ -587,13 +576,6 @@ export function App() {
         void previewCell(id, pitchOverride ?? grid.cells[id]?.pitch ?? 0)
         return
       }
-      // Audition lock: never rents from a tier event. The toast only fires on
-      // commit so a preview gesture doesn't spam it (preview is gestural; the
-      // user gets the toast once when the action would actually rent).
-      if (auditionMode) {
-        if (phase === 'commit') flash('Audition lock is on — exit to rent', true)
-        return
-      }
       const cell = grid.cells[id]
       const owner = cell?.owner ?? null
       const isOccupied =
@@ -618,7 +600,7 @@ export function App() {
     // onToggle is intentionally captured from closure; grid.cells changes every
     // tick but we want the latest value at click time, which the closure gives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [auditionMode, smartAddress, grid.cells],
+    [smartAddress, grid.cells],
   )
 
   // 500ms hover-hold opens the popover — discovery surface for the gesture.
@@ -638,10 +620,8 @@ export function App() {
   }
 
   const userEmail = user?.email?.address ?? user?.google?.email ?? null
-  // Audition mode is read-only: while it's on, every edit-flow button is
-  // disabled so the UI matches the "I'm just trying sounds" mental model.
   const canRecord =
-    authenticated && smartAddress && grid.pattern !== 0n && !playback && !auditionMode
+    authenticated && smartAddress && grid.pattern !== 0n && !playback
 
   const displayPattern = playback ? playback.pattern : grid.pattern
   const displaySynthData = playback ? playback.synthData : grid.synthData
@@ -652,33 +632,24 @@ export function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <h1>Loopchain</h1>
+          <img className="wordmark" src={logoUrl} alt="Loopchain" />
         </div>
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">
             <button className="deck-btn" onClick={onAudioToggle}>
               <span className="deck-label">{audioOn ? '◼ Stop' : '▶ Play'}</span>
             </button>
-            <button
-              className={`deck-btn ${auditionMode ? 'active' : ''}`}
-              onClick={() => setAuditionMode((v) => !v)}
-              title="Audition — click any cell to hear its sound. No rent, no transaction."
-            >
-              <span className="deck-label">🔊 Audition</span>
-            </button>
             {authenticated && (
               <button
-                className={`deck-btn press ${canRecord ? 'active' : ''}`}
+                className="deck-btn press"
                 onClick={onRecord}
                 disabled={!canRecord || busy?.startsWith('Pressing')}
                 title={
-                  auditionMode
-                    ? 'Exit audition to record the live grid'
-                    : playback
-                      ? 'Exit playback to record the live grid'
-                      : grid.pattern === 0n
-                        ? 'Toggle some cells first'
-                        : `Press Edition #1 — ${basePriceStr} USDm`
+                  playback
+                    ? 'Exit playback to record the live grid'
+                    : grid.pattern === 0n
+                      ? 'Toggle some cells first'
+                      : `Press Edition #1 — ${basePriceStr} USDm`
                 }
               >
                 <span className="deck-label">
@@ -690,7 +661,7 @@ export function App() {
           </div>
           {authenticated && <FastMode session={session} ready={!!smartAddress} />}
           {!ready ? null : !authenticated ? (
-            <button className="primary" onClick={login}>
+            <button className="btn-chrome connect-btn" onClick={login}>
               Connect
             </button>
           ) : (
@@ -701,7 +672,7 @@ export function App() {
                 {formatUnits(usdmBalance, 18).slice(0, 6)} USDm
               </span>
               <button
-                className="wallet-btn"
+                className="btn wallet-btn"
                 onClick={() => setShowFund(true)}
                 title="Wallet — fund or disconnect"
                 disabled={!smartAddress}
@@ -732,12 +703,12 @@ export function App() {
               </span>
             </div>
             {!authenticated ? (
-              <button className="primary pb-press" onClick={login}>
+              <button className="btn-chrome pb-press" onClick={login}>
                 Connect to press
               </button>
             ) : (
               <button
-                className="hot pb-press"
+                className="btn-hot pb-press"
                 onClick={() => onPressSeries(playback)}
                 disabled={pressingSeriesId === playback.seriesId}
               >
@@ -763,7 +734,6 @@ export function App() {
           myAddress={smartAddress}
           currentLoop={grid.currentLoop}
           lastRent={playback ? null : grid.lastRent}
-          auditionMode={!playback && auditionMode}
           onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
           previewCells={playback ? null : previewCells}
         />
@@ -781,7 +751,7 @@ export function App() {
           currentLoop={grid.currentLoop}
           myAddress={smartAddress}
           rentPerLoop={rentPerLoop}
-          busy={Boolean(busy) || auditionMode}
+          busy={Boolean(busy)}
           onRenew={onRenew}
           onPreview={setPreviewCells}
         />
@@ -818,7 +788,6 @@ export function App() {
           cellId={openCell.id}
           anchorRect={openCell.rect}
           occupied={openCell.occupied}
-          auditionLocked={auditionMode}
           onClose={() => setOpenCell(null)}
           onTier={(tier, pitch, phase) => {
             handleCellTier(openCell.id, tier, phase, pitch)
@@ -971,7 +940,7 @@ function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => vo
         <p className="muted">Your loop is live on chain. Share it — anyone can press the next copy.</p>
         <div className="share-url">
           <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
-          <button className="primary" onClick={copy}>
+          <button className="btn-chrome" onClick={copy}>
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
@@ -1016,7 +985,7 @@ function FundModal({
         </p>
         <div className="share-url">
           <input readOnly value={address} onFocus={(e) => e.currentTarget.select()} />
-          <button className="primary" onClick={copy}>
+          <button className="btn-chrome" onClick={copy}>
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>

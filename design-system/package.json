@@ -1,0 +1,23 @@
+{
+  "name": "loopchain-design-system",
+  "version": "0.1.0",
+  "description": "Loopchain visual design system — tokens, components, assets, fonts.",
+  "private": true,
+  "main": "index.css",
+  "exports": {
+    ".": "./index.css",
+    "./index.css": "./index.css",
+    "./tokens/*": "./tokens/*",
+    "./components/*": "./components/*",
+    "./assets/*": "./assets/*",
+    "./fonts/*": "./fonts/*"
+  },
+  "files": [
+    "index.css",
+    "tokens",
+    "components",
+    "assets",
+    "fonts",
+    "README.md"
+  ]
+}

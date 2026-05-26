@@ -34,9 +34,6 @@ interface GridProps {
   myAddress?: string | null
   currentLoop?: number
   lastRent?: RentEvent | null
-  // While on, the toggle/max tiers are inert — only audition (1 click) fires.
-  // Cosmetic cue lets the grid read as "tap to hear, no edits".
-  auditionMode?: boolean
   // When set, the row label becomes a button that opens the row-fill menu.
   onRowLabelClick?: (track: number, rect: DOMRect) => void
   // Cells the user is hovering on in a tools popover — drawn with a distinct
@@ -54,7 +51,6 @@ export function Grid({
   myAddress,
   currentLoop,
   lastRent,
-  auditionMode,
   onRowLabelClick,
   previewCells,
 }: GridProps) {
@@ -94,15 +90,13 @@ export function Grid({
     }, 600)
   }, [])
 
-  // Click-tier dispatch (1 = try, 2 = toggle, 3 = max). Audition lock swallows
-  // toggle/max events (both phases); 'try' always flashes green before bubbling.
-  // A 'toggle'/'max' event of any phase also cancels the post-click hover timer
-  // — the user has committed to an action, no need to surface the discovery
-  // popover on top.
+  // Click-tier dispatch (1 = try, 2 = toggle, 3 = max). 'try' always flashes
+  // green before bubbling. A 'toggle'/'max' event of any phase also cancels
+  // the post-click hover timer — the user has committed to an action, no need
+  // to surface the discovery popover on top.
   const { click: dispatchCellClick, isPending: clickPending } = useClickTier(
     useCallback(
       (cellId: number, tier: CellTier, phase: ClickPhase) => {
-        if (auditionMode && tier !== 'try') return
         if (tier === 'try') flashAudition(cellId)
         if (tier !== 'try') {
           // Toggle/max landing — drop the green audition flash from click 1 so
@@ -121,7 +115,7 @@ export function Grid({
         }
         onCellTier?.(cellId, tier, phase)
       },
-      [auditionMode, flashAudition, onCellTier],
+      [flashAudition, onCellTier],
     ),
   )
 
@@ -196,7 +190,7 @@ export function Grid({
   }, [])
 
   return (
-    <div className={`grid${auditionMode ? ' audition' : ''}`}>
+    <div className="grid">
       <div className="label step-axis-label">step</div>
       {Array.from({ length: STEPS }).map((_, step) => {
         const cls = ['step-num']
@@ -225,7 +219,6 @@ export function Grid({
           landed={landed}
           audited={audited}
           previewSet={previewSet}
-          auditionMode={auditionMode}
           onRowLabelClick={onRowLabelClick}
         />
       ))}
@@ -248,7 +241,6 @@ interface RowProps {
   landed: Set<number>
   audited: Set<number>
   previewSet: Set<number>
-  auditionMode?: boolean
   onRowLabelClick?: (track: number, rect: DOMRect) => void
 }
 
@@ -267,35 +259,24 @@ function Row({
   landed,
   audited,
   previewSet,
-  auditionMode,
   onRowLabelClick,
 }: RowProps) {
   const liveMode = cells !== undefined
-  // Row labels are only tappable when the row-fill menu is wired AND we're not
-  // in audition mode — audition is read-only by design, so the fill affordance
-  // gets visibly disabled to match.
-  const fillable = liveMode && onRowLabelClick !== undefined && !auditionMode
-  const fillableDisabled = liveMode && onRowLabelClick !== undefined && auditionMode
+  const fillable = liveMode && onRowLabelClick !== undefined
   return (
     <>
       <div
-        className={`label${fillable ? ' fillable' : ''}${fillableDisabled ? ' fillable-disabled' : ''}`}
+        className={`label${fillable ? ' fillable' : ''}`}
         onClick={
           fillable
             ? (e) => onRowLabelClick?.(track, e.currentTarget.getBoundingClientRect())
             : undefined
         }
-        title={
-          fillable
-            ? `fill the ${TRACK_LABELS[track]} row`
-            : fillableDisabled
-              ? 'exit audition mode to edit'
-              : undefined
-        }
+        title={fillable ? `fill the ${TRACK_LABELS[track]} row` : undefined}
       >
         {liveMode && <span className={`track-dot ${TRACK_LABELS[track]}`} />}
         {TRACK_LABELS[track]}
-        {(fillable || fillableDisabled) && <span className="row-fill-hint">▼</span>}
+        {fillable && <span className="row-fill-hint">▼</span>}
       </div>
       {Array.from({ length: STEPS }).map((_, step) => {
         const cellId = step + track * STEPS

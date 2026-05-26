@@ -1,0 +1,192 @@
+/* ============================================================
+   Loopchain Design System — Top bar
+   The two grouped clusters that live in the app header's right side:
+
+   .deck-controls  — recessed tray of identical-footprint deck pads
+                     (Play / Audition / Press Edition)
+   .account-group  — chip pairing the wallet balance with "⊕ My wallet"
+
+   Both clusters share one canonical height (--topbar-cluster-h) so the
+   header reads as a single aligned control strip — see the PR-4 top-bar
+   reorg. The header skeleton itself (.app, .header, .header-left,
+   .header .right) stays app-level in the frontend; this file owns only
+   the reusable clusters that sit inside it.
+
+   Layout dimensions (pad footprint, tray height) are deliberate and
+   honoured from the top-bar reorg spec; everything else — colour,
+   surface, radius, shadow, type — comes from the design system tokens.
+   ============================================================ */
+
+:root {
+  /* Shared outer height for every header cluster, so the deck tray, the
+     account chip and the connect button all sit on the same baseline. */
+  --topbar-cluster-h: 56px;
+  /* Deck-pad footprint — identical for Play / Audition / Press so the
+     row reads like a drum-machine control strip, not loose buttons. */
+  --deck-pad-w: 118px;
+  --deck-pad-h: 46px;
+}
+
+/* ───── Deck controls — drum-machine-style pad row ─────
+   A recessed dark tray housing identical-footprint chrome pads. */
+.deck-controls {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1);
+  height: var(--topbar-cluster-h);
+  padding: var(--space-1);
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* The pads carry the chrome surface — the same metallic recipe as
+   .btn-chrome / .chrome-pill (see components/buttons.css +
+   tokens/chrome.css) — so the deck reads as TR-808 metal pads in a
+   dark tray. */
+.deck-btn {
+  min-width: var(--deck-pad-w);
+  height: var(--deck-pad-h);
+  padding: var(--space-1) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: var(--chrome-fill-button);
+  border: 1px solid var(--chrome-border);
+  border-radius: var(--r-md);
+  color: #0a0a12;
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  letter-spacing: var(--ls-ui);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 2px 5px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transition: filter 0.1s ease, transform 0.06s ease, box-shadow 0.1s ease;
+}
+.deck-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.deck-btn:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.98);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+}
+/* Engaged toggle (audition on / press-ready) — the pad is pushed into
+   the deck, so its chrome flips to the darker pressed reflection
+   (--chrome-fill-pressed): a dim graphite surface instead of silver.
+   That surface change — not the accent ring — is the primary "on" cue,
+   so an engaged pad is unmistakable even at a glance. The accent ring
+   stays on as a quiet secondary identity hint. Light ink, since the
+   surface is now dark. */
+.deck-btn.active {
+  background: var(--chrome-fill-pressed);
+  border-color: var(--chrome-border);
+  color: #e9e9f2;
+  filter: none;
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.7),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px var(--accent),
+    0 0 9px rgba(124, 92, 255, 0.32);
+}
+.deck-btn.active:hover:not(:disabled) {
+  filter: brightness(1.14);
+  transform: none;
+}
+.deck-btn .deck-label {
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  white-space: nowrap;
+}
+/* Sub-label — carries the press price so the pad keeps its footprint
+   while the other two pads stay single-line. Dark muted ink for
+   legibility on the silver surface. */
+.deck-btn .deck-sub {
+  font-size: var(--fs-nano);
+  color: rgba(10, 10, 18, 0.62);
+  letter-spacing: var(--ls-meta);
+  font-variant-numeric: tabular-nums;
+}
+.deck-btn.active .deck-sub { color: rgba(233, 233, 242, 0.66); }
+/* Disabled — keep the chrome surface so the pad still reads as part of
+   the deck (matching Play/Stop), just dimmed and desaturated so it
+   reads as not-pressable. Swapping the surface to a flat panel-2 made
+   the pad look like a different button family. */
+.deck-btn:disabled {
+  filter: saturate(0.35) brightness(0.78);
+  cursor: not-allowed;
+}
+.deck-btn:disabled .deck-sub { color: rgba(10, 10, 18, 0.45); }
+
+/* ───── Account group — balance + "⊕ My wallet", kept together ─────
+   A chip the same height as the deck tray so the header aligns. */
+.account-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--topbar-cluster-h);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+.account-group .balance { white-space: nowrap; }
+
+/* Wallet button — compact ghost button. Pair with .btn in the markup
+   (`class="btn wallet-btn"`); this only trims the footprint to sit
+   inside the account chip. */
+.wallet-btn {
+  height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--r-md);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--ls-ui);
+}
+
+/* The header's balance readout — wallet address · USDm, tabular. */
+.balance {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───── Connect button — pre-auth CTA ─────
+   Pair with .btn-chrome in the markup (`class="btn-chrome connect-btn"`).
+   Sized to match the deck pads' chrome surface (--deck-pad-h) rather than
+   the outer tray height — so when Connect sits alongside the deck tray
+   their visible chrome buttons read as one coherent set. */
+.connect-btn {
+  height: var(--deck-pad-h);
+  padding: 0 var(--space-5);
+  /* Match the deck pads' label (--fs-ui = 13px) — .btn-chrome's default
+     12px reads visibly smaller next to "Stop" otherwise. */
+  font-size: var(--fs-ui);
+}
+
+/* ───── Grid-anchored sync badge ─────
+   The block-sync heartbeat is pinned to the bottom-right of the grid
+   (not the header) so the chain pulse lives where the music plays.
+   Wrap the <Grid> in .grid-wrap and drop a .sync-badge inside it. The
+   .sync-badge look itself comes from components/strips-badges.css. */
+.grid-wrap {
+  position: relative;
+}
+.grid-wrap .sync-badge {
+  position: absolute;
+  right: 6px;
+  bottom: -14px;
+  z-index: 3;
+  background: rgba(20, 20, 42, 0.88);
+  backdrop-filter: blur(6px);
+}
