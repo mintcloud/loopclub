@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>loop club — write music together</title>
+  <meta name="description" content="loop club is an on-chain drum machine. leverage the blockchain to collaboratively build loops and reward the creativity behind every beat." />
+
+  <!-- Social -->
+  <meta property="og:title" content="loop club — write music together" />
+  <meta property="og:description" content="an on-chain drum machine. build loops together, own your cells, reward the creativity behind every beat." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://loopclub.xyz" />
+  <meta property="og:image" content="https://loopclub.xyz/assets/og-cover.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Animated step-sequencer backdrop (canvas) -->
+  <canvas id="backdrop" aria-hidden="true"></canvas>
+  <div class="scrim" aria-hidden="true"></div>
+
+  <!-- Top bar — brand left, launch right -->
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="loop club home">
+      <!-- LOGO SLOT — swap this <span> for <img class="brand-logo" src="assets/logo.png" alt="loop club"/>
+           once the high-fidelity wordmark is ready (see README.md). -->
+      <span class="wordmark wordmark--sm">loop&nbsp;club</span>
+    </a>
+    <a class="btn-chrome btn-chrome--sm" href="https://app.loopclub.xyz">launch app&nbsp;<span class="arrow">&#8599;</span></a>
+  </header>
+
+  <!-- Hero -->
+  <main class="hero">
+    <p class="eyebrow">on-chain drum machine &middot; built on megaeth</p>
+
+    <h1 class="hero-title">
+      write music <em>together</em>
+    </h1>
+
+    <p class="hero-tagline">
+      loop club leverages the blockchain to collaboratively build loops &mdash;
+      every beat you add is yours, and the creativity behind it gets rewarded.
+    </p>
+
+    <div class="hero-cta">
+      <a class="btn-chrome btn-chrome--lg" href="https://app.loopclub.xyz">
+        launch app&nbsp;<span class="arrow">&#8599;</span>
+      </a>
+      <p class="hero-sub">opens app.loopclub.xyz</p>
+    </div>
+
+    <ul class="hero-points">
+      <li><span class="led led--hat"></span>build loops together, one cell at a time</li>
+      <li><span class="led led--synth"></span>every cell you light is yours on-chain</li>
+      <li><span class="led led--kick"></span>creativity gets rewarded, automatically</li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <span>loopclub.xyz</span>
+    <span class="footer-dot">&middot;</span>
+    <span>a collaborative drum machine</span>
+    <span class="footer-dot">&middot;</span>
+    <a href="https://app.loopclub.xyz">app</a>
+  </footer>
+
+  <script src="backdrop.js"></script>
+</body>
+</html>

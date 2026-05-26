@@ -1,0 +1,290 @@
+/* ============================================================
+   loop club — landing page
+   Self-contained. Visual tokens lifted verbatim from the
+   Loopchain design system (tokens/colors · chrome · type · space).
+   ============================================================ */
+
+/* ---- Fonts: Gilroy (display, self-hosted) + Space Mono (chrome, CDN) ---- */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+@font-face { font-family:'Gilroy'; src:url('assets/fonts/Gilroy-Regular.ttf')     format('truetype'); font-weight:400; font-style:normal; font-display:swap; }
+@font-face { font-family:'Gilroy'; src:url('assets/fonts/Gilroy-Medium.ttf')      format('truetype'); font-weight:500; font-style:normal; font-display:swap; }
+@font-face { font-family:'Gilroy'; src:url('assets/fonts/Gilroy-SemiBold.ttf')    format('truetype'); font-weight:600; font-style:normal; font-display:swap; }
+@font-face { font-family:'Gilroy'; src:url('assets/fonts/Gilroy-Heavy.ttf')       format('truetype'); font-weight:800; font-style:normal; font-display:swap; }
+@font-face { font-family:'Gilroy'; src:url('assets/fonts/Gilroy-HeavyItalic.ttf') format('truetype'); font-weight:800; font-style:italic; font-display:swap; }
+@font-face { font-family:'Gilroy'; src:url('assets/fonts/Gilroy-Black.ttf')       format('truetype'); font-weight:900; font-style:normal; font-display:swap; }
+@font-face { font-family:'Gilroy'; src:url('assets/fonts/Gilroy-BlackItalic.ttf') format('truetype'); font-weight:900; font-style:italic; font-display:swap; }
+
+/* ---- Tokens ---- */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces & text — pure-black stage so the chrome reflects. */
+  --bg:      #020205;
+  --bg-elev: #07070d;
+  --border:  #2a2a44;
+  --text:    #e6e6f0;
+  --muted:   #8888a0;
+
+  /* Brand accent */
+  --accent: #7c5cff;
+
+  /* Instrument LEDs */
+  --kick:#ff5c7c; --snare:#ffaf5c; --hat:#5cffc6; --synth:#5cb6ff;
+
+  /* Chrome system — liquid mercury lifted from the wordmark. */
+  --chrome-fill-button: linear-gradient(180deg,
+    #ffffff 0%, #e8ebf2 15%, #c8cdd8 48%, #2d3340 75%, #6c7380 90%, #c8cdd8 100%);
+  --chrome-border: #0e1018;
+
+  /* Liquid-chrome wordmark fill — horizontal so it can sweep. */
+  --chrome-word: linear-gradient(100deg,
+    #ffffff 0%, #d6dbe6 14%, #8e96a6 28%, #2b313d 42%,
+    #f2f4f9 56%, #9aa2b2 70%, #3a4150 84%, #ffffff 100%);
+
+  /* Prismatic rim of the wordmark — accent only. */
+  --rainbow-rim: linear-gradient(95deg,
+    #ff3366 0%, #ff8a3c 18%, #ffd23c 34%, #5cff7a 50%,
+    #3cc8ff 66%, #6c5cff 82%, #ff5cb8 100%);
+
+  /* Type */
+  --font-display:'Gilroy','Helvetica Neue',Helvetica,-apple-system,system-ui,sans-serif;
+  --font-mono:'Space Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  /* Space */
+  --r-md:6px; --r-lg:8px;
+}
+
+/* ---- Reset / base ---- */
+* { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; }
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-size:14px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+a { color:inherit; text-decoration:none; }
+
+/* ============================================================
+   Backdrop — full-bleed animated step sequencer + legibility scrim
+   ============================================================ */
+#backdrop {
+  position:fixed; inset:0;
+  width:100%; height:100%;
+  z-index:0;
+  display:block;
+}
+/* Radial scrim — keeps the hero readable over the live grid. */
+.scrim {
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:
+    radial-gradient(ellipse 56% 52% at 50% 44%, rgba(2,2,5,.92) 0%, rgba(2,2,5,.62) 42%, rgba(2,2,5,0) 78%),
+    linear-gradient(180deg, rgba(2,2,5,.85) 0%, rgba(2,2,5,0) 22%, rgba(2,2,5,0) 70%, rgba(2,2,5,.92) 100%);
+}
+
+/* ============================================================
+   Top bar
+   ============================================================ */
+.site-header {
+  position:relative; z-index:3;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px clamp(20px,5vw,56px);
+}
+.brand { display:inline-flex; align-items:center; }
+
+/* ============================================================
+   Liquid-chrome wordmark — the brand mark (CSS placeholder
+   until the high-fidelity PNG lands; see README.md).
+   ============================================================ */
+.wordmark {
+  font-family:var(--font-display);
+  font-weight:900;
+  font-style:italic;
+  letter-spacing:-0.03em;
+  line-height:1;
+  display:inline-block;
+  background:var(--chrome-word);
+  background-size:240% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  filter:
+    drop-shadow(0 1px 0 rgba(255,255,255,.35))
+    drop-shadow(0 2px 6px rgba(0,0,0,.7))
+    drop-shadow(0 0 14px rgba(120,160,255,.16));
+  animation:chrome-sweep 9s ease-in-out infinite;
+}
+.wordmark--sm   { font-size:clamp(20px,2.4vw,26px); }
+.wordmark--hero {
+  font-size:clamp(18px,2.1vw,24px);
+  opacity:.92;
+  margin-bottom:18px;
+}
+/* Prismatic rim ghost behind the hero wordmark. */
+.wordmark--hero { position:relative; }
+.wordmark--hero::after {
+  content:"loop\00a0club";
+  position:absolute; left:0; top:0; z-index:-1;
+  background:var(--rainbow-rim);
+  background-size:200% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent;
+  filter:blur(7px); opacity:.5;
+  animation:rim-drift 12s linear infinite;
+}
+@keyframes chrome-sweep {
+  0%,100% { background-position:0% 50%; }
+  50%     { background-position:100% 50%; }
+}
+@keyframes rim-drift {
+  0%   { background-position:0% 50%; }
+  100% { background-position:200% 50%; }
+}
+
+/* ============================================================
+   Chrome button — primary CTA (design system .btn-chrome)
+   ============================================================ */
+.btn-chrome {
+  display:inline-flex; align-items:center; gap:.1em;
+  background:var(--chrome-fill-button);
+  border:1px solid var(--chrome-border);
+  color:#0a0a12;
+  font-family:var(--font-mono);
+  font-weight:700;
+  letter-spacing:.02em;
+  border-radius:var(--r-md);
+  cursor:pointer;
+  white-space:nowrap;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 2px 6px rgba(0,0,0,.6);
+  transition:filter .12s ease, transform .06s ease;
+}
+.btn-chrome:hover  { filter:brightness(1.07); }
+.btn-chrome:active { transform:translateY(1px); }
+.btn-chrome .arrow { font-style:normal; }
+.btn-chrome--sm { font-size:12px; padding:.5rem .85rem; }
+.btn-chrome--lg {
+  font-size:15px;
+  padding:.95rem 1.7rem;
+  border-radius:var(--r-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.6),
+    inset 0 -2px 1px rgba(0,0,0,.45),
+    0 6px 22px rgba(0,0,0,.6),
+    0 0 0 1px rgba(120,160,255,.05);
+}
+
+/* ============================================================
+   Hero
+   ============================================================ */
+.hero {
+  position:relative; z-index:3;
+  flex:1;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:32px clamp(20px,5vw,56px) 56px;
+  gap:0;
+}
+.eyebrow {
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.22em;
+  color:var(--muted);
+  margin-bottom:22px;
+}
+.hero-title {
+  font-family:var(--font-display);
+  font-weight:900;
+  font-size:clamp(46px,9vw,124px);
+  line-height:.98;
+  letter-spacing:-0.035em;
+  color:var(--text);
+  margin-bottom:26px;
+  text-shadow:0 4px 40px rgba(0,0,0,.9);
+}
+.hero-title em {
+  font-style:italic;
+  background:var(--rainbow-rim);
+  background-size:200% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent;
+  animation:rim-drift 14s linear infinite;
+}
+.hero-tagline {
+  max-width:560px;
+  font-size:clamp(14px,1.5vw,16px);
+  line-height:1.65;
+  color:#b9b9cc;
+  margin-bottom:34px;
+}
+.hero-cta { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.hero-sub {
+  font-size:11px;
+  letter-spacing:.04em;
+  color:var(--muted);
+}
+
+/* Three-point strip */
+.hero-points {
+  list-style:none;
+  display:flex; flex-wrap:wrap; justify-content:center;
+  gap:10px 26px;
+  margin-top:46px;
+}
+.hero-points li {
+  display:inline-flex; align-items:center; gap:9px;
+  font-size:12px;
+  letter-spacing:.01em;
+  color:var(--muted);
+}
+.led {
+  width:8px; height:8px; border-radius:50%;
+  flex:none;
+}
+.led--kick  { background:var(--kick);  box-shadow:0 0 9px var(--kick);  }
+.led--snare { background:var(--snare); box-shadow:0 0 9px var(--snare); }
+.led--hat   { background:var(--hat);   box-shadow:0 0 9px var(--hat);   }
+.led--synth { background:var(--synth); box-shadow:0 0 9px var(--synth); }
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.site-footer {
+  position:relative; z-index:3;
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:10px;
+  padding:24px;
+  font-size:11px;
+  letter-spacing:.05em;
+  color:var(--muted);
+}
+.site-footer a:hover { color:var(--text); }
+.footer-dot { opacity:.5; }
+
+/* ============================================================
+   Optional swapped-in logo image (uncomment <img> in index.html)
+   ============================================================ */
+.brand-logo        { height:30px; width:auto; display:block; }
+.brand-logo--hero  { height:clamp(34px,4.6vw,58px); width:auto; margin-bottom:18px; }
+
+/* ---- Small screens ---- */
+@media (max-width:560px) {
+  .hero { padding-top:12px; }
+  .hero-points { flex-direction:column; align-items:center; gap:12px; }
+  .wordmark--hero { margin-bottom:14px; }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion:reduce) {
+  .wordmark, .wordmark--hero::after, .hero-title em { animation:none; }
+}
