@@ -52,25 +52,16 @@ are lifted verbatim from the Loopchain design system
 top of `styles.css` so this page stays a self-contained deployable. If a
 token changes upstream, update the `:root` block in `styles.css` to match.
 
-## Swapping in the real logo
+## Logo
 
-The wordmark is currently a **CSS placeholder** — "loop club" set in Gilroy
-Black Italic with the design-system chrome gradient. When the
-higher-fidelity logo PNG is ready (transparent background, like the legacy
-`loopchain-logo-transparent.png`):
+The header wordmark is the liquid-chrome `loopclub` PNG at
+`assets/logo.png` (sized via `.brand-logo` in `styles.css`). To feature
+the logo large in the hero, add right above the `<h1>`:
 
-1. Drop it at `assets/logo.png`.
-2. In `index.html`, in the `LOGO SLOT` comment inside `<header>`, replace
-   the `<span class="wordmark wordmark--sm">…</span>` with:
-   ```html
-   <img class="brand-logo" src="assets/logo.png" alt="loop club" />
-   ```
-3. If you also want the logo featured large in the hero, add right above
-   the `<h1>`:
-   ```html
-   <img class="brand-logo brand-logo--hero" src="assets/logo.png" alt="loop club" />
-   ```
+```html
+<img class="brand-logo brand-logo--hero" src="assets/logo.png" alt="loop club" />
+```
 
-`.brand-logo` / `.brand-logo--hero` styles are already defined in
-`styles.css`. Re-run the og-cover screenshot afterwards so the social card
-shows the real mark.
+The CSS placeholder wordmark classes (`.wordmark`, `.wordmark--sm`,
+`.wordmark--hero`) are still defined for fallback / hero use. Re-run the
+og-cover screenshot if the social card needs to match.

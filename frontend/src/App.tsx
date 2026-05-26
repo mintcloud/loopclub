@@ -20,7 +20,7 @@ import {
 } from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
-import logoUrl from '../../design-system/assets/loopchain-logo-transparent.png'
+import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
 import type { ClickPhase } from './useClickTier'
@@ -632,7 +632,7 @@ export function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <img className="wordmark" src={logoUrl} alt="Loopchain" />
+          <img className="wordmark" src={logoUrl} alt="loop club" />
         </div>
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">
