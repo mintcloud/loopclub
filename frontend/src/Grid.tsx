@@ -10,7 +10,7 @@ import {
 } from './config'
 import type { CellState, RentEvent } from './useLiveGrid'
 import { ownerColor, sameAddr, shortAddr } from './owner'
-import { useClickTier } from './useClickTier'
+import { type ClickPhase, useClickTier } from './useClickTier'
 
 export type CellStatus = 'free' | 'mine' | 'occupied'
 
@@ -22,8 +22,10 @@ interface GridProps {
   pattern: bigint
   synthData: bigint
   playingStep: number
-  // Fired once the click count for a cell has resolved (1, 2 or ≥3).
-  onCellTier?: (cellId: number, tier: CellTier) => void
+  // Fired as the click count for a cell resolves — see ClickPhase for the
+  // preview-then-commit split that powers the instant optimistic feedback on
+  // double-click toggles.
+  onCellTier?: (cellId: number, tier: CellTier, phase: ClickPhase) => void
   // Fired after the user has hovered a cell for HOVER_HOLD_MS — opens the popover.
   onCellHover?: (cellId: number, rect: DOMRect, status: CellStatus) => void
   // Live mode: per-cell ownership. Omitted during loop playback, where the grid
@@ -93,13 +95,31 @@ export function Grid({
   }, [])
 
   // Click-tier dispatch (1 = try, 2 = toggle, 3 = max). Audition lock swallows
-  // toggle/max; the 'try' tier always flashes the cell green before bubbling up.
+  // toggle/max events (both phases); 'try' always flashes green before bubbling.
+  // A 'toggle'/'max' event of any phase also cancels the post-click hover timer
+  // — the user has committed to an action, no need to surface the discovery
+  // popover on top.
   const { click: dispatchCellClick, isPending: clickPending } = useClickTier(
     useCallback(
-      (cellId: number, tier: CellTier) => {
+      (cellId: number, tier: CellTier, phase: ClickPhase) => {
         if (auditionMode && tier !== 'try') return
         if (tier === 'try') flashAudition(cellId)
-        onCellTier?.(cellId, tier)
+        if (tier !== 'try') {
+          // Toggle/max landing — drop the green audition flash from click 1 so
+          // the optimistic purple pulse reads cleanly instead of fighting the
+          // mint-green animation for ~0.3s.
+          setAudited((prev) => {
+            if (!prev.has(cellId)) return prev
+            const next = new Set(prev)
+            next.delete(cellId)
+            return next
+          })
+          if (hoverRef.current) {
+            clearTimeout(hoverRef.current.timer)
+            hoverRef.current = null
+          }
+        }
+        onCellTier?.(cellId, tier, phase)
       },
       [auditionMode, flashAudition, onCellTier],
     ),
@@ -113,15 +133,26 @@ export function Grid({
   }, [])
 
   const handleCellClick = useCallback(
-    (cellId: number) => {
+    (cellId: number, rect: DOMRect, status: CellStatus) => {
       // A click cancels any pending hover-popover — user is already engaging.
       if (hoverRef.current) {
         clearTimeout(hoverRef.current.timer)
         hoverRef.current = null
       }
+      // Schedule a post-click hover so a single click reveals the popover even
+      // when the mouse never moves — important for new users who click a cell
+      // and then sit still, expecting some affordance to appear. If the click
+      // escalates to toggle/max the useClickTier consumer above cancels this.
+      if (onCellHover) {
+        const timer = window.setTimeout(() => {
+          hoverRef.current = null
+          onCellHover(cellId, rect, status)
+        }, HOVER_HOLD_MS)
+        hoverRef.current = { cellId, timer }
+      }
       dispatchCellClick(cellId)
     },
-    [dispatchCellClick],
+    [dispatchCellClick, onCellHover],
   )
 
   // Arm the hover-hold timer for a cell. Shared by mouseEnter and mouseMove:
@@ -207,7 +238,7 @@ interface RowProps {
   pattern: bigint
   synthData: bigint
   playingStep: number
-  onCellClick: (cellId: number) => void
+  onCellClick: (cellId: number, rect: DOMRect, status: CellStatus) => void
   onCellEnter: (cellId: number, rect: DOMRect, status: CellStatus) => void
   onCellMove: (cellId: number, rect: DOMRect, status: CellStatus) => void
   onCellLeave: () => void
@@ -331,7 +362,7 @@ function Row({
             key={cellId}
             className={cls.join(' ')}
             style={style}
-            onClick={() => onCellClick(cellId)}
+            onClick={(e) => onCellClick(cellId, e.currentTarget.getBoundingClientRect(), status)}
             onMouseEnter={(e) => onCellEnter(cellId, e.currentTarget.getBoundingClientRect(), status)}
             onMouseMove={(e) => onCellMove(cellId, e.currentTarget.getBoundingClientRect(), status)}
             onMouseLeave={onCellLeave}

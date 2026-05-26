@@ -22,6 +22,7 @@ import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
+import type { ClickPhase } from './useClickTier'
 import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep, previewCell } from './audio'
 
 // The live grid streams from chain events; only wallet/price state is polled.
@@ -267,8 +268,15 @@ export function App() {
     }
 
     setOpenCell(null)
-    // Light the cell instantly — marked pending until the tx confirms on chain.
-    grid.applyOptimistic(cellId, smartAddress, durationLoops, pitchIdx)
+    // Optimistic paint is owned by handleCellTier (so a double-click can pulse
+    // purple ~420ms before this commit fires); only paint here if the caller
+    // hasn't already lit the cell — e.g. an explicit popover-button click.
+    const c = grid.cells[cellId]
+    const alreadyOptimistic =
+      c?.pending && c.owner?.toLowerCase() === smartAddress.toLowerCase()
+    if (!alreadyOptimistic) {
+      grid.applyOptimistic(cellId, smartAddress, durationLoops, pitchIdx)
+    }
     remember([cellId])
     flash(`Renting cell ${cellId} for ${durationLoops}× ${LOOP_DURATION_SECONDS}s…`)
 
@@ -567,15 +575,23 @@ export function App() {
   // funnel through this. `pitchOverride` lets the popover supply a user-chosen
   // pitch when the synth row is up; everything else falls back to the cell's
   // current stored pitch (so a re-toggle preserves the existing note).
+  //
+  // The phase split is what makes a double-click feel responsive: 'preview'
+  // fires the instant a 2-click is detected (~420ms before commit) and just
+  // paints the optimistic state. 'commit' submits the tx. A 3-click skips the
+  // preview phase and commits 'max' directly — the optimistic from the prior
+  // 'toggle' preview keeps the cell purple-pulsing until the tx confirms.
   const handleCellTier = useCallback(
-    (id: number, tier: CellTier, pitchOverride?: number) => {
+    (id: number, tier: CellTier, phase: ClickPhase, pitchOverride?: number) => {
       if (tier === 'try') {
         void previewCell(id, pitchOverride ?? grid.cells[id]?.pitch ?? 0)
         return
       }
-      // Audition lock: never rents from a tier event.
+      // Audition lock: never rents from a tier event. The toast only fires on
+      // commit so a preview gesture doesn't spam it (preview is gestural; the
+      // user gets the toast once when the action would actually rent).
       if (auditionMode) {
-        flash('Audition lock is on — exit to rent', true)
+        if (phase === 'commit') flash('Audition lock is on — exit to rent', true)
         return
       }
       const cell = grid.cells[id]
@@ -586,6 +602,17 @@ export function App() {
 
       const loops = tier === 'max' ? MAX_TOGGLE_LOOPS : DEFAULT_TOGGLE_LOOPS
       const pitch = pitchOverride ?? cell?.pitch ?? 0
+
+      if (phase === 'preview') {
+        // Optimistic-paint only; the tx waits for the commit phase in case the
+        // gesture escalates to a triple-click 'max'.
+        if (!smartAddress) return
+        grid.applyOptimistic(id, smartAddress, loops, pitch)
+        return
+      }
+      // commit — submit the tx. If a preview already painted the cell pending
+      // (the common 2-click path), onToggle won't repaint; if this is a direct
+      // popover-button click with no preview, onToggle paints before sending.
       onToggle(id, loops, pitch)
     },
     // onToggle is intentionally captured from closure; grid.cells changes every
@@ -793,10 +820,13 @@ export function App() {
           occupied={openCell.occupied}
           auditionLocked={auditionMode}
           onClose={() => setOpenCell(null)}
-          onTier={(tier, pitch) => {
-            handleCellTier(openCell.id, tier, pitch)
+          onTier={(tier, pitch, phase) => {
+            handleCellTier(openCell.id, tier, phase, pitch)
             // Try keeps the popover open so you can audition repeatedly; toggle
-            // and max commit a rent, so dismiss to clear the affordance.
+            // and max commit a rent, so dismiss to clear the affordance. Close
+            // on either phase — closing on 'preview' makes the keyboard's
+            // double-click feel snappy (popover disappears the instant the
+            // optimistic paint lands).
             if (tier !== 'try') setOpenCell(null)
           }}
         />

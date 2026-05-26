@@ -10,7 +10,7 @@ import {
   type CellTier,
 } from './config'
 import { ownerColor, shortAddr } from './owner'
-import { useClickTier } from './useClickTier'
+import { type ClickPhase, useClickTier } from './useClickTier'
 
 interface Props {
   cellId: number
@@ -18,8 +18,10 @@ interface Props {
   onClose: () => void
   // Mirrors the click-tier scheme on the grid: 1c=try, 2c=toggle, 3c=max. The
   // popover exposes the same three actions as buttons so the gesture is
-  // discoverable instead of hidden.
-  onTier: (tier: CellTier, pitchIdx: number) => void
+  // discoverable instead of hidden. The phase mirrors useClickTier — explicit
+  // button clicks always fire 'commit'; the piano keyboard inside can also
+  // fire 'preview' on a 2-click gesture, same as the grid cells.
+  onTier: (tier: CellTier, pitchIdx: number, phase: ClickPhase) => void
   // While on, the toggle/max rows render disabled — they explain why instead
   // of just being inert, so the "audition lock" mode reads clearly.
   auditionLocked?: boolean
@@ -93,16 +95,16 @@ export function CellPopover({
       const k = e.key.toLowerCase()
       if (k === 'a') {
         e.preventDefault()
-        onTier('try', pitch)
+        onTier('try', pitch, 'commit')
         return
       }
       if (occupied || auditionLocked) return
       if (k === 't') {
         e.preventDefault()
-        onTier('toggle', pitch)
+        onTier('toggle', pitch, 'commit')
       } else if (k === 'm') {
         e.preventDefault()
-        onTier('max', pitch)
+        onTier('max', pitch, 'commit')
       }
     }
     window.addEventListener('keydown', onKey)
@@ -176,7 +178,7 @@ export function CellPopover({
             gesture="1 click"
             hotkey="A"
             kind="try"
-            onClick={() => onTier('try', pitch)}
+            onClick={() => onTier('try', pitch, 'commit')}
           />
           <TierRow
             label={`Toggle · ${DEFAULT_TOGGLE_LOOPS} loops`}
@@ -188,7 +190,7 @@ export function CellPopover({
             disabledReason={
               occupied ? "someone else's cell" : auditionLocked ? 'audition lock on' : undefined
             }
-            onClick={() => onTier('toggle', pitch)}
+            onClick={() => onTier('toggle', pitch, 'commit')}
           />
           <TierRow
             label={`Max · ${MAX_TOGGLE_LOOPS} loops`}
@@ -200,7 +202,7 @@ export function CellPopover({
             disabledReason={
               occupied ? "someone else's cell" : auditionLocked ? 'audition lock on' : undefined
             }
-            onClick={() => onTier('max', pitch)}
+            onClick={() => onTier('max', pitch, 'commit')}
           />
         </div>
 
@@ -272,12 +274,15 @@ function Keyboard({
   selected: number
   onSelect: (idx: number) => void
   // Same tier callback the cell uses — clicking a key 1×/2×/3× runs
-  // try / toggle / max at that key's pitch.
-  onTier: (tier: CellTier, pitchIdx: number) => void
+  // try / toggle / max at that key's pitch, with the same preview/commit
+  // phase split so a 2-click on a key paints the cell optimistically too.
+  onTier: (tier: CellTier, pitchIdx: number, phase: ClickPhase) => void
 }) {
   // Each piano key carries the same 1/2/3-click gesture as a grid cell, keyed
   // by its pitch index so rapid clicks on one key resolve to a single tier.
-  const { click: dispatchKeyClick } = useClickTier((pitchIdx, tier) => onTier(tier, pitchIdx))
+  const { click: dispatchKeyClick } = useClickTier((pitchIdx, tier, phase) =>
+    onTier(tier, pitchIdx, phase),
+  )
 
   return (
     <div className="keyboard">
