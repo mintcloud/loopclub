@@ -7,17 +7,26 @@ import {
   STEPS,
   DEFAULT_TOGGLE_LOOPS,
   MAX_TOGGLE_LOOPS,
+  type CellTier,
 } from './config'
 import { ownerColor, shortAddr } from './owner'
-import { previewCell } from './audio'
+import { type ClickPhase, useClickTier } from './useClickTier'
 
 interface Props {
   cellId: number
   anchorRect: DOMRect
   onClose: () => void
-  onSubmit: (durationLoops: number, pitchIdx: number) => void
+  // Mirrors the click-tier scheme on the grid: 1c=try, 2c=toggle, 3c=max. The
+  // popover exposes the same three actions as buttons so the gesture is
+  // discoverable instead of hidden. The phase mirrors useClickTier — explicit
+  // button clicks always fire 'commit'; the piano keyboard inside can also
+  // fire 'preview' on a 2-click gesture, same as the grid cells.
+  onTier: (tier: CellTier, pitchIdx: number, phase: ClickPhase) => void
+  // While on, the toggle/max rows render disabled — they explain why instead
+  // of just being inert, so the "audition lock" mode reads clearly.
+  auditionLocked?: boolean
   // When set, the cell is held by another player — the popover renders a
-  // read-only "claimed" card instead of the toggle controls.
+  // read-only "claimed" card instead of the toggle controls (try still works).
   occupied?: { who: string; loopsLeft: number }
 }
 
@@ -28,10 +37,19 @@ interface PopoverPos {
   arrowLeft: number
 }
 
-// Contextual toggle popover — anchored to the clicked cell so toggling is one click
-// away from the cursor. T toggles at the chosen duration, M jumps to a max toggle.
-export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }: Props) {
-  const [duration, setDuration] = useState(DEFAULT_TOGGLE_LOOPS)
+// Contextual tier popover — anchored to the cell so the user sees the same
+// three actions whether they reach them via the gesture (1/2/3 clicks on the
+// cell) or by hovering and clicking inside the popover. The popover is the
+// discovery layer for the gesture, so the row labels spell out which click
+// count maps to which tier.
+export function CellPopover({
+  cellId,
+  anchorRect,
+  onClose,
+  onTier,
+  auditionLocked,
+  occupied,
+}: Props) {
   const [pitch, setPitch] = useState(0)
   const [pos, setPos] = useState<PopoverPos | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -39,6 +57,9 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }:
   const isSynth = cellId >= SYNTH_CELL_START
   const track = Math.floor(cellId / STEPS)
   const step = cellId % STEPS
+
+  const toggleCost = (0.004 * DEFAULT_TOGGLE_LOOPS).toFixed(3)
+  const maxCost = (0.004 * MAX_TOGGLE_LOOPS).toFixed(3)
 
   // Place the popover above the cell; flip below if it would clip the viewport top.
   useLayoutEffect(() => {
@@ -63,30 +84,54 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }:
     setPos({ top, left, placement, arrowLeft })
   }, [anchorRect, isSynth])
 
-  // Hotkeys: T = toggle at current duration, M = max toggle, Esc = close.
-  // A cell held by another player is read-only, so only Esc is wired.
+  // Hotkeys mirror the click-tier scheme: A = try (audition), T = toggle@16,
+  // M = max@32, Esc = close. Try works even on occupied cells.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()
         return
       }
-      if (occupied) return
       const k = e.key.toLowerCase()
+      if (k === 'a') {
+        e.preventDefault()
+        onTier('try', pitch, 'commit')
+        return
+      }
+      if (occupied || auditionLocked) return
       if (k === 't') {
         e.preventDefault()
-        onSubmit(duration, pitch)
+        onTier('toggle', pitch, 'commit')
       } else if (k === 'm') {
         e.preventDefault()
-        onSubmit(MAX_TOGGLE_LOOPS, pitch)
+        onTier('max', pitch, 'commit')
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [duration, pitch, onClose, onSubmit, occupied])
+  }, [pitch, onClose, onTier, occupied, auditionLocked])
+
+  // Dismiss on any pointer-down outside the panel. The backdrop is
+  // pointer-events:none (see .popover-layer) so this click ALSO lands on the
+  // grid cell underneath — that's deliberate: a click that closes the popover
+  // still counts toward the cell's click-tier gesture, so a double-click reads
+  // as two clicks, not one. (Previously the backdrop swallowed the first click.)
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [onClose])
 
   return (
-    <div className="popover-layer" onClick={onClose}>
+    // The layer is pointer-events:none — it never catches clicks, so a click
+    // that dismisses the popover passes straight through to the grid cell and
+    // still counts toward its click-tier gesture. Only the panel below is
+    // interactive.
+    <div className="popover-layer">
       <div
         ref={popoverRef}
         className={`cell-popover ${pos?.placement ?? 'above'}`}
@@ -95,28 +140,17 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }:
           left: pos?.left ?? 0,
           visibility: pos ? 'visible' : 'hidden',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="popover-head">
           <span className="popover-title">
             cell #{cellId} · {TRACK_LABELS[track]} {step + 1}
           </span>
-          <div className="popover-head-btns">
-            <button
-              className="popover-play"
-              onClick={() => void previewCell(cellId, pitch)}
-              title="hear this sound"
-              aria-label="preview sound"
-            >
-              ▸
-            </button>
-            <button className="popover-x" onClick={onClose} aria-label="close">
-              ✕
-            </button>
-          </div>
+          <button className="popover-x" onClick={onClose} aria-label="close">
+            ✕
+          </button>
         </div>
 
-        {occupied ? (
+        {occupied && (
           <div className="popover-claimed">
             <span className="claimed-owner">
               <span className="claimed-dot" style={{ background: ownerColor(occupied.who) }} />
@@ -128,46 +162,85 @@ export function CellPopover({ cellId, anchorRect, onClose, onSubmit, occupied }:
               {' '}— then it's yours to grab.
             </span>
           </div>
-        ) : (
-          <>
-            <label className="popover-duration">
-              loops
-              <input
-                type="number"
-                min={1}
-                max={MAX_TOGGLE_LOOPS}
-                value={duration}
-                onChange={(e) =>
-                  setDuration(Math.max(1, Math.min(MAX_TOGGLE_LOOPS, Number(e.target.value) || 1)))
-                }
-              />
-            </label>
-
-            {isSynth && (
-              <div className="pitch-picker">
-                <span className="pitch-label">pitch</span>
-                <Keyboard selected={pitch} onSelect={setPitch} />
-              </div>
-            )}
-
-            <div className="muted popover-cost">
-              {(0.004 * duration).toFixed(3)} USDm · live {duration * LOOP_DURATION_SECONDS}s
-            </div>
-
-            <div className="popover-actions">
-              <button className="btn-chrome" onClick={() => onSubmit(duration, pitch)}>
-                toggle <kbd>T</kbd>
-              </button>
-              <button className="btn-hot" onClick={() => onSubmit(MAX_TOGGLE_LOOPS, pitch)}>
-                max <kbd>M</kbd>
-              </button>
-            </div>
-          </>
         )}
+
+        {isSynth && !occupied && (
+          <div className="pitch-picker">
+            <span className="pitch-label">pitch</span>
+            <Keyboard selected={pitch} onSelect={setPitch} onTier={onTier} />
+          </div>
+        )}
+
+        <div className="tier-list" role="group" aria-label="cell actions">
+          <TierRow
+            label="Try"
+            sub="hear it · no rent"
+            gesture="1 click"
+            hotkey="A"
+            kind="try"
+            onClick={() => onTier('try', pitch, 'commit')}
+          />
+          <TierRow
+            label={`Toggle · ${DEFAULT_TOGGLE_LOOPS} loops`}
+            sub={`${toggleCost} USDm · ${DEFAULT_TOGGLE_LOOPS * LOOP_DURATION_SECONDS}s live`}
+            gesture="2 clicks"
+            hotkey="T"
+            kind="toggle"
+            disabled={Boolean(occupied) || auditionLocked}
+            disabledReason={
+              occupied ? "someone else's cell" : auditionLocked ? 'audition lock on' : undefined
+            }
+            onClick={() => onTier('toggle', pitch, 'commit')}
+          />
+          <TierRow
+            label={`Max · ${MAX_TOGGLE_LOOPS} loops`}
+            sub={`${maxCost} USDm · ${MAX_TOGGLE_LOOPS * LOOP_DURATION_SECONDS}s live`}
+            gesture="3 clicks"
+            hotkey="M"
+            kind="max"
+            disabled={Boolean(occupied) || auditionLocked}
+            disabledReason={
+              occupied ? "someone else's cell" : auditionLocked ? 'audition lock on' : undefined
+            }
+            onClick={() => onTier('max', pitch, 'commit')}
+          />
+        </div>
 
         <span className="popover-arrow" style={{ left: pos?.arrowLeft ?? 0 }} />
       </div>
     </div>
+  )
+}
+
+interface TierRowProps {
+  label: string
+  sub: string
+  gesture: string
+  hotkey: string
+  kind: 'try' | 'toggle' | 'max'
+  disabled?: boolean
+  disabledReason?: string
+  onClick: () => void
+}
+
+function TierRow({ label, sub, gesture, hotkey, kind, disabled, disabledReason, onClick }: TierRowProps) {
+  return (
+    <button
+      type="button"
+      className={`tier-row tier-${kind}${disabled ? ' disabled' : ''}`}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      title={disabled ? disabledReason : `${label} · ${gesture}`}
+    >
+      <span className="tier-main">
+        <span className="tier-label">{label}</span>
+        <span className="tier-sub muted">{disabled && disabledReason ? disabledReason : sub}</span>
+      </span>
+      <span className="tier-gesture">
+        <span className="tier-gesture-text">{gesture}</span>
+        <kbd className="tier-hotkey">{hotkey}</kbd>
+      </span>
+    </button>
   )
 }
 
@@ -193,7 +266,24 @@ const BLACK_KEYS: Array<{ note: string; offset: number }> = [
   { note: 'A#', offset: 6 },
 ]
 
-function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: number) => void }) {
+function Keyboard({
+  selected,
+  onSelect,
+  onTier,
+}: {
+  selected: number
+  onSelect: (idx: number) => void
+  // Same tier callback the cell uses — clicking a key 1×/2×/3× runs
+  // try / toggle / max at that key's pitch, with the same preview/commit
+  // phase split so a 2-click on a key paints the cell optimistically too.
+  onTier: (tier: CellTier, pitchIdx: number, phase: ClickPhase) => void
+}) {
+  // Each piano key carries the same 1/2/3-click gesture as a grid cell, keyed
+  // by its pitch index so rapid clicks on one key resolve to a single tier.
+  const { click: dispatchKeyClick } = useClickTier((pitchIdx, tier, phase) =>
+    onTier(tier, pitchIdx, phase),
+  )
+
   return (
     <div className="keyboard">
       <div className="keyboard-whites">
@@ -206,8 +296,13 @@ function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: nu
               key={i}
               type="button"
               className={cls.join(' ')}
-              onClick={() => onSelect(k.pitchIdx)}
-              title={`${PITCH_LABELS[k.pitchIdx]} (degree ${k.pitchIdx})`}
+              onClick={() => {
+                // Highlight the key immediately; the tier (try/toggle/max)
+                // settles ~240ms later once the click count is known.
+                onSelect(k.pitchIdx)
+                dispatchKeyClick(k.pitchIdx)
+              }}
+              title={`${PITCH_LABELS[k.pitchIdx]} — 1 click try · 2 toggle · 3 max`}
             >
               <span className="key-label">{k.note}</span>
             </button>
@@ -224,7 +319,9 @@ function Keyboard({ selected, onSelect }: { selected: number; onSelect: (idx: nu
           />
         ))}
       </div>
-      <div className="keyboard-caption muted">selected: {PITCH_LABELS[selected]}</div>
+      <div className="keyboard-caption muted">
+        {PITCH_LABELS[selected]} selected · 1× try · 2× toggle · 3× max
+      </div>
     </div>
   )
 }

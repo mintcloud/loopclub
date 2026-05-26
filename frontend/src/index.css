@@ -288,6 +288,78 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .cell-popover  { position: fixed; }
 .row-tools     { position: fixed; }
 
+/* Click-tier gesture (1c try / 2c toggle / 3c max): the popover layer
+   must let clicks fall through to the grid so a dismiss-click still
+   counts toward the cell's click-tier gesture. Only the popovers
+   themselves opt back in. */
+.popover-layer { pointer-events: none; }
+.cell-popover  { pointer-events: auto; }
+.row-tools     { pointer-events: auto; }
+
+/* Tiered click rows inside the cell popover — design system has no
+   recipe yet. One row per tier (try / toggle / max); each row makes
+   the click count explicit alongside the keyboard shortcut. */
+.tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+.tier-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: background 120ms, border-color 120ms, transform 80ms;
+}
+.tier-row:hover:not(.disabled) {
+  border-color: var(--accent-dim);
+  background: rgba(255, 255, 255, 0.04);
+}
+.tier-row:active:not(.disabled) { transform: translateY(1px); }
+.tier-row.disabled { opacity: 0.45; cursor: not-allowed; }
+.tier-main { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.tier-label { font-size: 13px; font-weight: 600; }
+.tier-sub { font-size: 11px; }
+.tier-gesture { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+.tier-gesture-text {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tier-row.tier-toggle:hover:not(.disabled) { border-color: var(--accent); }
+.tier-row.tier-max:hover:not(.disabled) {
+  border-color: var(--hot, #ff7849);
+  background: rgba(255, 120, 73, 0.08);
+}
+.tier-row.tier-try:hover:not(.disabled) {
+  border-color: rgba(120, 220, 160, 0.5);
+}
+
+/* 1-click 'try' flash: a brief mint-green pulse on the cell when the
+   user previews a sound without renting. NB: the cell must stay
+   interactive through the flash — pointer-events:none here would
+   swallow follow-up clicks in a 2/3-click gesture (and block the
+   mouseenter/mousemove that arms the hover popover). */
+.cell.auditioning {
+  animation: auditionFlash 0.55s ease-out;
+  z-index: 2;
+}
+@keyframes auditionFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(120, 220, 160, 0.0); }
+  20%  { box-shadow: 0 0 0 4px rgba(120, 220, 160, 0.55); background: rgba(120, 220, 160, 0.22); }
+  100% { box-shadow: 0 0 0 0 rgba(120, 220, 160, 0.0); }
+}
+
 /* The design system only styles the arrow for the "above" placement.
    Restore the "below" placement arrow (popover flipped under the cell). */
 .cell-popover.below .popover-arrow {

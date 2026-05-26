@@ -9,13 +9,22 @@ import { ContributorStrip } from './ContributorStrip'
 import { RenewStrip } from './RenewStrip'
 import { Library, type LoopRecord } from './Library'
 import { useMyCells } from './useMyCells'
-import { config, megaethMainnet, LOOP_DURATION_SECONDS, SYNTH_CELL_START } from './config'
+import {
+  config,
+  megaethMainnet,
+  LOOP_DURATION_SECONDS,
+  SYNTH_CELL_START,
+  DEFAULT_TOGGLE_LOOPS,
+  MAX_TOGGLE_LOOPS,
+  type CellTier,
+} from './config'
 import { loopchainAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopchain-logo-transparent.png'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
-import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep } from './audio'
+import type { ClickPhase } from './useClickTier'
+import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep, previewCell } from './audio'
 
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
@@ -30,6 +39,11 @@ export function App() {
   const grid = useLiveGrid()
 
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
+  // usdmBalance starts at 0n and only becomes real after the first chain read
+  // resolves — which can take tens of seconds behind a slow/rate-limited RPC.
+  // `balanceLoaded` gates the pre-flight "not enough balance" guards so they
+  // don't fire against that placeholder zero and block every rent on startup.
+  const [balanceLoaded, setBalanceLoaded] = useState(false)
   const [allowance, setAllowance] = useState<bigint>(0n)
   const [basePrice, setBasePrice] = useState<bigint>(1n * 10n ** 18n) // default 1 USDm; refreshed from chain
   const [rentPerLoop, setRentPerLoop] = useState<bigint>(4n * 10n ** 15n) // default 0.004 USDm/loop; refreshed from chain
@@ -42,6 +56,11 @@ export function App() {
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
+  // Audition mode was removed in 50f6439 (design-system pass — "the dedicated
+  // Audition button is redundant" once cell-preview moved to hover/1-click try).
+  // The const here keeps the tier-click toast branch + CellPopover.auditionLocked
+  // prop wired without resurrecting the deck-btn. Lock branches are unreachable.
+  const auditionMode = false
   // Cells a tools popover (row fill / renew) is previewing — drawn on the grid
   // with a "will-be-activated" highlight so the click target is visible.
   const [previewCells, setPreviewCells] = useState<number[] | null>(null)
@@ -94,6 +113,7 @@ export function App() {
         ])
         setUsdmBalance(bal as bigint)
         setAllowance(allow as bigint)
+        setBalanceLoaded(true)
       }
     } catch (e) {
       console.error('wallet refresh failed', e)
@@ -105,6 +125,12 @@ export function App() {
     const id = setInterval(refreshWallet, WALLET_POLL_MS)
     return () => clearInterval(id)
   }, [refreshWallet])
+
+  // A new (or cleared) smart wallet means the cached balance is stale — drop
+  // the loaded flag so the pre-flight guards wait for a fresh read.
+  useEffect(() => {
+    setBalanceLoaded(false)
+  }, [smartAddress])
 
   // Feed the audio engine the live grid whenever it changes (unless replaying a loop).
   useEffect(() => {
@@ -224,7 +250,10 @@ export function App() {
     // same one-time approval the press/record flows do — without it the call
     // reverts with ERC20InsufficientAllowance during paymaster simulation.
     const cost = rentPerLoop * BigInt(durationLoops)
-    if (usdmBalance < cost) {
+    // Only enforce the balance guard once a real balance has loaded — otherwise
+    // the placeholder 0n blocks every rent during the first poll. If the read
+    // hasn't landed yet we let the tx through; it reverts cleanly if truly short.
+    if (balanceLoaded && usdmBalance < cost) {
       flash(
         `Need ${formatUnits(cost, 18)} USDm to rent (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
         true,
@@ -233,8 +262,15 @@ export function App() {
     }
 
     setOpenCell(null)
-    // Light the cell instantly — marked pending until the tx confirms on chain.
-    grid.applyOptimistic(cellId, smartAddress, durationLoops, pitchIdx)
+    // Optimistic paint is owned by handleCellTier (so a double-click can pulse
+    // purple ~420ms before this commit fires); only paint here if the caller
+    // hasn't already lit the cell — e.g. an explicit popover-button click.
+    const c = grid.cells[cellId]
+    const alreadyOptimistic =
+      c?.pending && c.owner?.toLowerCase() === smartAddress.toLowerCase()
+    if (!alreadyOptimistic) {
+      grid.applyOptimistic(cellId, smartAddress, durationLoops, pitchIdx)
+    }
     remember([cellId])
     flash(`Renting cell ${cellId} for ${durationLoops}× ${LOOP_DURATION_SECONDS}s…`)
 
@@ -282,7 +318,7 @@ export function App() {
     if (!smartWalletClient || !smartAddress || cellIds.length === 0) return
 
     const cost = rentPerLoop * BigInt(duration) * BigInt(cellIds.length)
-    if (usdmBalance < cost) {
+    if (balanceLoaded && usdmBalance < cost) {
       flash(
         `Need ${formatUnits(cost, 18)} USDm (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
         true,
@@ -345,7 +381,7 @@ export function App() {
       flash('Grid is empty — toggle some cells first', true)
       return
     }
-    if (usdmBalance < basePrice) {
+    if (balanceLoaded && usdmBalance < basePrice) {
       flash(`Need ${formatUnits(basePrice, 18)} USDm to press (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`, true)
       return
     }
@@ -442,7 +478,7 @@ export function App() {
   // Press copy #N of an existing loop — calls press(seriesId).
   const onPressSeries = async (record: LoopRecord) => {
     if (!smartWalletClient) return
-    if (usdmBalance < record.nextPressPrice) {
+    if (balanceLoaded && usdmBalance < record.nextPressPrice) {
       flash(
         `Need ${formatUnits(record.nextPressPrice, 18)} USDm to press (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
         true,
@@ -528,13 +564,67 @@ export function App() {
     }
   }
 
-  // Route a grid click: a cell held by someone else opens a read-only info
-  // card; free / own cells open the toggle popover.
-  const handleCellClick = (id: number, rect: DOMRect, status: CellStatus) => {
+  // Resolve a cell-tier intent. Single source of truth for try / toggle / max —
+  // both the grid's gesture dispatch (1/2/3 clicks) and the popover's tier rows
+  // funnel through this. `pitchOverride` lets the popover supply a user-chosen
+  // pitch when the synth row is up; everything else falls back to the cell's
+  // current stored pitch (so a re-toggle preserves the existing note).
+  //
+  // The phase split is what makes a double-click feel responsive: 'preview'
+  // fires the instant a 2-click is detected (~420ms before commit) and just
+  // paints the optimistic state. 'commit' submits the tx. A 3-click skips the
+  // preview phase and commits 'max' directly — the optimistic from the prior
+  // 'toggle' preview keeps the cell purple-pulsing until the tx confirms.
+  const handleCellTier = useCallback(
+    (id: number, tier: CellTier, phase: ClickPhase, pitchOverride?: number) => {
+      if (tier === 'try') {
+        void previewCell(id, pitchOverride ?? grid.cells[id]?.pitch ?? 0)
+        return
+      }
+      // Audition lock: never rents from a tier event. The toast only fires on
+      // commit so a preview gesture doesn't spam it (preview is gestural; the
+      // user gets the toast once when the action would actually rent).
+      if (auditionMode) {
+        if (phase === 'commit') flash('Audition lock is on — exit to rent', true)
+        return
+      }
+      const cell = grid.cells[id]
+      const owner = cell?.owner ?? null
+      const isOccupied =
+        owner && smartAddress && owner.toLowerCase() !== smartAddress.toLowerCase()
+      if (isOccupied) return // can't toggle someone else's cell
+
+      const loops = tier === 'max' ? MAX_TOGGLE_LOOPS : DEFAULT_TOGGLE_LOOPS
+      const pitch = pitchOverride ?? cell?.pitch ?? 0
+
+      if (phase === 'preview') {
+        // Optimistic-paint only; the tx waits for the commit phase in case the
+        // gesture escalates to a triple-click 'max'.
+        if (!smartAddress) return
+        grid.applyOptimistic(id, smartAddress, loops, pitch)
+        return
+      }
+      // commit — submit the tx. If a preview already painted the cell pending
+      // (the common 2-click path), onToggle won't repaint; if this is a direct
+      // popover-button click with no preview, onToggle paints before sending.
+      onToggle(id, loops, pitch)
+    },
+    // onToggle is intentionally captured from closure; grid.cells changes every
+    // tick but we want the latest value at click time, which the closure gives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [auditionMode, smartAddress, grid.cells],
+  )
+
+  // 500ms hover-hold opens the popover — discovery surface for the gesture.
+  const handleCellHover = (id: number, rect: DOMRect, status: CellStatus) => {
     if (status === 'occupied') {
       const c = grid.cells[id]
-      if (c.owner) {
-        setOpenCell({ id, rect, occupied: { who: c.owner, loopsLeft: c.expiryLoop - grid.currentLoop } })
+      if (c?.owner) {
+        setOpenCell({
+          id,
+          rect,
+          occupied: { who: c.owner, loopsLeft: c.expiryLoop - grid.currentLoop },
+        })
         return
       }
     }
@@ -650,7 +740,8 @@ export function App() {
           pattern={displayPattern}
           synthData={displaySynthData}
           playingStep={playingStep}
-          onCellClick={playback ? () => undefined : handleCellClick}
+          onCellTier={playback ? undefined : handleCellTier}
+          onCellHover={playback ? undefined : handleCellHover}
           cells={playback ? undefined : grid.cells}
           myAddress={smartAddress}
           currentLoop={grid.currentLoop}
@@ -709,8 +800,17 @@ export function App() {
           cellId={openCell.id}
           anchorRect={openCell.rect}
           occupied={openCell.occupied}
+          auditionLocked={auditionMode}
           onClose={() => setOpenCell(null)}
-          onSubmit={(duration, pitch) => onToggle(openCell.id, duration, pitch)}
+          onTier={(tier, pitch, phase) => {
+            handleCellTier(openCell.id, tier, phase, pitch)
+            // Try keeps the popover open so you can audition repeatedly; toggle
+            // and max commit a rent, so dismiss to clear the affordance. Close
+            // on either phase — closing on 'preview' makes the keyboard's
+            // double-click feel snappy (popover disappears the instant the
+            // optimistic paint lands).
+            if (tier !== 'try') setOpenCell(null)
+          }}
         />
       )}
 
