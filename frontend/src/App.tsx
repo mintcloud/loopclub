@@ -56,11 +56,6 @@ export function App() {
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
-  // Audition mode was removed in 50f6439 (design-system pass — "the dedicated
-  // Audition button is redundant" once cell-preview moved to hover/1-click try).
-  // The const here keeps the tier-click toast branch + CellPopover.auditionLocked
-  // prop wired without resurrecting the deck-btn. Lock branches are unreachable.
-  const auditionMode = false
   // Cells a tools popover (row fill / renew) is previewing — drawn on the grid
   // with a "will-be-activated" highlight so the click target is visible.
   const [previewCells, setPreviewCells] = useState<number[] | null>(null)
@@ -581,13 +576,6 @@ export function App() {
         void previewCell(id, pitchOverride ?? grid.cells[id]?.pitch ?? 0)
         return
       }
-      // Audition lock: never rents from a tier event. The toast only fires on
-      // commit so a preview gesture doesn't spam it (preview is gestural; the
-      // user gets the toast once when the action would actually rent).
-      if (auditionMode) {
-        if (phase === 'commit') flash('Audition lock is on — exit to rent', true)
-        return
-      }
       const cell = grid.cells[id]
       const owner = cell?.owner ?? null
       const isOccupied =
@@ -612,7 +600,7 @@ export function App() {
     // onToggle is intentionally captured from closure; grid.cells changes every
     // tick but we want the latest value at click time, which the closure gives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [auditionMode, smartAddress, grid.cells],
+    [smartAddress, grid.cells],
   )
 
   // 500ms hover-hold opens the popover — discovery surface for the gesture.
@@ -800,7 +788,6 @@ export function App() {
           cellId={openCell.id}
           anchorRect={openCell.rect}
           occupied={openCell.occupied}
-          auditionLocked={auditionMode}
           onClose={() => setOpenCell(null)}
           onTier={(tier, pitch, phase) => {
             handleCellTier(openCell.id, tier, phase, pitch)
