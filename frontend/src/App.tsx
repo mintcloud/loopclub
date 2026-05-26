@@ -563,7 +563,7 @@ export function App() {
             </button>
             {authenticated && (
               <button
-                className={`deck-btn press ${canRecord ? 'active' : ''}`}
+                className="deck-btn press"
                 onClick={onRecord}
                 disabled={!canRecord || busy?.startsWith('Pressing')}
                 title={

@@ -169,6 +169,9 @@
 .connect-btn {
   height: var(--deck-pad-h);
   padding: 0 var(--space-5);
+  /* Match the deck pads' label (--fs-ui = 13px) — .btn-chrome's default
+     12px reads visibly smaller next to "Stop" otherwise. */
+  font-size: var(--fs-ui);
 }
 
 /* ───── Grid-anchored sync badge ─────
