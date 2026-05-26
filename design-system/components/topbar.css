@@ -118,15 +118,15 @@
   font-variant-numeric: tabular-nums;
 }
 .deck-btn.active .deck-sub { color: rgba(233, 233, 242, 0.66); }
+/* Disabled — keep the chrome surface so the pad still reads as part of
+   the deck (matching Play/Stop), just dimmed and desaturated so it
+   reads as not-pressable. Swapping the surface to a flat panel-2 made
+   the pad look like a different button family. */
 .deck-btn:disabled {
-  background: var(--panel-2);
-  border-color: var(--border);
-  color: var(--muted);
-  box-shadow: none;
-  filter: none;
+  filter: saturate(0.35) brightness(0.78);
   cursor: not-allowed;
 }
-.deck-btn:disabled .deck-sub { color: var(--muted); }
+.deck-btn:disabled .deck-sub { color: rgba(10, 10, 18, 0.45); }
 
 /* ───── Account group — balance + "⊕ My wallet", kept together ─────
    A chip the same height as the deck tray so the header aligns. */
