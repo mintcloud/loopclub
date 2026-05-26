@@ -1162,6 +1162,7 @@ kbd {
 }
 .row-tools {
   position: fixed;
+  pointer-events: auto;
   z-index: 46;
   background: var(--panel);
   border: 1px solid var(--accent-dim);
