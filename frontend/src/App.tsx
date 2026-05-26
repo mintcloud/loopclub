@@ -15,7 +15,7 @@ import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopchain-logo-transparent.png'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
-import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep, previewCell } from './audio'
+import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep } from './audio'
 
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
@@ -42,9 +42,6 @@ export function App() {
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   const [audioOn, setAudioOn] = useState(false)
-  // Audition mode: while on, clicking any cell plays its voice once — no
-  // popover, no rent, no transaction. Lets you hear a sound before you buy it.
-  const [auditionMode, setAuditionMode] = useState(false)
   // Cells a tools popover (row fill / renew) is previewing — drawn on the grid
   // with a "will-be-activated" highlight so the click target is visible.
   const [previewCells, setPreviewCells] = useState<number[] | null>(null)
@@ -117,15 +114,6 @@ export function App() {
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
   }, [])
-
-  // Toggling audition mid-edit is a quiet UX trap — popovers and hover-previews
-  // are edit affordances, so they get dismissed when the user enters audition.
-  useEffect(() => {
-    if (!auditionMode) return
-    setOpenCell(null)
-    setOpenRow(null)
-    setPreviewCells(null)
-  }, [auditionMode])
 
   // Once the smart wallet resolves after connect, surface the deposit address so
   // the user can copy it and fund the account fast. Shown once per connect.
@@ -540,14 +528,9 @@ export function App() {
     }
   }
 
-  // Route a grid click: in audition mode, just play the cell's sound. Otherwise
-  // a cell held by someone else opens a read-only info card; free / own cells
-  // open the toggle popover.
+  // Route a grid click: a cell held by someone else opens a read-only info
+  // card; free / own cells open the toggle popover.
   const handleCellClick = (id: number, rect: DOMRect, status: CellStatus) => {
-    if (auditionMode) {
-      void previewCell(id, grid.cells[id]?.pitch ?? 0)
-      return
-    }
     if (status === 'occupied') {
       const c = grid.cells[id]
       if (c.owner) {
@@ -559,10 +542,8 @@ export function App() {
   }
 
   const userEmail = user?.email?.address ?? user?.google?.email ?? null
-  // Audition mode is read-only: while it's on, every edit-flow button is
-  // disabled so the UI matches the "I'm just trying sounds" mental model.
   const canRecord =
-    authenticated && smartAddress && grid.pattern !== 0n && !playback && !auditionMode
+    authenticated && smartAddress && grid.pattern !== 0n && !playback
 
   const displayPattern = playback ? playback.pattern : grid.pattern
   const displaySynthData = playback ? playback.synthData : grid.synthData
@@ -580,26 +561,17 @@ export function App() {
             <button className="deck-btn" onClick={onAudioToggle}>
               <span className="deck-label">{audioOn ? '◼ Stop' : '▶ Play'}</span>
             </button>
-            <button
-              className={`deck-btn ${auditionMode ? 'active' : ''}`}
-              onClick={() => setAuditionMode((v) => !v)}
-              title="Audition — click any cell to hear its sound. No rent, no transaction."
-            >
-              <span className="deck-label">♪ Audition</span>
-            </button>
             {authenticated && (
               <button
                 className={`deck-btn press ${canRecord ? 'active' : ''}`}
                 onClick={onRecord}
                 disabled={!canRecord || busy?.startsWith('Pressing')}
                 title={
-                  auditionMode
-                    ? 'Exit audition to record the live grid'
-                    : playback
-                      ? 'Exit playback to record the live grid'
-                      : grid.pattern === 0n
-                        ? 'Toggle some cells first'
-                        : `Press Edition #1 — ${basePriceStr} USDm`
+                  playback
+                    ? 'Exit playback to record the live grid'
+                    : grid.pattern === 0n
+                      ? 'Toggle some cells first'
+                      : `Press Edition #1 — ${basePriceStr} USDm`
                 }
               >
                 <span className="deck-label">
@@ -683,7 +655,6 @@ export function App() {
           myAddress={smartAddress}
           currentLoop={grid.currentLoop}
           lastRent={playback ? null : grid.lastRent}
-          auditionMode={!playback && auditionMode}
           onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
           previewCells={playback ? null : previewCells}
         />
@@ -701,7 +672,7 @@ export function App() {
           currentLoop={grid.currentLoop}
           myAddress={smartAddress}
           rentPerLoop={rentPerLoop}
-          busy={Boolean(busy) || auditionMode}
+          busy={Boolean(busy)}
           onRenew={onRenew}
           onPreview={setPreviewCells}
         />

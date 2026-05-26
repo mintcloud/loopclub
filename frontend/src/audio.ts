@@ -204,7 +204,7 @@ export async function startAudio() {
 }
 
 // Stop the 16-step sequencer. The voices are deliberately kept alive so
-// audition-mode cell preview keeps working after Play is switched off.
+// cell-preview (popover ▸, hover) keeps working after Play is switched off.
 export function stopAudio() {
   Tone.Transport.stop()
   seq?.dispose()
@@ -215,10 +215,10 @@ export function audioRunning(): boolean {
   return seq !== null
 }
 
-// Play one cell's voice once, immediately — the audition-mode primitive. Lets a
-// player hear a sound before paying to rent the cell. Independent of the
-// sequencer: works whether or not the loop is playing. `pitchIdx` only matters
-// for synth-row cells (track 8); drum voices ignore it.
+// Play one cell's voice once, immediately. Lets a player hear a sound before
+// paying to rent the cell. Independent of the sequencer: works whether or not
+// the loop is playing. `pitchIdx` only matters for synth-row cells (track 8);
+// drum voices ignore it.
 export async function previewCell(cellId: number, pitchIdx = 0) {
   await ensureVoices()
   const track = Math.floor(cellId / STEPS)

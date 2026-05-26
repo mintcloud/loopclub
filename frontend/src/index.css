@@ -191,7 +191,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   flex-shrink: 0;
 }
 
-/* ───── Cell popover — audition play button in the head. ───── */
+/* ───── Cell popover — preview play button in the head. ───── */
 .popover-head-btns {
   display: flex;
   align-items: center;
@@ -210,45 +210,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--accent);
 }
 
-/* ───── Audition mode + cell preview (app-only interaction states) ───── */
-/* In audition mode every cell reads as a "tap to hear" pad — green-mint so it
- * doesn't read like an edit hover. */
-.grid.audition .cell:hover {
-  box-shadow: 0 0 0 2px var(--hat) inset;
-  transform: translateY(-1px);
-}
-/* A click in audition mode flashes green and fades out — ephemeral on purpose,
- * so the user reads it as "I tried this sound" not "I just edited the grid". */
-.cell.auditioning {
-  animation: auditionFlash 0.55s ease-out;
-  pointer-events: none;
-  z-index: 2;
-}
-@keyframes auditionFlash {
-  0% {
-    background: var(--hat);
-    border-color: var(--hat);
-    transform: scale(1.18);
-    box-shadow: 0 0 14px var(--hat);
-    opacity: 1;
-  }
-  60% {
-    background: var(--hat);
-    border-color: var(--hat);
-    transform: scale(1.05);
-    box-shadow: 0 0 6px rgba(92, 255, 198, 0.55);
-    opacity: 0.85;
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: none;
-    opacity: 1;
-  }
-}
-
 /* Preview-fill — drawn while the user hovers a row-tool or the renew button.
- * Yellow/gold (--owned) so it can't be confused with audition's mint green or
- * with a track colour. */
+ * Yellow/gold (--owned) so it can't be confused with a track colour. */
 .cell.preview-fill:not(.on) {
   background: rgba(255, 194, 75, 0.16);
   border-color: var(--owned);
@@ -299,17 +262,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .grid .label.fillable:hover .row-fill-hint {
   opacity: 1;
   transform: translateY(1px);
-}
-/* In audition mode the row labels are read-only — match the dim, no-pointer
- * style the rest of the edit affordances pick up. */
-.grid .label.fillable-disabled {
-  cursor: not-allowed;
-  opacity: 0.35;
-  pointer-events: none;
-}
-.grid .label.fillable-disabled .row-fill-hint {
-  color: var(--muted);
-  opacity: 0.5;
 }
 
 /* ───── Playback banner — responsive stacking (design system styles the

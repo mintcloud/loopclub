@@ -162,12 +162,12 @@
 }
 
 /* ───── Connect button — pre-auth CTA ─────
-   Shown before the deck tray / account chip exist. Pair with .btn-chrome
-   in the markup (`class="btn-chrome connect-btn"`); this only stretches it
-   to the shared cluster height so the header baseline never jumps when
-   the user connects. */
+   Pair with .btn-chrome in the markup (`class="btn-chrome connect-btn"`).
+   Sized to match the deck pads' chrome surface (--deck-pad-h) rather than
+   the outer tray height — so when Connect sits alongside the deck tray
+   their visible chrome buttons read as one coherent set. */
 .connect-btn {
-  height: var(--topbar-cluster-h);
+  height: var(--deck-pad-h);
   padding: 0 var(--space-5);
 }
 
