@@ -32,9 +32,10 @@ design-system/
 │   ├── banner-modal-toast.css ← .playback-banner, .modal, .toast, .wordmark
 │   └── topbar.css          ← .deck-controls, .deck-btn, .account-group, grid-anchored sync badge
 ├── assets/
-│   ├── loopchain-logo-transparent.png  ← canonical wordmark (use this)
-│   ├── loopchain-logo-cropped.png      ← black-bg variant
-│   ├── loopchain-logo.png              ← original 1254² source
+│   ├── loopclub-logo.png               ← canonical wordmark (use this)
+│   ├── loopchain-logo-transparent.png  ← legacy (pre-rebrand)
+│   ├── loopchain-logo-cropped.png      ← legacy black-bg variant
+│   ├── loopchain-logo.png              ← legacy original 1254² source
 │   ├── og-cover.png                    ← legacy social card
 │   └── logo-mark.svg                   ← legacy app mark
 └── fonts/                              ← Gilroy .ttf, 14 cuts
@@ -59,7 +60,7 @@ design-system/
 
 ```html
 <link rel="stylesheet" href="design-system/index.css">
-<img class="wordmark" src="design-system/assets/loopchain-logo-transparent.png" alt="Loopchain">
+<img class="wordmark" src="design-system/assets/loopclub-logo.png" alt="loop club">
 <button class="btn-chrome">✦ press · 1 USDm</button>
 <span class="chrome-pill">⚡ fast · 47m</span>
 ```
@@ -70,7 +71,7 @@ See `CLAUDE.md` for the integration steps. Short version:
 ```ts
 // frontend/src/main.tsx
 import 'design-system/index.css';
-import logoUrl from 'design-system/assets/loopchain-logo-transparent.png';
+import logoUrl from 'design-system/assets/loopclub-logo.png';
 ```
 
 ---

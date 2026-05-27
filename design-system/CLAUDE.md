@@ -33,7 +33,7 @@ Check the loopchain repo root for a `package.json`:
   ```
   And in any file that needs the logo asset:
   ```ts
-  import logoUrl from '../../design-system/assets/loopchain-logo-transparent.png';
+  import logoUrl from '../../design-system/assets/loopclub-logo.png';
   ```
   This is fine — Vite resolves it.
 
@@ -129,15 +129,15 @@ In `frontend/src/App.tsx`, find:
 
 Replace with:
 ```tsx
-<img className="wordmark" src={logoUrl} alt="Loopchain" />
+<img className="wordmark" src={logoUrl} alt="loop club" />
 ```
 
-(where `logoUrl` is the import you added in Step 2, or `'/loopchain-logo-transparent.png'`
+(where `logoUrl` is the import you added in Step 2, or `'/loopclub-logo.png'`
 if you copied the PNG into `frontend/public/` instead).
 
 If you prefer the PNG to live in `frontend/public/` rather than imported,
-`cp design-system/assets/loopchain-logo-transparent.png frontend/public/`
-and use `src="/loopchain-logo-transparent.png"` — equivalent.
+`cp design-system/assets/loopclub-logo.png frontend/public/`
+and use `src="/loopclub-logo.png"` — equivalent.
 
 ---
 
