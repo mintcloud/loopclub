@@ -1,7 +1,7 @@
 # Handoff brief for Claude Code
 
-You are integrating the **Loopchain design system** (this folder) into the
-loopchain `frontend/` app (the sibling folder in this repo).
+You are integrating the **loopclub design system** (this folder) into the
+loopclub `frontend/` app (the sibling folder in this repo).
 
 The frontend currently has all its visual styles inline in
 `frontend/src/index.css` (~1170 lines), with the original first-cut design
@@ -21,10 +21,10 @@ match the new language (see `design-system/README.md` for the design spec).
 
 ## Step 1 — Decide on workspace wiring
 
-Check the loopchain repo root for a `package.json`:
+Check the loopclub repo root for a `package.json`:
 
 - **If it has `"workspaces": [...]`**: add `"design-system"` to the array. The
-  frontend can then `import 'loopchain-design-system'` after running install.
+  frontend can then `import 'loopclub-design-system'` after running install.
 
 - **If it does NOT have a workspaces config and you don't want to add one**:
   use a relative-path import instead. In `frontend/src/main.tsx`:
@@ -120,11 +120,11 @@ recommended.
 
 ---
 
-## Step 5 — Replace the header `<h1>Loopchain</h1>` with the wordmark image
+## Step 5 — Replace the header `<h1>loopclub</h1>` with the wordmark image
 
 In `frontend/src/App.tsx`, find:
 ```tsx
-<h1>Loopchain</h1>
+<h1>loopclub</h1>
 ```
 
 Replace with:

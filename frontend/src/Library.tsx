@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { formatUnits } from 'viem'
 import { config } from './config'
-import { loopchainAbi } from './abi'
+import { loopclubAbi } from './abi'
 import { publicClient } from './viemClient'
 import { MiniGrid } from './MiniGrid'
 
@@ -64,8 +64,8 @@ export function Library({
   const loadAll = useCallback(async () => {
     try {
       const next = (await publicClient.readContract({
-        address: config.loopchainAddress,
-        abi: loopchainAbi,
+        address: config.loopclubAddress,
+        abi: loopclubAbi,
         functionName: 'nextSeriesId',
       })) as bigint
 
@@ -82,8 +82,8 @@ export function Library({
           // so we look it up via the SeriesRecorded event ... but to keep things simple we just call
           // ownerOf on a best-guess (we don't actually need it for series-level UX; we'll set owner=null).
           const info = await publicClient.readContract({
-            address: config.loopchainAddress,
-            abi: loopchainAbi,
+            address: config.loopclubAddress,
+            abi: loopclubAbi,
             functionName: 'seriesInfo',
             args: [sid],
           })
@@ -100,8 +100,8 @@ export function Library({
               readonly number[],
             ]
           const nextPressPrice = (await publicClient.readContract({
-            address: config.loopchainAddress,
-            abi: loopchainAbi,
+            address: config.loopclubAddress,
+            abi: loopclubAbi,
             functionName: 'pressPriceFor',
             args: [sid],
           })) as bigint
@@ -150,14 +150,14 @@ export function Library({
           mine.map(async (r) => {
             const [deposited, claimed] = await Promise.all([
               publicClient.readContract({
-                address: config.loopchainAddress,
-                abi: loopchainAbi,
+                address: config.loopclubAddress,
+                abi: loopclubAbi,
                 functionName: 'royaltyDepositedSeries',
                 args: [r.seriesId],
               }) as Promise<bigint>,
               publicClient.readContract({
-                address: config.loopchainAddress,
-                abi: loopchainAbi,
+                address: config.loopclubAddress,
+                abi: loopclubAbi,
                 functionName: 'royaltyClaimedSeries',
                 args: [r.seriesId, smartAddress as `0x${string}`],
               }) as Promise<bigint>,
@@ -194,8 +194,8 @@ export function Library({
     ;(async () => {
       try {
         const nextTokenId = (await publicClient.readContract({
-          address: config.loopchainAddress,
-          abi: loopchainAbi,
+          address: config.loopclubAddress,
+          abi: loopclubAbi,
           functionName: 'nextTokenId',
         })) as bigint
         const totalTokens = Number(nextTokenId - 1n)
@@ -208,20 +208,20 @@ export function Library({
           tokenIds.map(async (tid) => {
             const [tokenOwner, seriesId, edition] = await Promise.all([
               publicClient.readContract({
-                address: config.loopchainAddress,
-                abi: loopchainAbi,
+                address: config.loopclubAddress,
+                abi: loopclubAbi,
                 functionName: 'ownerOf',
                 args: [tid],
               }) as Promise<`0x${string}`>,
               publicClient.readContract({
-                address: config.loopchainAddress,
-                abi: loopchainAbi,
+                address: config.loopclubAddress,
+                abi: loopclubAbi,
                 functionName: 'seriesOf',
                 args: [tid],
               }) as Promise<bigint>,
               publicClient.readContract({
-                address: config.loopchainAddress,
-                abi: loopchainAbi,
+                address: config.loopclubAddress,
+                abi: loopclubAbi,
                 functionName: 'editionOf',
                 args: [tid],
               }) as Promise<number>,
@@ -382,7 +382,7 @@ export function Library({
                     {isOwner && topEdition && (
                       <a
                         className="nft-link"
-                        href={`${config.explorerUrl}/token/${config.loopchainAddress}/instance/${topEdition.tokenId.toString()}`}
+                        href={`${config.explorerUrl}/token/${config.loopclubAddress}/instance/${topEdition.tokenId.toString()}`}
                         target="_blank"
                         rel="noreferrer"
                         title={`View your Edition #${topEdition.edition} NFT on Blockscout`}

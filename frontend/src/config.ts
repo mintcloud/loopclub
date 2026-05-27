@@ -25,7 +25,7 @@ export const config = {
   // Optional WebSocket RPC. When set, the live grid pushes cell rentals over
   // eth_subscribe instead of polling getLogs. Falls back to the HTTP client.
   wsRpcUrl: (import.meta.env.VITE_WS_RPC_URL as string | undefined) || undefined,
-  loopchainAddress: import.meta.env.VITE_LOOPCHAIN_ADDRESS as `0x${string}`,
+  loopclubAddress: import.meta.env.VITE_LOOPCLUB_ADDRESS as `0x${string}`,
   paymentTokenAddress: import.meta.env.VITE_PAYMENT_TOKEN_ADDRESS as `0x${string}`,
   explorerUrl: import.meta.env.VITE_EXPLORER_URL as string,
   // ZeroDev bundler + paymaster RPC, used by "fast mode" (session keys) to
@@ -56,7 +56,7 @@ export const megaethMainnet = defineChain({
 
 // Sound-expansion grid: 16 steps × 9 tracks = 144 cells. Track 8 (the last) is
 // the synth row; its cells (id ≥ 128) carry a pitch. The eight rows above it are
-// drum voices. These mirror the on-chain constants in Loopchain.sol.
+// drum voices. These mirror the on-chain constants in loopclub.sol.
 export const STEPS = 16
 export const TRACKS = 9
 export const CELLS = STEPS * TRACKS // 144
@@ -120,4 +120,4 @@ export const EXPIRING_SOON_LOOPS = 2
 export const SESSION_KEY_TTL_MS = 60 * 60 * 1000
 // localStorage slot for the persisted session. Bump the suffix to invalidate
 // every existing session (e.g. after a contract redeploy or policy change).
-export const SESSION_KEY_STORAGE = 'loopchain.sessionkey.v1'
+export const SESSION_KEY_STORAGE = 'loopclub.sessionkey.v1'

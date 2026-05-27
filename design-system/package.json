@@ -1,7 +1,7 @@
 {
-  "name": "loopchain-design-system",
+  "name": "loopclub-design-system",
   "version": "0.1.0",
-  "description": "Loopchain visual design system — tokens, components, assets, fonts.",
+  "description": "loopclub visual design system — tokens, components, assets, fonts.",
   "private": true,
   "main": "index.css",
   "exports": {

@@ -14,7 +14,7 @@
 //   • Privy stays the root of trust. The session key is a *scoped, expiring*
 //     delegate, authorised by one signature from the Privy embedded wallet.
 //   • On-chain scope: a ZeroDev call policy pins the session key to exactly
-//     Loopchain.toggle() on exactly the Loopchain contract. It cannot move
+//     loopclub.toggle() on exactly the loopclub contract. It cannot move
 //     USDm, press, claim royalties, or touch any other contract.
 //   • Time scope: a timestamp policy expires the key after SESSION_KEY_TTL_MS.
 //   • Address guard: the ZeroDev Kernel account we build here is only used if
@@ -245,7 +245,7 @@ export async function armSession(opts: {
 
   const expiresAt = Date.now() + SESSION_KEY_TTL_MS
 
-  // Scope: toggle() on the Loopchain contract only, valid until expiry.
+  // Scope: toggle() on the loopclub contract only, valid until expiry.
   const permissionValidator = await toPermissionValidator(publicClient, {
     signer: sessionSigner,
     entryPoint: ENTRY_POINT,
@@ -253,7 +253,7 @@ export async function armSession(opts: {
     policies: [
       toCallPolicy({
         policyVersion: CallPolicyVersion.V0_0_4,
-        permissions: [{ target: config.loopchainAddress, selector: TOGGLE_SELECTOR }],
+        permissions: [{ target: config.loopclubAddress, selector: TOGGLE_SELECTOR }],
       }),
       toTimestampPolicy({ validUntil: Math.floor(expiresAt / 1000) }),
     ],

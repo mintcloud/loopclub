@@ -1,10 +1,10 @@
-# Loopchain Design System
+# loopclub Design System
 
 > Liquid-chrome wordmark, vivid LED instruments, deep-black stage. The visual
-> system behind Loopchain — a collaborative on-chain drum machine on MegaETH.
+> system behind loopclub — a collaborative on-chain drum machine on MegaETH.
 
 This package contains every visual token, component recipe, asset, and font
-the Loopchain app uses. The whole thing is plain CSS + assets — no build step,
+the loopclub app uses. The whole thing is plain CSS + assets — no build step,
 no JS runtime, no React dependency. Frameworks pick it up by importing
 `index.css`.
 
@@ -33,9 +33,9 @@ design-system/
 │   └── topbar.css          ← .deck-controls, .deck-btn, .account-group, grid-anchored sync badge
 ├── assets/
 │   ├── loopclub-logo.png               ← canonical wordmark (use this)
-│   ├── loopchain-logo-transparent.png  ← legacy (pre-rebrand)
-│   ├── loopchain-logo-cropped.png      ← legacy black-bg variant
-│   ├── loopchain-logo.png              ← legacy original 1254² source
+│   ├── loopclub-logo-transparent.png   ← legacy (pre-rebrand)
+│   ├── loopclub-logo-cropped.png       ← legacy black-bg variant
+│   ├── loopclub-logo-original.png      ← legacy original 1254² source
 │   ├── og-cover.png                    ← legacy social card
 │   └── logo-mark.svg                   ← legacy app mark
 └── fonts/                              ← Gilroy .ttf, 14 cuts
@@ -65,7 +65,7 @@ design-system/
 <span class="chrome-pill">⚡ fast · 47m</span>
 ```
 
-## Quick usage (from the loopchain `frontend/`)
+## Quick usage (from the loopclub `frontend/`)
 
 See `CLAUDE.md` for the integration steps. Short version:
 ```ts
@@ -156,5 +156,5 @@ Edit a token in `tokens/colors.css` (or `tokens/chrome.css` etc.) — every
 component that uses that variable updates automatically. Components themselves
 live in `components/*.css`; they only reference tokens, never raw values.
 
-When in doubt, search `colors_and_type.css` and `ui_kits/loopchain/styles.css`
+When in doubt, search `colors_and_type.css` and `ui_kits/loopclub/styles.css`
 in the design-system source project for the original intent.

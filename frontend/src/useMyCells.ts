@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 // larger cap let renew accumulate into "28 expired" stacks that obscured what
 // the button would actually do.
 const CAP = 12
-const keyFor = (addr: string) => `loopchain.mycells.v1.${addr.toLowerCase()}`
+const keyFor = (addr: string) => `loopclub.mycells.v1.${addr.toLowerCase()}`
 
 export interface MyCells {
   /** Recently-touched cell ids, most-recent first, deduped, capped at CAP. */

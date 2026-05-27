@@ -1,4 +1,4 @@
-export const loopchainAbi = [
+export const loopclubAbi = [
   { type: 'function', name: 'currentLoop', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint64' }] },
   // 144-cell live grid → one uint256 (bit i = cell i is currently rented).
   { type: 'function', name: 'livePattern', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },

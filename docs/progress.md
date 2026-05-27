@@ -1,4 +1,4 @@
-# Loopchain build progress · 2026-05-08
+# loopclub build progress · 2026-05-08
 
 *Status check after Privy + Kernel onboarding · updated 2026-05-15*
 
@@ -14,9 +14,9 @@
 | Layer | State |
 |---|---|
 | Contracts | ✅ reworked one-shot → **Series + bonding-curve editions**; `forge test` 23/23 pass |
-| Mainnet deploy | ✅ chain 4326 — `Loopchain` `0x64D8…bf76`, deployed 2026-05-15 (the old one-shot `0x6B92…dab3` is superseded) |
+| Mainnet deploy | ✅ chain 4326 — `loopclub` `0x64D8…bf76`, deployed 2026-05-15 (the old one-shot `0x6B92…dab3` is superseded) |
 | Testnet deploy | stale — chain 6343 still runs the old one-shot model; not redeployed |
-| Frontend | ✅ record / press / library / royalty-claim UI wired; `tsc` clean; `.env.local` repointed. Vercel still needs `VITE_LOOPCHAIN_ADDRESS` updated + a redeploy |
+| Frontend | ✅ record / press / library / royalty-claim UI wired; `tsc` clean; `.env.local` repointed. Vercel still needs `VITE_LOOPCLUB_ADDRESS` updated + a redeploy |
 | Smart-account stack | Kernel via Privy (the §2 pivot below held); **Step 4 session keys** added flag-gated — see [`checkpoints.md`](checkpoints.md) |
 | Latency/collab plan | steps 1–3 shipped (event-streamed live grid, owner colours, block-sync badge); step 4 (session keys) shipped behind `VITE_ENABLE_SESSION_KEYS`, off until verified in a preview deploy |
 | Open items | Vercel env (`VITE_ZERODEV_RPC_URL`; flip `VITE_ENABLE_SESSION_KEYS` after the preview check) · two-device live demo · paymaster + realtime-send (step 5) · O(N) library fetch |
@@ -33,21 +33,21 @@ The snapshot below (2026-05-08) is kept for the record.
 
 ## TL;DR
 
-- **Steps 1–5 of the build plan are done.** Foundry scaffold + `MockUsdm.sol` + full `Loopchain.sol` + Forge tests + deploy script are written and sitting in `loopchain-contracts/`. Pure contract layer — unaffected by your Kernel choice.
-- **One stack divergence to flag.** The architecture doc §3 quoted **MetaMask Smart Accounts Kit + Stateless7702 + ERC-7710 DelegationManager**. You went with **Kernel** in Privy. That's an entire smart-account ecosystem swap (ZeroDev SDK, not MetaMask's; Kernel session keys, not ERC-7710 delegations). It does NOT affect the contracts I just wrote — that whole layer is above `Loopchain.sol`. But steps 12–13 of the build plan (the "single signature → silent for an hour" flow) need different SDKs than what §3 specified. Detail below.
+- **Steps 1–5 of the build plan are done.** Foundry scaffold + `MockUsdm.sol` + full `loopclub.sol` + Forge tests + deploy script are written and sitting in `loopclub-contracts/`. Pure contract layer — unaffected by your Kernel choice.
+- **One stack divergence to flag.** The architecture doc §3 quoted **MetaMask Smart Accounts Kit + Stateless7702 + ERC-7710 DelegationManager**. You went with **Kernel** in Privy. That's an entire smart-account ecosystem swap (ZeroDev SDK, not MetaMask's; Kernel session keys, not ERC-7710 delegations). It does NOT affect the contracts I just wrote — that whole layer is above `loopclub.sol`. But steps 12–13 of the build plan (the "single signature → silent for an hour" flow) need different SDKs than what §3 specified. Detail below.
 - **Single blocker on you:** I need a hot-wallet address you control on MegaETH testnet, with ~0.005 testnet ETH in it. I'll deploy from there. ~5 min on your end.
 - **One thing to verify in Privy dashboard before we wire the frontend:** is your Kernel smart-wallet config set to **EIP-7702 mode** or **counterfactual**? It affects whether the user funds their EOA or a derived smart-wallet address. Counterfactual works fine, just changes the funding-flow UI copy.
 
 ---
 
-## 1 · What's done (in `loopchain-contracts/`)
+## 1 · What's done (in `loopclub-contracts/`)
 
 | # | Plan step | File | Notes |
 |---|---|---|---|
 | 1 | Foundry init + remappings | `foundry.toml`, `remappings.txt` | Solc 0.8.26, Cancun EVM, optimizer 200 runs |
 | 2 | MockUsdm | `src/MockUsdm.sol` | ERC-20 + EIP-2612 permit + open `faucet()` for 1k testnet USDm |
-| 3 | Loopchain v1 | `src/Loopchain.sol` | 64 cells, drum/synth split, USDm rent + mint, ERC-2981 royalty, pull-claim, treasury rotation, owner-tunable prices |
-| 4 | Forge tests | `test/Loopchain.t.sol` | Rent + expiry + collision + same-owner-extends + record distribution + snapshot + royalty deposit/claim/non-holder/zero-claim + treasury auth |
+| 3 | loopclub v1 | `src/loopclub.sol` | 64 cells, drum/synth split, USDm rent + mint, ERC-2981 royalty, pull-claim, treasury rotation, owner-tunable prices |
+| 4 | Forge tests | `test/loopclub.t.sol` | Rent + expiry + collision + same-owner-extends + record distribution + snapshot + royalty deposit/claim/non-holder/zero-claim + treasury auth |
 | 5 | Deploy script | `script/Deploy.s.sol` | Auto-deploys MockUsdm if `PAYMENT_TOKEN` env var is unset; reuses real USDm address otherwise |
 
 I've not run `forge test` because there's no Foundry repo on the VPS yet — these are deliverable files. Once you (or I, with VPS access) run `forge install OpenZeppelin/openzeppelin-contracts forge-rs/forge-std` against this scaffold and `forge build`, tests should pass. If something breaks at compile, I'll fix it on the next pass.
@@ -75,7 +75,7 @@ ERC-2981 royalty attribution is genuinely awkward: the spec returns a single rec
 2. **Single global pool** distributed by lifetime cell-share — simplest but uncomposable with marketplace tools.
 3. **Tagged deposit pattern** — anyone calls `depositRoyalty(tokenId, amount)` to attribute incoming royalties; without it, USDm sits unattributed.
 
-I shipped option 3 in v1. Reason: keeps `record()` lean (just minting, not deploying clones), no one is reselling Loopchain NFTs yet anyway, and the tagged-deposit endpoint becomes a clean target for a future keeper bot. Option 1 is the right v2.
+I shipped option 3 in v1. Reason: keeps `record()` lean (just minting, not deploying clones), no one is reselling loopclub NFTs yet anyway, and the tagged-deposit endpoint becomes a clean target for a future keeper bot. Option 1 is the right v2.
 
 If you prefer option 1 from day one, say so and I'll swap it in — it's an extra contract (`RoyaltySplitter.sol`) plus 5 lines in `record()`.
 
@@ -83,7 +83,7 @@ If you prefer option 1 from day one, say so and I'll swap it in — it's an extr
 
 ## 2 · The Kernel pivot — what changes from the architecture doc
 
-§3 of `loopchain-ux-architecture.md` quoted this stack:
+§3 of `loopclub-ux-architecture.md` quoted this stack:
 
 > `@privy-io/react-auth`, `@metamask/smart-accounts-kit` (Stateless7702 implementation), `@megaeth/sdk` for `eth_sendRawTransactionSync`. […] DelegationManager, EntryPoint, HybridDeleGator, MultiSigDeleGator.
 
@@ -107,7 +107,7 @@ You went with **Kernel**. That's ZeroDev's smart-account implementation, not Met
 - Tone.js for playback.
 - WS subscriptions for live grid updates.
 - The "single signature, silent for an hour" UX is the same — Kernel's session-key model gives you the same scoped-permission primitive as ERC-7710 (allowed contract, allowed selectors, expiry, gas cap, value cap). Just different SDK.
-- **The `Loopchain.sol` contract above is unchanged.** Smart-account choice lives entirely above the contract layer.
+- **The `loopclub.sol` contract above is unchanged.** Smart-account choice lives entirely above the contract layer.
 
 ### The two questions the Kernel pivot raises
 
@@ -121,7 +121,7 @@ Both work. 7702 is the cleaner UX. In Privy's dashboard, look for a toggle like 
 ```
 const { client: smartWalletClient } = useSmartWallets();
 // One-shot: install a permission validator on Kernel scoping
-//   target = Loopchain
+//   target = loopclub
 //   selectors = [toggle, record]
 //   valueLimit = 5 USDm equivalent
 //   expiry = now + 3600
@@ -141,13 +141,13 @@ That's the Kernel-native version of the §3 flow. The "single signature → sile
 
 ## 3 · Where we are vs the build plan
 
-Steps from `loopchain-ux-architecture.md` §6:
+Steps from `loopclub-ux-architecture.md` §6:
 
 | # | Step | Status |
 |---|---|---|
 | 1 | Foundry repo init + skills bundle | ✅ Scaffold written. Skills bundle install deferred until we're on a real repo on the VPS. |
 | 2 | MockUsdm.sol | ✅ |
-| 3 | Loopchain.sol full v1 | ✅ |
+| 3 | loopclub.sol full v1 | ✅ |
 | 4 | Forge tests | ✅ Written. Not run (no Foundry repo set up yet). |
 | 5 | Deploy script | ✅ |
 | 6 | Verify MegaETH bundler endpoint | ✅ Done — you found and entered Kernel's MegaETH testnet bundler/paymaster URLs in Privy. |
@@ -202,18 +202,18 @@ When you've got (1), I'll deploy and immediately start the frontend scaffold (st
 ## Files in this task's output
 
 ```
-loopchain-progress.md          ← this file
-loopchain-progress.html        ← rendered version
-loopchain-contracts/
+loopclub-progress.md          ← this file
+loopclub-progress.html        ← rendered version
+loopclub-contracts/
   foundry.toml
   remappings.txt
   .env.example
   README.md
   src/
-    Loopchain.sol
+    loopclub.sol
     MockUsdm.sol
   test/
-    Loopchain.t.sol
+    loopclub.t.sol
   script/
     Deploy.s.sol
 ```

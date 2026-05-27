@@ -4,7 +4,7 @@ The marketing landing for **loopclub.xyz**. A single-screen hero over a
 full-bleed animated step-sequencer backdrop, with a `launch app` CTA that
 opens the product at `app.loopclub.xyz`.
 
-> Rebrand note: the product was *Loopchain*; the new name is **Loop Club**
+> Rebrand note: the product was *loopchain*; the new name is **loopclub**
 > (domain `loopclub.xyz`). This page uses the new name throughout.
 
 ## Files
@@ -32,7 +32,7 @@ Deploy by dropping the folder on any static host (Cloudflare Pages fits the
 existing Cloudflare setup). DNS:
 
 - `loopclub.xyz` → this landing page
-- `app.loopclub.xyz` → the Loopchain/Loop Club frontend app
+- `app.loopclub.xyz` → the loopclub frontend app
 
 The CTA buttons already point at `https://app.loopclub.xyz`.
 
@@ -47,8 +47,8 @@ being *written*. It's the product itself, breathing, behind the hero.
 ## Design system
 
 Visual tokens (colours, the liquid-chrome gradients, type scale, spacing)
-are lifted verbatim from the Loopchain design system
-(`loopchain-design-system/design-system/tokens/*`). They're inlined into the
+are lifted verbatim from the loopclub design system
+(`loopclub-design-system/design-system/tokens/*`). They're inlined into the
 top of `styles.css` so this page stays a self-contained deployable. If a
 token changes upstream, update the `:root` block in `styles.css` to match.
 

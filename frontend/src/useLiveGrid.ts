@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type Address, zeroAddress } from 'viem'
 import { config, CELLS, SYNTH_CELL_START, LOOP_DURATION_SECONDS } from './config'
-import { loopchainAbi } from './abi'
+import { loopclubAbi } from './abi'
 import { publicClient, eventClient } from './viemClient'
 
 // Per-cell rental state — the single source of truth for the live grid.
@@ -36,7 +36,7 @@ export interface LiveGrid {
 }
 
 const RECONCILE_MS = 20_000
-const lc = { address: config.loopchainAddress, abi: loopchainAbi } as const
+const lc = { address: config.loopclubAddress, abi: loopclubAbi } as const
 const SYNTH_IDS = Array.from({ length: CELLS - SYNTH_CELL_START }, (_, i) => SYNTH_CELL_START + i)
 
 // Synth cells carry a 16-bit word on chain; bits 0-6 are a MIDI note (0-127).
@@ -188,8 +188,8 @@ export function useLiveGrid(): LiveGrid {
     const reconcileId = setInterval(() => void snapshot(), RECONCILE_MS)
 
     const unwatchEvents = eventClient.watchContractEvent({
-      address: config.loopchainAddress,
-      abi: loopchainAbi,
+      address: config.loopclubAddress,
+      abi: loopclubAbi,
       eventName: 'CellRented',
       pollingInterval: 1000,
       onLogs: (logs) => {

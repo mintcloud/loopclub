@@ -1,4 +1,4 @@
-# Loopchain UX architecture: Privy + 7702 + 7710
+# loopclub UX architecture: Privy + 7702 + 7710
 
 *2026-05-08 · for Theo*
 
@@ -8,7 +8,7 @@
 
 - **Decisions registered:** A ✓ (16×4 grid), B ✓ (C major pentatonic), C deferred (hot wallet later), D ✓ (wait & watch on multisig).
 - **The MegaETH-blessed UX stack is exactly what you intuited, fully validated by their dev skills.** Privy embedded wallet + EIP-7702 EOA upgrade + ERC-7710 scoped delegations + `eth_sendRawTransactionSync`. This combination is what gives MegaETH apps their feel.
-- **The user signs ONCE per session, then plays silently.** First click signs a 1-hour delegation bounded to (Loopchain contract, toggle/record only, 50 calls, 5 USDm cap). Every cell tap after that is signed client-side by an in-browser session key, no popup, sub-10ms receipt.
+- **The user signs ONCE per session, then plays silently.** First click signs a 1-hour delegation bounded to (loopclub contract, toggle/record only, 50 calls, 5 USDm cap). Every cell tap after that is signed client-side by an in-browser session key, no popup, sub-10ms receipt.
 - **Onboarding is heavier (3 steps), worth it.** (1) Privy email login → embedded wallet appears. (2) Fund the wallet from main MegaETH wallet (USDm + dust ETH for gas). (3) One signature to authorize 7702 upgrade + 7710 session delegation. Then it's silent for an hour.
 - **Tech stack additions:** `@privy-io/react-auth`, `@metamask/smart-accounts-kit` (Stateless7702 implementation), `@megaeth/sdk` for `eth_sendRawTransactionSync`. No contract changes — AA happens above the contract layer.
 - **Open infrastructure question:** which bundler. MegaETH likely runs a public one for the EntryPoint at `0x000000...da032` — I'll confirm. Fallback is to self-host Pimlico Alto on your Hetzner VPS (~30 min).
@@ -34,12 +34,12 @@ I want to make sure we agree on this before getting into the stack. Here's the j
 
 ### First-time user (~90 seconds)
 
-1. **Land on `loopchain.fm`.** Hear the loop already playing. See the live grid with 12 cells lit, painted in different colors per owner. There's a "Sign in to play" button.
+1. **Land on `loopclub.xyz`.** Hear the loop already playing. See the live grid with 12 cells lit, painted in different colors per owner. There's a "Sign in to play" button.
 2. **Click "Sign in".** Privy modal pops up: continue with Google / email / wallet. Pick email → enter code → done in ~10 seconds. They now have an embedded wallet on MegaETH (Privy generates the keys client-side, splits with Shamir's, no seed phrase prompt).
 3. **"Fund your jam wallet" screen.** Shows their Privy wallet address + balance (zero). Two ways to fund:
    - **One-click:** if they have a connected main wallet (e.g., MetaMask with USDm/ETH), button sends 5 USDm + 0.001 ETH directly.
    - **Manual:** copy address, scan QR, send from any wallet. Page polls until balance > minimums.
-4. **"Start playing" button activates.** Click it → single signature popup: *"Loopchain wants to play on your behalf for 1 hour. Up to 50 cell toggles. Up to 5 USDm spend."* They sign. Behind the scenes:
+4. **"Start playing" button activates.** Click it → single signature popup: *"loopclub wants to play on your behalf for 1 hour. Up to 50 cell toggles. Up to 5 USDm spend."* They sign. Behind the scenes:
    - 7702 authorization uploaded → their EOA becomes a smart account
    - ERC-7710 delegation issued to a freshly-generated session key in their browser
    - That session key signs everything for the next hour
@@ -79,7 +79,7 @@ I want to make sure we agree on this before getting into the stack. Here's the j
 │                                         │         │  DelegationManager  │
 │  MM Smart Accounts Kit                  │         │  0xdb9B1e94B5b69... │
 │   ├─ Stateless7702 implementation       │         │                     │
-│   └─ ERC-7710 delegation builder        │         │  Loopchain.sol      │
+│   └─ ERC-7710 delegation builder        │         │  loopclub.sol      │
 │                                         │         │  (our v1 contract)  │
 │  Session signer                         │         │                     │
 │   └─ random key in localStorage         │         │  USDm (ERC-20)      │
@@ -117,7 +117,7 @@ User                    Privy EOA                 Session signer            Chai
  │                          │       { from: privyEOA,                         │
  │                          │         to: sessionKey.address,                 │
  │                          │         caveats: [                              │
- │                          │           allowedTargets: [Loopchain],          │
+ │                          │           allowedTargets: [loopclub],          │
  │                          │           allowedMethods: [toggle, record],     │
  │                          │           timestamp: { before: now+3600 },      │
  │                          │           limitedCalls: { limit: 50 },          │
@@ -139,7 +139,7 @@ User clicks cell
 session signer (in localStorage)
   │
   └─ signs UserOp:
-       call Loopchain.toggle(cellId, durationLoops, pitchIdx)
+       call loopclub.toggle(cellId, durationLoops, pitchIdx)
        executed via DelegationManager.redeemDelegations()
        gas paid in ETH from Privy EOA balance
   │
@@ -158,7 +158,7 @@ The user only sees the popup at step 4 of onboarding. Everything else is silent.
 - **Privy embedded wallet:** removes the seed-phrase / wallet-install friction. User logs in with email or Google. Keys live client-side, split via Shamir's. Privy's UX is what makes this feel like a Web2 app.
 - **EIP-7702 (Stateless7702):** turns the Privy EOA into a smart account *without changing its address*. Means the user's funded address and their AA address are the same — no "send funds to your smart wallet" flow, just "fund your account." Critical for the "fund once" UX.
 - **ERC-7710 delegations:** the signature primitive that lets the session key act on the user's behalf, bounded by caveats. Scoped, revocable, off-chain signed, on-chain redeemed via DelegationManager. This is the actual mechanism for "no popups for an hour."
-- **Session signer in localStorage:** random key generated on first click. Lives in browser, lost on cache clear (which is fine — user just re-delegates). Bounded by the delegation, so even if leaked, attacker can only toggle Loopchain cells for a max 5 USDm.
+- **Session signer in localStorage:** random key generated on first click. Lives in browser, lost on cache clear (which is fine — user just re-delegates). Bounded by the delegation, so even if leaked, attacker can only toggle loopclub cells for a max 5 USDm.
 - **`eth_sendRawTransactionSync` (EIP-7966):** MegaETH's realtime submit method. Returns the receipt synchronously in <10ms. No polling, no "is it confirmed yet?" loops.
 
 ### Why this matches what you saw in MegaETH apps
@@ -182,7 +182,7 @@ Theo: these skills are designed for AI coding assistants like me — they auto-l
 | **`gas-model.md`** | Hardcode gas limits on UserOps; remote estimation only at deploy |
 | **`testing.md`** | mega-evme + Foundry patterns |
 
-I'll install the bundle (`npx skills add 0xBreadguy/megaeth-ai-developer-skills`) into the Loopchain repo so my future task agents pick them up automatically.
+I'll install the bundle (`npx skills add 0xBreadguy/megaeth-ai-developer-skills`) into the loopclub repo so my future task agents pick them up automatically.
 
 ---
 
@@ -211,7 +211,7 @@ The previous 14-step plan from the last memo, with §3-§5 work folded in:
 |---|---|---|---|---|
 | 1 | Foundry repo init, install OZ + Solady + skills bundle | me | 30m | + `npx skills add` |
 | 2 | `MockUsdm.sol` (open-mint ERC-20 with EIP-2612 permit) | me | 30m | testnet only |
-| 3 | `Loopchain.sol` (full v1 spec, ERC-721 + ERC-2981, USDm, holder snapshot, royalty pull-claim) | me | 2h | ~150 lines |
+| 3 | `loopclub.sol` (full v1 spec, ERC-721 + ERC-2981, USDm, holder snapshot, royalty pull-claim) | me | 2h | ~150 lines |
 | 4 | Forge tests | me | 2h | rent expiry, mint distribution, royalty claim, revert paths |
 | 5 | Deploy script | me | 30m | env vars for paymentToken |
 | **6** | **Verify MegaETH bundler endpoint** | me | 30m | check docs.megaeth.com, ask in Discord. **If none, skip to 6a.** |
