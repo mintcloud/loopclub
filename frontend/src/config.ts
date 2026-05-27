@@ -75,10 +75,11 @@ export const TRACK_LABELS = [
 ] as const
 // Synth pitch is a 7-bit MIDI note number (0–127). The contract validates
 // `cellData < PITCH_OPTIONS (=128)`; the frontend exposes a 3-octave subset
-// (C2..C5, MIDI 36..72) — bass-to-lead range that suits the TB-303 voice.
-export const SYNTH_PITCH_MIN = 36 // C2 (low end of the in-app keyboard)
-export const SYNTH_PITCH_MAX = 72 // C5 (high end, inclusive — 37 keys total)
-export const SYNTH_PITCH_DEFAULT = 48 // C3 — opens centered in the 303 sweet spot
+// (C1..C4, MIDI 24..60) — sub-bass to mid range, where the TB-303 voice sits
+// most musically.
+export const SYNTH_PITCH_MIN = 24 // C1 (low end of the in-app keyboard)
+export const SYNTH_PITCH_MAX = 60 // C4 (high end, inclusive — 37 keys total)
+export const SYNTH_PITCH_DEFAULT = 36 // C2 — opens a third of the way in, in the 303 sweet spot
 
 // Names of the 12 pitch classes in semitone order. Indexed by `midi % 12`.
 const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
