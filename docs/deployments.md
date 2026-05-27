@@ -2,7 +2,7 @@
 
 ## MegaETH testnet (chain id 6343)
 
-> **Stale:** this `Loopchain` is the old one-shot flat-mint model — testnet was not redeployed for the Series + bonding-curve rework (deploy went straight to mainnet on 2026-05-15). Redeploy here before any testnet smoke test.
+> **Stale:** this `Loopchain` (pre-rename contract name) is the old one-shot flat-mint model — testnet was not redeployed for the Series + bonding-curve rework (deploy went straight to mainnet on 2026-05-15). Redeploy here before any testnet smoke test.
 
 | Contract | Address | Deploy block | Deploy tx |
 |---|---|---|---|
@@ -23,7 +23,7 @@ Set in your Vite env (`frontend/.env.local`):
 ```
 VITE_CHAIN_ID=6343
 VITE_RPC_URL=https://carrot.megaeth.com/rpc
-VITE_LOOPCHAIN_ADDRESS=0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249
+VITE_LOOPCLUB_ADDRESS=0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249
 VITE_PAYMENT_TOKEN_ADDRESS=0x6B921E8b699D3c780018Ca5E300a28eF3E63dab3
 ```
 
@@ -35,7 +35,7 @@ Anyone can call `MockUsdm.faucet(amount)` to mint themselves test USDm — no al
 
 | Contract | Address | Deploy block | Deploy tx |
 |---|---|---|---|
-| `Loopchain` (MIDI 128 pitch — 16×9 grid + paid kit flip + full MIDI synth) | [`0xE67B314BFF454e99c875bb6666fe5d3F72E39A56`](https://megaeth.blockscout.com/address/0xE67B314BFF454e99c875bb6666fe5d3F72E39A56) | 17,085,145 | [`0x4dcf08a8…2425ef94`](https://megaeth.blockscout.com/tx/0x4dcf08a815d1510c1355910898fb7b2515290456e40520645edce4a22425ef94) |
+| `Loopchain` (MIDI 128 pitch — 16×9 grid + paid kit flip + full MIDI synth; pre-rename contract name — superseded by upcoming `loopclub` redeploy) | [`0xE67B314BFF454e99c875bb6666fe5d3F72E39A56`](https://megaeth.blockscout.com/address/0xE67B314BFF454e99c875bb6666fe5d3F72E39A56) | 17,085,145 | [`0x4dcf08a8…2425ef94`](https://megaeth.blockscout.com/tx/0x4dcf08a815d1510c1355910898fb7b2515290456e40520645edce4a22425ef94) |
 | `USDm` (Ethena/MegaETH official, payment token) | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaeth.blockscout.com/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) | — | — |
 
 **Deployer / Owner / Treasury:** `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` (rotate owner + treasury to a Safe later via `transferOwnership` / `setTreasury`)
@@ -59,7 +59,7 @@ Set in your Vite env (`frontend/.env.local`) **and** in the Vercel project env:
 ```
 VITE_CHAIN_ID=4326
 VITE_RPC_URL=https://mainnet.megaeth.com/rpc
-VITE_LOOPCHAIN_ADDRESS=0xE67B314BFF454e99c875bb6666fe5d3F72E39A56
+VITE_LOOPCLUB_ADDRESS=0xE67B314BFF454e99c875bb6666fe5d3F72E39A56
 VITE_PAYMENT_TOKEN_ADDRESS=0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7
 VITE_EXPLORER_URL=https://megaeth.blockscout.com
 ```

@@ -1,8 +1,8 @@
-# Loopchain
+# loopclub
 
 One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finished pattern is recorded as a **Series** of NFT editions priced on a bonding curve, and every edition pressed pays the loop's co-creators — the cell owners snapshotted when it was recorded.
 
-**Live:** MegaETH mainnet (chain 4326). Loopchain `0x64D8…bf76` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
+**Live:** MegaETH mainnet (chain 4326). loopclub `0x64D8…bf76` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
 
 ---
 
@@ -15,7 +15,7 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
  └────────┬────────┘
           │
  ┌────────▼────────┐
- │ 2. Approve once │   One-time max-uint256 approve of USDm → Loopchain contract.
+ │ 2. Approve once │   One-time max-uint256 approve of USDm → loopclub contract.
  │    (modal)      │   Confirms the long-running spend permission. Modal is intentional.
  └────────┬────────┘
           │
@@ -127,8 +127,8 @@ Rent is therefore an unattributed USDm balance that builds up on the contract ov
 | Bundler / paymaster | configured in Privy dashboard (Kernel MegaETH mainnet endpoints) |
 | Hot wallet funding | ✅ `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` funded |
 | Testnet deploy | chain 6343 — **stale**, runs the old one-shot model (not redeployed) |
-| **Mainnet deploy** | ✅ chain 4326 — Loopchain `0x64D8…bf76` (Series + bonding curve, deployed 2026-05-15) |
-| Frontend (`frontend/`) | ✅ live on Vercel — repoint `VITE_LOOPCHAIN_ADDRESS` to the new address + redeploy |
+| **Mainnet deploy** | ✅ chain 4326 — loopclub `0x64D8…bf76` (Series + bonding curve, deployed 2026-05-15) |
+| Frontend (`frontend/`) | ✅ live on Vercel — repoint `VITE_LOOPCLUB_ADDRESS` to the new address + redeploy |
 | Toggle UX | ✅ silent (no modal), approve modal preserved |
 | Live grid | ✅ event-streamed — `CellRented` over WebSocket (getLogs-poll fallback), cells coloured by owner, block-sync badge |
 | Record / press / royalty-claim UI | ✅ wired |
@@ -148,8 +148,8 @@ Detailed step-by-step status: [`docs/progress.md`](docs/progress.md).
 ## Repository layout
 
 ```
-loopchain/
-├── contracts/        # Foundry project — Loopchain.sol + MockUsdm.sol + tests + deploy
+loopclub/
+├── contracts/        # Foundry project — loopclub.sol + MockUsdm.sol + tests + deploy
 ├── frontend/         # Vite + React app — live on Vercel
 └── docs/
     ├── v1-spec.md            # the on-chain protocol spec
@@ -192,7 +192,7 @@ npm run dev
 
 ## Roadmap (post-v1)
 
-- **Session keys** — install a permission-scoped key on the Kernel account at login (target = Loopchain, selectors = `toggle` / `record` / `press`, valid 24h). All toggles sign locally — sub-50ms latency, no Privy roundtrip. Today's `showWalletUIs: false` already kills the modal, but each toggle still hops through the bundler.
+- **Session keys** — install a permission-scoped key on the Kernel account at login (target = loopclub, selectors = `toggle` / `record` / `press`, valid 24h). All toggles sign locally — sub-50ms latency, no Privy roundtrip. Today's `showWalletUIs: false` already kills the modal, but each toggle still hops through the bundler.
 - **True WebSocket push** — set `VITE_WS_RPC_URL` to a MegaETH WS endpoint so the live grid streams `CellRented` over `eth_subscribe` instead of the 1s `getLogs` poll it falls back to today.
 - **Playable NFT / series page** — a `/loop/:seriesId` route that plays the snapshot (Tone.js + on-chain read). Share links already carry `?loop=<seriesId>`; this would give each loop a real page.
 - **Per-loop share cards** — dynamic OG images for `?loop=N` links (needs a Vercel edge function); static OG card ships today.
@@ -204,10 +204,10 @@ npm run dev
 
 | Contract | Mainnet | Testnet |
 |---|---|---|
-| `Loopchain` | [`0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) — stale, old one-shot model |
+| `loopclub` | [`0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) — stale, old one-shot model |
 | Payment token | USDm (real) `0xFAfD…79E7` | MockUsdm `0x6B92…dab3` (open faucet) |
 
-The previous mainnet one-shot `Loopchain` `0x6B92…dab3` is superseded — see [`docs/deployments.md`](docs/deployments.md).
+The previous mainnet one-shot `loopclub` `0x6B92…dab3` is superseded — see [`docs/deployments.md`](docs/deployments.md).
 
 ## Hot wallet
 

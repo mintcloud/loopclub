@@ -1,4 +1,4 @@
-# Loopchain — checkpoints & rollback
+# loopclub — checkpoints & rollback
 
 *Started 2026-05-15. A running log of "known-good" points and how to get back to them.*
 
@@ -23,7 +23,7 @@ nearest checkpoint below.
 | Thing | Value |
 |---|---|
 | Network | MegaETH mainnet, chain `4326` |
-| Loopchain contract | `0xE9Ba1E07Df5D95234F4e0102d06eAe2f16365f1a` |
+| loopclub contract | `0xE9Ba1E07Df5D95234F4e0102d06eAe2f16365f1a` |
 | USDm (payment token) | `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7` |
 | Privy app id | `cmoxau2fi00xd0clevvngoxzr` |
 | Smart-account stack | Privy + ZeroDev Kernel (counterfactual), `SmartWalletsProvider` |

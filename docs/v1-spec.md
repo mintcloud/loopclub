@@ -1,4 +1,4 @@
-# Loopchain v1 — locked spec + next steps
+# loopclub v1 — locked spec + next steps
 
 *2026-05-08 · for Theo · updated 2026-05-15*
 
@@ -254,9 +254,9 @@ Phasing is small, ordered, each step shippable independently. **You don't need t
 |---|---|---|---|---|
 | 1 | Foundry project init, dependencies (OpenZeppelin ERC-721/2981/IERC20, Permit2 interface) | me | 30m | scaffolded repo |
 | 2 | Write `MockUsdm.sol` (open-mint ERC-20 with permit) | me | 30m | one .sol file + test |
-| 3 | Write `Loopchain.sol` (full v1 spec) | me | 2h | contract + interfaces |
+| 3 | Write `loopclub.sol` (full v1 spec) | me | 2h | contract + interfaces |
 | 4 | Forge tests: rent, expiry, renewal, record-with-empty-revert, mint distribution, royalty claim, treasury rotation | me | 2h | green test suite |
-| 5 | Deploy script for testnet (deploys MockUsdm, then Loopchain pointed at it) | me | 30m | `forge script` ready to run |
+| 5 | Deploy script for testnet (deploys MockUsdm, then loopclub pointed at it) | me | 30m | `forge script` ready to run |
 | 6 | **You faucet 0.005 testnet ETH** to a hot wallet, share the address with me | you | 5m | deploy creds |
 | 7 | I run deploy script with your hot wallet, contracts go live | me | 5m | block explorer links |
 | 8 | Frontend scaffold (Vite + wagmi + viem + RainbowKit) | me | 1h | dev server up |

@@ -1,4 +1,4 @@
-# Loopchain · Kernel vs Stateless + EIP-7702 setup
+# loopclub · Kernel vs Stateless + EIP-7702 setup
 
 *2026-05-08 · for Theo*
 
@@ -92,7 +92,7 @@ You don't need to follow this guide yourself — it's frontend SDK code. I'll wi
 | Funding flow | "Send USDm + ETH to **0xABC** (your smart wallet address)" | "Send USDm + ETH to **0xABC** (your account)" — same thing |
 | If user disconnects Privy and connects with MetaMask later | Sees their EOA empty; smart wallet at a different address | Sees their EOA with a 7702 delegation marker; same address everywhere |
 
-For Loopchain: **EIP-7702 is the cleaner choice.** Address-stability matters because users will want to off-ramp NFTs/USDm to "their wallet," and that mental model breaks if the Privy smart-wallet address ≠ their main wallet.
+For loopclub: **EIP-7702 is the cleaner choice.** Address-stability matters because users will want to off-ramp NFTs/USDm to "their wallet," and that mental model breaks if the Privy smart-wallet address ≠ their main wallet.
 
 The 2-signature first-time cost (vs 1 with counterfactual) is genuinely small and Kernel batches them in some flows.
 
@@ -115,7 +115,7 @@ If 7702 turns out flaky on MegaETH testnet (unlikely, but possible — 7702 is n
 When you have time:
 
 1. Hit the MegaETH testnet faucet with that address — `https://testnet.megaeth.com/#faucet` (or wherever it lives this week; Discord pinned message has the live link).
-2. Once it shows ~0.005 testnet ETH, ping me and I'll deploy. I do **not** need the private key — I'll send you the exact `forge script` command and you run it from your laptop. That keeps the key local. Output is the deployed `MockUsdm` and `Loopchain` addresses, which you paste back to me.
+2. Once it shows ~0.005 testnet ETH, ping me and I'll deploy. I do **not** need the private key — I'll send you the exact `forge script` command and you run it from your laptop. That keeps the key local. Output is the deployed `MockUsdm` and `loopclub` addresses, which you paste back to me.
 
 If you'd rather I run it on the VPS, I'd need the key — share via 1Password or a Telegram message you delete after, and I'll forget it post-deploy. Not preferred but workable.
 

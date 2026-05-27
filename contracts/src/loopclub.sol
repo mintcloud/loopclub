@@ -10,7 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
-/// @title Loopchain v1 (series + bonding-curve editions, sound-expansion build)
+/// @title loopclub v1 (series + bonding-curve editions, sound-expansion build)
 /// @notice One global 16x9 step grid (16 steps x 9 tracks). Cells are rented for N loops; a
 ///         pattern is recorded as a Series whose first NFT edition is minted at `basePrice`.
 ///         Subsequent presses mint additional editions of the same Series at a quadratic price:
@@ -24,7 +24,7 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 ///         All three are snapshotted into a Series at record() time and frozen on the minted NFT.
 ///         Each NFT carries a fully on-chain `tokenURI`: its name states the exact Series (loop)
 ///         and edition number, so editions #1..#N of a loop are explicitly tied to that loop.
-contract Loopchain is ERC721, IERC2981, Ownable {
+contract loopclub is ERC721, IERC2981, Ownable {
     using SafeERC20 for IERC20;
 
     // ───────────────────────── Constants ─────────────────────────
@@ -142,7 +142,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     // ───────────────────────── Constructor ─────────────────────────
 
     constructor(address _paymentToken, address _treasury, address _owner)
-        ERC721("Loopchain", "LOOP")
+        ERC721("loopclub", "LOOP")
         Ownable(_owner)
     {
         paymentToken = IERC20(_paymentToken);
@@ -448,7 +448,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
 
     /// @notice ERC-721 metadata for `tokenId`, generated entirely on-chain as a base64 JSON
     ///         data URI. The token's name states the exact Series (loop) and edition number it
-    ///         belongs to — e.g. "Loopchain Loop #1 - Edition #2" — and the `Loop`/`Edition`
+    ///         belongs to — e.g. "loopclub Loop #1 - Edition #2" — and the `Loop`/`Edition`
     ///         attributes encode the same link in structured form. Every edition of a loop
     ///         renders the identical pattern image, since they share the same `Series.pattern`.
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
@@ -461,9 +461,9 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         string memory edStr  = Strings.toString(edition);
 
         string memory json = string.concat(
-            '{"name":"Loopchain Loop #', sidStr, ' - Edition #', edStr,
+            '{"name":"loopclub Loop #', sidStr, ' - Edition #', edStr,
             '","description":"Edition #', edStr, ' of Loop #', sidStr,
-            ': a 16-step x 9-track drum pattern recorded on Loopchain (MegaETH). Every edition of '
+            ': a 16-step x 9-track drum pattern recorded on loopclub (MegaETH). Every edition of '
             'this loop shares the same beat and the same co-creators; each press costs more along '
             'the bonding curve.","image":"data:image/svg+xml;base64,',
             Base64.encode(bytes(_renderSVG(s.pattern))),

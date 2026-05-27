@@ -18,7 +18,7 @@ import {
   MAX_TOGGLE_LOOPS,
   type CellTier,
 } from './config'
-import { loopchainAbi, usdmAbi } from './abi'
+import { loopclubAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
@@ -84,8 +84,8 @@ export function App() {
   const refreshWallet = useCallback(async () => {
     try {
       const [base, rent] = await Promise.all([
-        publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'basePrice' }),
-        publicClient.readContract({ address: config.loopchainAddress, abi: loopchainAbi, functionName: 'rentPerLoop' }),
+        publicClient.readContract({ address: config.loopclubAddress, abi: loopclubAbi, functionName: 'basePrice' }),
+        publicClient.readContract({ address: config.loopclubAddress, abi: loopclubAbi, functionName: 'rentPerLoop' }),
       ])
       setBasePrice(base as bigint)
       setRentPerLoop(rent as bigint)
@@ -102,7 +102,7 @@ export function App() {
             address: config.paymentTokenAddress,
             abi: usdmAbi,
             functionName: 'allowance',
-            args: [smartAddress, config.loopchainAddress],
+            args: [smartAddress, config.loopclubAddress],
           }),
         ])
         setUsdmBalance(bal as bigint)
@@ -146,15 +146,15 @@ export function App() {
         const seriesId = BigInt(id)
         const [info, nextPrice] = await Promise.all([
           publicClient.readContract({
-            address: config.loopchainAddress,
-            abi: loopchainAbi,
+            address: config.loopclubAddress,
+            abi: loopclubAbi,
             functionName: 'seriesInfo',
             args: [seriesId],
           }),
           publicClient
             .readContract({
-              address: config.loopchainAddress,
-              abi: loopchainAbi,
+              address: config.loopclubAddress,
+              abi: loopclubAbi,
               functionName: 'pressPriceFor',
               args: [seriesId],
             })
@@ -205,7 +205,7 @@ export function App() {
   }
 
   // Build a call list for paid actions, prepending a one-time max USDm approval
-  // when the smart wallet hasn't yet authorised the Loopchain contract to pull
+  // when the smart wallet hasn't yet authorised the loopclub contract to pull
   // payment. Everything lands in a single UserOperation, so the user signs once
   // — and a fresh wallet can press/record/fill without a separate step.
   const withApprovalCalls = (price: bigint, actions: Call[]): Call[] => {
@@ -216,7 +216,7 @@ export function App() {
         data: encodeFunctionData({
           abi: usdmAbi,
           functionName: 'approve',
-          args: [config.loopchainAddress, maxUint256],
+          args: [config.loopclubAddress, maxUint256],
         }),
       },
       ...actions,
@@ -256,9 +256,9 @@ export function App() {
     flash(`Renting cell ${cellId} for ${durationLoops}× ${LOOP_DURATION_SECONDS}s…`)
 
     const calls = withApproval(cost, {
-      to: config.loopchainAddress,
+      to: config.loopclubAddress,
       data: encodeFunctionData({
-        abi: loopchainAbi,
+        abi: loopclubAbi,
         functionName: 'toggle',
         args: [cellId, durationLoops, pitchIdx],
       }),
@@ -315,9 +315,9 @@ export function App() {
     flash(`${verb} ${cellIds.length} cell${cellIds.length === 1 ? '' : 's'}…`)
 
     const actions: Call[] = cellIds.map((id) => ({
-      to: config.loopchainAddress,
+      to: config.loopclubAddress,
       data: encodeFunctionData({
-        abi: loopchainAbi,
+        abi: loopclubAbi,
         functionName: 'toggle',
         args: [id, duration, pitchOf(id)],
       }),
@@ -369,8 +369,8 @@ export function App() {
     try {
       setBusy('Pressing copy #1…')
       const calls = withApproval(basePrice, {
-        to: config.loopchainAddress,
-        data: encodeFunctionData({ abi: loopchainAbi, functionName: 'record', args: [] }),
+        to: config.loopclubAddress,
+        data: encodeFunctionData({ abi: loopclubAbi, functionName: 'record', args: [] }),
       })
       const txHash = await smartWalletClient.sendTransaction(
         { calls },
@@ -381,9 +381,9 @@ export function App() {
       try {
         const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
         for (const log of receipt.logs) {
-          if (log.address.toLowerCase() !== config.loopchainAddress.toLowerCase()) continue
+          if (log.address.toLowerCase() !== config.loopclubAddress.toLowerCase()) continue
           try {
-            const decoded = decodeEventLog({ abi: loopchainAbi, data: log.data, topics: log.topics })
+            const decoded = decodeEventLog({ abi: loopclubAbi, data: log.data, topics: log.topics })
             if (decoded.eventName === 'SeriesRecorded') {
               newSeriesId = (decoded.args as { seriesId: bigint }).seriesId
               break
@@ -412,15 +412,15 @@ export function App() {
     try {
       const [info, nextPrice] = await Promise.all([
         publicClient.readContract({
-          address: config.loopchainAddress,
-          abi: loopchainAbi,
+          address: config.loopclubAddress,
+          abi: loopclubAbi,
           functionName: 'seriesInfo',
           args: [seriesId],
         }),
         publicClient
           .readContract({
-            address: config.loopchainAddress,
-            abi: loopchainAbi,
+            address: config.loopclubAddress,
+            abi: loopclubAbi,
             functionName: 'pressPriceFor',
             args: [seriesId],
           })
@@ -470,9 +470,9 @@ export function App() {
       setPressingSeriesId(record.seriesId)
       setBusy(`Pressing copy #${record.nextEdition}…`)
       const calls = withApproval(record.nextPressPrice, {
-        to: config.loopchainAddress,
+        to: config.loopclubAddress,
         data: encodeFunctionData({
-          abi: loopchainAbi,
+          abi: loopclubAbi,
           functionName: 'press',
           args: [record.seriesId],
         }),
@@ -502,9 +502,9 @@ export function App() {
       setBusy(`Claiming royalties for loop #${record.seriesId}…`)
       await smartWalletClient.sendTransaction(
         {
-          to: config.loopchainAddress,
+          to: config.loopclubAddress,
           data: encodeFunctionData({
-            abi: loopchainAbi,
+            abi: loopclubAbi,
             functionName: 'claimRoyalty',
             args: [record.seriesId],
           }),

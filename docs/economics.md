@@ -1,4 +1,4 @@
-# Loopchain economics v1
+# loopclub economics v1
 
 *2026-05-08 · for Theo · updated 2026-05-15*
 
@@ -182,7 +182,7 @@ Ship #1 and #5 in v1. #2 and #3 are post-launch growth levers.
 ## 6 · Updated v1 contract sketch
 
 ```solidity
-contract Loopchain {
+contract loopclub {
     struct Cell {
         address owner;
         uint64  expiresAtLoop;
