@@ -61,18 +61,30 @@
   color: var(--text); padding: 0.4rem 0.55rem; border-radius: var(--r-sm);
   font-family: var(--font-mono); font-size: 11px;
 }
-/* Chunkier chrome Copy button inside a share-url row — same chrome
-   recipe as the Play/Stop deck-btn (so the text sits on the lighter
-   silver above the dark band), just sized to carry the popup. */
+/* Chunkier chrome Copy button inside a share-url row — the dramatic
+   6-stop gradient lands as a real drum-machine pad. The dark band sits
+   at ~82% (below the 13px label) so #0a0a12 ink stays on lighter
+   silver and reads clearly. */
 .share-url .btn-chrome {
   padding: 0.55rem 1.05rem;
   font-size: 13px;
   letter-spacing: 0.03em;
+  border-radius: var(--r-md);
   color: #0a0a12;
+  background: linear-gradient(180deg,
+    #ffffff 0%, #eef1f6 12%, #c0c6d2 45%, #b0b6c2 72%, #2a2f3a 82%, #5a6170 92%, #c8cdd8 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.6),
+    inset 0 1px 0 rgba(255,255,255,.7),
     inset 0 -1px 0 rgba(0,0,0,.45),
-    0 3px 7px rgba(0,0,0,.6);
+    0 3px 7px rgba(0,0,0,.65);
+}
+.share-url .btn-chrome:hover  { filter: brightness(1.06); }
+.share-url .btn-chrome:active {
+  background: var(--chrome-fill-pressed);
+  color: #f0f3f8;
+  box-shadow:
+    inset 0 1px 3px rgba(0,0,0,.55),
+    inset 0 -1px 0 rgba(255,255,255,.2);
 }
 
 /* ── Share-card modal — used from the Library to share an individual loop.
