@@ -78,7 +78,6 @@ export function App() {
 
   const playbackRef = useRef<LoopRecord | null>(null)
   playbackRef.current = playback
-  const fundPromptedRef = useRef(false)
 
   // Wallet + contract-pricing state. The grid itself is event-streamed, so this
   // poll only covers balance / allowance / prices.
@@ -135,19 +134,6 @@ export function App() {
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
   }, [])
-
-  // Once the smart wallet resolves after connect, surface the deposit address so
-  // the user can copy it and fund the account fast. Shown once per connect.
-  useEffect(() => {
-    if (!authenticated) {
-      fundPromptedRef.current = false
-      return
-    }
-    if (smartAddress && !fundPromptedRef.current) {
-      fundPromptedRef.current = true
-      setShowFund(true)
-    }
-  }, [authenticated, smartAddress])
 
   // On first load, if URL has ?loop=<seriesId>, auto-load + enter playback for that series.
   useEffect(() => {
@@ -953,7 +939,7 @@ function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => vo
 }
 
 // Wallet modal — fund the smart wallet and (per the new account-group) sign out.
-// Pops on first connect and re-openable via the header "⊕ My wallet" button.
+// Opened from the header "⊕ My wallet" button.
 function FundModal({
   address,
   usdmBalance,
