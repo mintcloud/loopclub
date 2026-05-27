@@ -34,9 +34,14 @@ let liveSynthData = 0n
 let snapshotPattern: bigint | null = null
 let snapshotSynthData: bigint | null = null
 
-// One octave of an acid bassline — the 8 scale degrees a synth cell indexes,
-// pitched low (C2–C3) where a 303 line lives.
-const SYNTH_NOTES = ['C2', 'D2', 'E2', 'F2', 'G2', 'A2', 'B2', 'C3'] as const
+// A synth cell carries a 7-bit MIDI note (0–127) in the low bits of its 16-bit
+// word. Tone.js takes note strings like 'C3' / 'F#4', so we translate MIDI →
+// scientific-pitch notation (MIDI 60 = C4 = middle C) at trigger time.
+const PITCH_CLASS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
+function midiToNote(midi: number): string {
+  const n = Math.max(0, Math.min(127, midi))
+  return `${PITCH_CLASS[n % 12]}${Math.floor(n / 12) - 1}`
+}
 
 export function setLiveState(pattern: bigint, synthData: bigint) {
   livePattern = pattern
@@ -63,10 +68,10 @@ function bit(pattern: bigint, idx: number): boolean {
   return ((pattern >> BigInt(idx)) & 1n) === 1n
 }
 
-// Synth word is 16 bits per cell; bits 0-2 are the pitch (scale-degree index).
+// Synth word is 16 bits per cell; bits 0-6 are the MIDI note number (0-127).
 function noteAt(synthData: bigint, synthCellOffset: number): string {
-  const idx = Number((synthData >> BigInt(synthCellOffset * 16)) & 0x7n)
-  return SYNTH_NOTES[idx] ?? SYNTH_NOTES[0]
+  const midi = Number((synthData >> BigInt(synthCellOffset * 16)) & 0x7Fn)
+  return midiToNote(midi)
 }
 
 // Build every voice without starting the sequencer. Idempotent — safe to call
@@ -217,9 +222,10 @@ export function audioRunning(): boolean {
 
 // Play one cell's voice once, immediately. Lets a player hear a sound before
 // paying to rent the cell. Independent of the sequencer: works whether or not
-// the loop is playing. `pitchIdx` only matters for synth-row cells (track 8);
-// drum voices ignore it.
-export async function previewCell(cellId: number, pitchIdx = 0) {
+// the loop is playing. `pitchMidi` only matters for synth-row cells (track 8);
+// drum voices ignore it. Accepts any MIDI note number (0-127); the 7-bit mask
+// matches the on-chain `cellData` layout in case a caller passes a 16-bit word.
+export async function previewCell(cellId: number, pitchMidi = 0) {
   await ensureVoices()
   const track = Math.floor(cellId / STEPS)
   const t = Tone.now()
@@ -250,7 +256,7 @@ export async function previewCell(cellId: number, pitchIdx = 0) {
       ride?.triggerAttackRelease('C7', '4n', t)
       break
     case 8:
-      acid?.triggerAttackRelease(SYNTH_NOTES[pitchIdx & 0x7] ?? SYNTH_NOTES[0], '8n', t)
+      acid?.triggerAttackRelease(midiToNote(pitchMidi & 0x7F), '8n', t)
       break
   }
 }

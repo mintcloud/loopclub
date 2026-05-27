@@ -368,6 +368,44 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border-top: 1px solid var(--accent-dim);
 }
 
-/* The pitch keyboard renders 8 white keys (C–C, one full octave); the
-   design system grids 7 columns, which would wrap the last key. */
-.keyboard-whites { grid-template-columns: repeat(8, 1fr); }
+/* The pitch keyboard renders a 3-octave span (C2-C5 = 22 white keys); the
+   design system grids 7 columns, which would wrap. We drive the column count
+   from --white-count (set inline by Keyboard) so the layout stays in sync with
+   SYNTH_PITCH_MIN/MAX in config.ts. The synth popover is widened so the keys
+   stay tappable (~16px each at min-width); on small viewports we cap max-width
+   to the screen and let the keyboard scroll horizontally. */
+.keyboard-whites { grid-template-columns: repeat(var(--white-count, 7), 1fr); }
+.cell-popover.synth-popover {
+  min-width: 380px;
+  max-width: calc(100vw - 16px);
+}
+.cell-popover.synth-popover .keyboard {
+  --black-w: 11px;
+  overflow-x: auto;
+}
+/* On a 22-key keyboard the 2px gap (×21) eats meaningful width and also
+   throws off the black-key math (which divides the row evenly without
+   accounting for gaps). Drop the gap to a hairline and lean on the white
+   keys' own borders to separate them. */
+.cell-popover.synth-popover .keyboard-whites { gap: 0; }
+.cell-popover.synth-popover .key.white {
+  border-right-color: rgba(0, 0, 0, 0.18);
+}
+.cell-popover.synth-popover .key.white:last-child { border-right-color: var(--border); }
+/* Stack the letter + octave caption on each white key (octave only shows on
+   Cs). The base .key was flex-end / center; switch to a column so the letter
+   sits above the octave number. */
+.cell-popover.synth-popover .key.white {
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 3px;
+  gap: 0;
+}
+.cell-popover.synth-popover .key-label { font-size: 10px; line-height: 1; }
+.cell-popover.synth-popover .key-octave {
+  font-size: 8px;
+  line-height: 1;
+  opacity: 0.55;
+  margin-top: 1px;
+}
+.cell-popover.synth-popover .key.white.active .key-octave { opacity: 0.9; }

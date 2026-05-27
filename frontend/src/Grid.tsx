@@ -4,7 +4,7 @@ import {
   TRACKS,
   TRACK_LABELS,
   SYNTH_CELL_START,
-  PITCH_LABELS,
+  midiToLabel,
   EXPIRING_SOON_LOOPS,
   type CellTier,
 } from './config'
@@ -299,8 +299,9 @@ function Row({
         let label = ''
         if (on && isSynth) {
           const offset = cellId - SYNTH_CELL_START
-          const pitchIdx = Number((synthData >> BigInt(offset * 16)) & 0x7n) % PITCH_LABELS.length
-          label = PITCH_LABELS[pitchIdx]
+          // bits 0-6 of the cell word are the MIDI note (0-127) — see abi.ts.
+          const midi = Number((synthData >> BigInt(offset * 16)) & 0x7Fn)
+          label = midiToLabel(midi)
         }
 
         const trackName = TRACK_LABELS[track]

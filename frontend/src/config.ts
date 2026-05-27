@@ -73,8 +73,30 @@ export const TRACK_LABELS = [
   'ride',
   'synth',
 ] as const
-// Synth pitch is a 3-bit scale-degree index (0–7) — one diatonic octave.
-export const PITCH_LABELS = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C↑'] as const
+// Synth pitch is a 7-bit MIDI note number (0–127). The contract validates
+// `cellData < PITCH_OPTIONS (=128)`; the frontend exposes a 3-octave subset
+// (C2..C5, MIDI 36..72) — bass-to-lead range that suits the TB-303 voice.
+export const SYNTH_PITCH_MIN = 36 // C2 (low end of the in-app keyboard)
+export const SYNTH_PITCH_MAX = 72 // C5 (high end, inclusive — 37 keys total)
+export const SYNTH_PITCH_DEFAULT = 48 // C3 — opens centered in the 303 sweet spot
+
+// Names of the 12 pitch classes in semitone order. Indexed by `midi % 12`.
+const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
+
+// Scientific pitch notation: MIDI 60 = C4 (middle C), so the octave number is
+// `floor(midi/12) - 1`. Used both for in-cell labels and key tooltips.
+export function midiToLabel(midi: number): string {
+  const cls = PITCH_CLASS_NAMES[((midi % 12) + 12) % 12]
+  const octave = Math.floor(midi / 12) - 1
+  return `${cls}${octave}`
+}
+
+// True when this MIDI note is a "white" piano key (natural — not a sharp).
+export function isWhiteKey(midi: number): boolean {
+  const cls = midi % 12
+  return cls === 0 || cls === 2 || cls === 4 || cls === 5 || cls === 7 || cls === 9 || cls === 11
+}
+
 export const LOOP_DURATION_SECONDS = 4
 
 // Toggle defaults — the cell popover opens pre-set to DEFAULT and the M hotkey jumps to MAX.
