@@ -385,12 +385,12 @@ export function Library({
                         href={`${config.explorerUrl}/token/${config.loopchainAddress}/instance/${topEdition.tokenId.toString()}`}
                         target="_blank"
                         rel="noreferrer"
-                        title={`View your edition #${topEdition.edition} NFT on the explorer`}
+                        title={`View your edition #${topEdition.edition} NFT on Blockscout`}
                       >
-                        ✦ your NFT
+                        ↗ See edition NFT
                       </a>
                     )}
-                    <ShareButton seriesId={r.seriesId} />
+                    <ShareButton record={r} editionsMinted={editionsMinted} />
                     <a
                       href={`${config.explorerUrl}/address/${config.loopchainAddress}`}
                       target="_blank"
@@ -423,23 +423,78 @@ function shareLink(seriesId: bigint): string {
   return `${window.location.origin}${window.location.pathname}?loop=${seriesId.toString()}`
 }
 
-function ShareButton({ seriesId }: { seriesId: bigint }) {
+function ShareButton({ record, editionsMinted }: { record: LoopRecord; editionsMinted: number }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button onClick={() => setOpen(true)} title="share this loop">
+        ↗ share
+      </button>
+      {open && (
+        <SharePopover
+          record={record}
+          editionsMinted={editionsMinted}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  )
+}
+
+function SharePopover({
+  record,
+  editionsMinted,
+  onClose,
+}: {
+  record: LoopRecord
+  editionsMinted: number
+  onClose: () => void
+}) {
+  const url = shareLink(record.seriesId)
+  const tweet = `loop #${record.seriesId.toString()} on loopclub — ${record.holders.length} contributor${record.holders.length === 1 ? '' : 's'}, ${editionsMinted} edition${editionsMinted === 1 ? '' : 's'} pressed. press your own:`
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(url)}`
   const [copied, setCopied] = useState(false)
-  const onClick = async () => {
+  const copy = async () => {
     try {
-      await navigator.clipboard.writeText(shareLink(seriesId))
+      await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      // clipboard may be blocked (insecure context, denied permission) —
-      // fall back to a prompt so the link is still grabable.
-      window.prompt('copy share link', shareLink(seriesId))
+      window.prompt('copy share link', url)
     }
   }
   return (
-    <button onClick={onClick} title="copy share link">
-      {copied ? '✓ copied' : '↗ share'}
-    </button>
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal share-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="share-head">
+          <h3>
+            <span className="token-id">loop #{record.seriesId.toString()}</span>
+          </h3>
+          <button className="popover-x" onClick={onClose} aria-label="close">
+            ✕
+          </button>
+        </div>
+        <p className="muted">
+          {record.holders.length} contributor{record.holders.length === 1 ? '' : 's'} ·{' '}
+          {editionsMinted} edition{editionsMinted === 1 ? '' : 's'} pressed
+        </p>
+        <div className="share-preview">
+          <MiniGrid pattern={record.pattern} synthData={record.synthData} />
+        </div>
+        <div className="share-url">
+          <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+          <button onClick={copy}>{copied ? '✓ copied' : 'Copy'}</button>
+        </div>
+        <div className="row share-actions">
+          <a href={twitterUrl} target="_blank" rel="noreferrer" className="share-action">
+            𝕏 Share on X
+          </a>
+          <a href={url} target="_blank" rel="noreferrer" className="share-action">
+            ↗ Open in new tab
+          </a>
+        </div>
+      </div>
+    </div>
   )
 }
 
