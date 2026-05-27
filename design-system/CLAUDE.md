@@ -71,7 +71,7 @@ re-implemented in design-system, better):
 - `.grid { … }`, `.grid .label`, `.track-dot`, `.cell { … }`, `.cell.on*`, `.cell.playing`, `.cell.beat-1`, `.cell.pending`, `.cell.just-landed`, `@keyframes pendingPulse`, `@keyframes landPop`, `.step-num*` (lines ~85–225)
 - `.toast` (lines ~145ish)
 - `.modal-bg`, `.modal`, `.modal h3`, `.modal input/select`, `.modal .row`, `.share-url*`
-- `.pitch-picker*`, `.keyboard*`, `.key*`, `.keyboard-blacks`, `.keyboard-caption`, `.keyboard-whites`
+- `.pitch-picker*`, `.keyboard*`, `.key*`, `.keyboard-blacks`, `.keyboard-whites`
 - `.controls`
 - `.playback-banner*`, `.pb-status`, `.pb-cta*`, `.pb-headline`, `.pb-sub`, `.pb-press`
 - `.library*`, `.tab*`, `.library-grid`, `.loop-card*`, `.token-id`, `.loop-card-head`, `.loop-card-foot`, `.card-actions*`, `.role-badges`, `.role-badge*`

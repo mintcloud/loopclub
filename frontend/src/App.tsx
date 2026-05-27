@@ -737,12 +737,16 @@ export function App() {
           onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
           previewCells={playback ? null : previewCells}
         />
-        <SyncBadge blockNumber={grid.blockNumber} />
       </div>
 
-      {!playback && (
-        <ContributorStrip cells={grid.cells} currentLoop={grid.currentLoop} myAddress={smartAddress} />
-      )}
+      <div className="grid-status">
+        {!playback ? (
+          <ContributorStrip cells={grid.cells} currentLoop={grid.currentLoop} myAddress={smartAddress} />
+        ) : (
+          <span />
+        )}
+        <SyncBadge blockNumber={grid.blockNumber} />
+      </div>
 
       {!playback && authenticated && smartAddress && (
         <RenewStrip
@@ -762,12 +766,6 @@ export function App() {
           {countCells(displayPattern)} cells {playback ? 'in snapshot' : 'live'}
           {!playback && ` · ${usingWebSocket ? 'streaming ⚡' : 'live updates'}`}
         </span>
-        <span className="muted">
-          chain {config.chainId} ·{' '}
-          <a href={`${config.explorerUrl}/address/${config.loopchainAddress}`} target="_blank" rel="noreferrer">
-            contract
-          </a>
-        </span>
       </div>
 
       <Library
@@ -776,8 +774,6 @@ export function App() {
         playingStep={playingStep}
         onPlay={enterPlayback}
         onStop={exitPlayback}
-        onPress={onPressSeries}
-        pressingSeriesId={pressingSeriesId}
         onClaimRoyalty={onClaimRoyalty}
         claimingSeriesId={claimingSeriesId}
         refreshTick={libraryRefresh}
@@ -851,14 +847,14 @@ function SyncBadge({ blockNumber }: { blockNumber: number }) {
     return (
       <span className="sync-badge connecting" title="Connecting to MegaETH…">
         <span className="sync-dot" />
-        syncing…
+        MegaETH syncing…
       </span>
     )
   }
   return (
     <span className="sync-badge" title="The live grid is synced to this MegaETH block">
       <span className="sync-dot" key={blockNumber} />
-      block #{blockNumber.toLocaleString('en-US')}
+      MegaETH block #{blockNumber.toLocaleString('en-US')}
     </span>
   )
 }
