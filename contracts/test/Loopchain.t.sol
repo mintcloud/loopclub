@@ -91,10 +91,26 @@ contract LoopchainTest is Test {
     }
 
     function test_toggle_revertsOnBadPitch() public {
-        // PITCH_OPTIONS is 8 → cellData 0..7 valid; 8 reverts (and forces reserved bits 3-15 to zero).
+        // PITCH_OPTIONS is 128 (full MIDI range) → cellData 0..127 valid; 128 reverts
+        // (and keeps reserved bits 7-15 zero for future velocity/glide fields).
         vm.prank(alice);
         vm.expectRevert();
-        lc.toggle(SYNTH0, 2, 8);
+        lc.toggle(SYNTH0, 2, 128);
+    }
+
+    function test_toggle_synthCell_acceptsFullMidiRange() public {
+        // C3 (MIDI 48) — the default center octave on the frontend.
+        vm.prank(alice); lc.toggle(SYNTH0, 2, 48);
+        assertEq(lc.cellSynthData(SYNTH0), 48);
+
+        // Top of MIDI: G9 = 127.
+        vm.prank(bob); lc.toggle(SYNTH15, 2, 127);
+        assertEq(lc.cellSynthData(SYNTH15), 127);
+
+        // Both should pack into liveSynthData() at their cell-index offsets.
+        uint256 sd = lc.liveSynthData();
+        assertEq(sd & 0x7F, 48);                    // idx 0  → bits [0..6]
+        assertEq((sd >> (15 * 16)) & 0x7F, 127);    // idx 15 → bits [240..246]
     }
 
     function test_toggle_revertsOnBadCell() public {
