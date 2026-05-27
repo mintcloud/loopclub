@@ -1,12 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
-  PITCH_LABELS,
   SYNTH_CELL_START,
+  SYNTH_PITCH_MIN,
+  SYNTH_PITCH_MAX,
+  SYNTH_PITCH_DEFAULT,
   LOOP_DURATION_SECONDS,
   TRACK_LABELS,
   STEPS,
   DEFAULT_TOGGLE_LOOPS,
   MAX_TOGGLE_LOOPS,
+  isWhiteKey,
+  midiToLabel,
   type CellTier,
 } from './config'
 import { ownerColor, shortAddr } from './owner'
@@ -46,7 +50,7 @@ export function CellPopover({
   onTier,
   occupied,
 }: Props) {
-  const [pitch, setPitch] = useState(0)
+  const [pitch, setPitch] = useState(SYNTH_PITCH_DEFAULT)
   const [pos, setPos] = useState<PopoverPos | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
@@ -130,7 +134,7 @@ export function CellPopover({
     <div className="popover-layer">
       <div
         ref={popoverRef}
-        className={`cell-popover ${pos?.placement ?? 'above'}`}
+        className={`cell-popover ${pos?.placement ?? 'above'}${isSynth ? ' synth-popover' : ''}`}
         style={{
           top: pos?.top ?? 0,
           left: pos?.left ?? 0,
@@ -235,27 +239,26 @@ function TierRow({ label, sub, gesture, hotkey, kind, disabled, disabledReason, 
   )
 }
 
-// One diatonic octave — eight selectable scale degrees (C D E F G A B C) over a
-// full white-key keyboard. Black keys are decorative.
-const WHITE_KEYS: Array<{ note: string; pitchIdx: number }> = [
-  { note: 'C', pitchIdx: 0 },
-  { note: 'D', pitchIdx: 1 },
-  { note: 'E', pitchIdx: 2 },
-  { note: 'F', pitchIdx: 3 },
-  { note: 'G', pitchIdx: 4 },
-  { note: 'A', pitchIdx: 5 },
-  { note: 'B', pitchIdx: 6 },
-  { note: 'C', pitchIdx: 7 },
-]
-
-// Black-key positions as fractional offsets across the 8-white-key row (0..8).
-const BLACK_KEYS: Array<{ note: string; offset: number }> = [
-  { note: 'C#', offset: 1 },
-  { note: 'D#', offset: 2 },
-  { note: 'F#', offset: 4 },
-  { note: 'G#', offset: 5 },
-  { note: 'A#', offset: 6 },
-]
+// Build the 3-octave keyboard layout from the MIDI range in config. White keys
+// hold the click target; black keys are positioned absolutely above the white
+// row at the boundary between their two neighbours (standard piano layout).
+function buildKeyboardLayout() {
+  const whites: Array<{ midi: number; whiteIdx: number }> = []
+  for (let midi = SYNTH_PITCH_MIN; midi <= SYNTH_PITCH_MAX; midi++) {
+    if (isWhiteKey(midi)) whites.push({ midi, whiteIdx: whites.length })
+  }
+  // For each black key in range, anchor it to the *next* white key's left edge —
+  // that's the boundary it physically sits over. Skip blacks at the extreme end
+  // where no following white key exists in our range.
+  const blacks: Array<{ midi: number; anchorWhite: number }> = []
+  for (let midi = SYNTH_PITCH_MIN; midi <= SYNTH_PITCH_MAX; midi++) {
+    if (isWhiteKey(midi)) continue
+    const nextWhite = whites.find((w) => w.midi === midi + 1)
+    if (!nextWhite) continue
+    blacks.push({ midi, anchorWhite: nextWhite.whiteIdx })
+  }
+  return { whites, blacks }
+}
 
 function Keyboard({
   selected,
@@ -270,42 +273,71 @@ function Keyboard({
   onTier: (tier: CellTier, pitchIdx: number, phase: ClickPhase) => void
 }) {
   // Each piano key carries the same 1/2/3-click gesture as a grid cell, keyed
-  // by its pitch index so rapid clicks on one key resolve to a single tier.
-  const { click: dispatchKeyClick } = useClickTier((pitchIdx, tier, phase) =>
-    onTier(tier, pitchIdx, phase),
+  // by its pitch (MIDI note) so rapid clicks on one key resolve to a single tier.
+  const { click: dispatchKeyClick } = useClickTier((midi, tier, phase) =>
+    onTier(tier, midi, phase),
   )
 
+  const { whites, blacks } = useMemo(buildKeyboardLayout, [])
+
+  // Scroll the selected key into view on mount — the keyboard now spans 22
+  // white keys and the default (C3) lives a third of the way in, so without
+  // this on a narrow popover the user might not see the active key.
+  const containerRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = containerRef.current?.querySelector('.key.white.active') as HTMLElement | null
+    el?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [])
+
   return (
-    <div className="keyboard">
+    <div
+      className="keyboard"
+      ref={containerRef}
+      style={{ ['--white-count' as string]: whites.length }}
+    >
       <div className="keyboard-whites">
-        {WHITE_KEYS.map((k, i) => {
-          const active = k.pitchIdx === selected
+        {whites.map(({ midi }) => {
+          const active = midi === selected
+          const label = midiToLabel(midi) // e.g. "C3", "F#3"
           const cls = ['key', 'white']
           if (active) cls.push('active')
+          // Letter without octave for the body of the key; the octave number
+          // is rendered separately and only on Cs so the keyboard stays legible
+          // at 16px-per-key without turning into a wall of "C3 D3 E3 F3 …".
+          const isOctaveAnchor = midi % 12 === 0
           return (
             <button
-              key={i}
+              key={midi}
               type="button"
               className={cls.join(' ')}
               onClick={() => {
                 // Highlight the key immediately; the tier (try/toggle/max)
-                // settles ~240ms later once the click count is known.
-                onSelect(k.pitchIdx)
-                dispatchKeyClick(k.pitchIdx)
+                // settles ~420ms later once the click count is known.
+                onSelect(midi)
+                dispatchKeyClick(midi)
               }}
-              title={`${PITCH_LABELS[k.pitchIdx]} — 1 click try · 2 toggle · 3 max`}
+              title={`${label} (MIDI ${midi}) — 1 click try · 2 toggle · 3 max`}
             >
-              <span className="key-label">{k.note}</span>
+              <span className="key-label">{label[0]}</span>
+              {isOctaveAnchor && (
+                <span className="key-octave">{label.slice(1)}</span>
+              )}
             </button>
           )
         })}
       </div>
       <div className="keyboard-blacks">
-        {BLACK_KEYS.map((k) => (
+        {blacks.map(({ midi, anchorWhite }) => (
           <span
-            key={k.note}
+            key={midi}
             className="key black"
-            style={{ left: `calc(${k.offset} * (100% / 8) - (var(--black-w) / 2))` }}
+            // The black key sits over the boundary between the white key at
+            // `anchorWhite - 1` and the one at `anchorWhite`. CSS grid spreads
+            // whites evenly across the row; the boundary lives at
+            // `anchorWhite * (100% / totalWhites)`.
+            style={{
+              left: `calc(${anchorWhite} * (100% / var(--white-count)) - (var(--black-w) / 2))`,
+            }}
             aria-hidden
           />
         ))}

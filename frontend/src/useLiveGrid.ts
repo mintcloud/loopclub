@@ -39,9 +39,9 @@ const RECONCILE_MS = 20_000
 const lc = { address: config.loopchainAddress, abi: loopchainAbi } as const
 const SYNTH_IDS = Array.from({ length: CELLS - SYNTH_CELL_START }, (_, i) => SYNTH_CELL_START + i)
 
-// Synth cells carry a 16-bit word on chain; v1 uses only the low 3 bits (pitch).
+// Synth cells carry a 16-bit word on chain; bits 0-6 are a MIDI note (0-127).
 function pitchOf(synthWord: number): number {
-  return synthWord & 0x7
+  return synthWord & 0x7F
 }
 
 function emptyCells(): CellState[] {
@@ -233,7 +233,7 @@ export function useLiveGrid(): LiveGrid {
         p |= 1n << BigInt(i)
         count++
         if (i >= SYNTH_CELL_START) {
-          sd |= BigInt(c.pitch & 0x7) << BigInt((i - SYNTH_CELL_START) * 16)
+          sd |= BigInt(c.pitch & 0x7F) << BigInt((i - SYNTH_CELL_START) * 16)
         }
       }
     }
