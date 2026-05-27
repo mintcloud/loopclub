@@ -385,20 +385,12 @@ export function Library({
                         href={`${config.explorerUrl}/token/${config.loopchainAddress}/instance/${topEdition.tokenId.toString()}`}
                         target="_blank"
                         rel="noreferrer"
-                        title={`View your edition #${topEdition.edition} NFT on Blockscout`}
+                        title={`View your Edition #${topEdition.edition} NFT on Blockscout`}
                       >
-                        ↗ See edition NFT
+                        ↗ See Edition NFT
                       </a>
                     )}
                     <ShareButton record={r} editionsMinted={editionsMinted} />
-                    <a
-                      href={`${config.explorerUrl}/address/${config.loopchainAddress}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      title="view contract on blockscout"
-                    >
-                      ↗
-                    </a>
                   </div>
                 </div>
               </div>
@@ -483,7 +475,7 @@ function SharePopover({
         </div>
         <div className="share-url">
           <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
-          <button onClick={copy}>{copied ? '✓ copied' : 'Copy'}</button>
+          <button className="btn-chrome" onClick={copy}>{copied ? 'Copied!' : 'Copy'}</button>
         </div>
         <div className="row share-actions">
           <a href={twitterUrl} target="_blank" rel="noreferrer" className="share-action">
