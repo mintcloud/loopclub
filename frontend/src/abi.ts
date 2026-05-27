@@ -2,7 +2,7 @@ export const loopchainAbi = [
   { type: 'function', name: 'currentLoop', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint64' }] },
   // 144-cell live grid → one uint256 (bit i = cell i is currently rented).
   { type: 'function', name: 'livePattern', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
-  // 16 bits per synth cell × 16 synth cells → one uint256. v1 uses bits 0-2 (pitch).
+  // 16 bits per synth cell × 16 synth cells → one uint256. v1 uses bits 0-6 (MIDI note 0-127).
   { type: 'function', name: 'liveSynthData', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   {
     type: 'function',
@@ -19,7 +19,7 @@ export const loopchainAbi = [
     outputs: [{ type: 'uint64' }],
   },
   {
-    // Synth cells only (cellId ≥ 128). 16-bit word; bits 0-2 are the pitch.
+    // Synth cells only (cellId ≥ 128). 16-bit word; bits 0-6 are the MIDI note (0-127).
     type: 'function',
     name: 'cellSynthData',
     stateMutability: 'view',
@@ -39,8 +39,8 @@ export const loopchainAbi = [
     outputs: [{ type: 'uint16' }],
   },
   {
-    // cellData is the 16-bit synth word; for synth cells v1 stores bits 0-2
-    // (pitch, 0-7) and rejects anything else. Ignored for drum cells.
+    // cellData is the 16-bit synth word; for synth cells v1 stores bits 0-6
+    // (MIDI note number, 0-127) and rejects anything else. Ignored for drum cells.
     type: 'function',
     name: 'toggle',
     stateMutability: 'nonpayable',
