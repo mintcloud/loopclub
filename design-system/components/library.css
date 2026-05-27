@@ -18,8 +18,15 @@
 .tab {
   font-size: 12px; padding: 0.35rem 0.7rem;
   background: var(--panel); border: 1px solid var(--border);
+  color: var(--muted);
 }
-.tab.active { background: var(--accent); border-color: var(--accent); color: white; }
+.tab:hover:not(:disabled) { border-color: var(--accent-dim); color: var(--text); }
+.tab.active {
+  background: var(--panel-2);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
 
 .library-grid {
   display: grid;

@@ -162,7 +162,6 @@ export function CellPopover({
 
         {isSynth && !occupied && (
           <div className="pitch-picker">
-            <span className="pitch-label">pitch</span>
             <Keyboard selected={pitch} onSelect={setPitch} onTier={onTier} />
           </div>
         )}
@@ -310,9 +309,6 @@ function Keyboard({
             aria-hidden
           />
         ))}
-      </div>
-      <div className="keyboard-caption muted">
-        {PITCH_LABELS[selected]} selected · 1× try · 2× toggle · 3× max
       </div>
     </div>
   )

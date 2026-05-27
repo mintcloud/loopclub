@@ -174,19 +174,17 @@
   font-size: var(--fs-ui);
 }
 
-/* ───── Grid-anchored sync badge ─────
-   The block-sync heartbeat is pinned to the bottom-right of the grid
-   (not the header) so the chain pulse lives where the music plays.
-   Wrap the <Grid> in .grid-wrap and drop a .sync-badge inside it. The
-   .sync-badge look itself comes from components/strips-badges.css. */
-.grid-wrap {
-  position: relative;
+/* ───── Grid status row ─────
+   The contributor strip + block-sync heartbeat share one line directly
+   below the grid: who's playing on the left, the MegaETH block pulse on
+   the right. The .sync-badge look itself comes from
+   components/strips-badges.css. */
+.grid-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
-.grid-wrap .sync-badge {
-  position: absolute;
-  right: 6px;
-  bottom: -14px;
-  z-index: 3;
-  background: rgba(20, 20, 42, 0.88);
-  backdrop-filter: blur(6px);
-}
+.grid-status > .contrib-strip { flex: 1 1 auto; min-width: 0; }
+.grid-status > .sync-badge { flex: 0 0 auto; }

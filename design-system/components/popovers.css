@@ -94,17 +94,17 @@ kbd {
 .row-tools-euclid button:disabled { opacity: 0.5; cursor: not-allowed; }
 .row-tools .muted { color: var(--muted); font-size: 10px; }
 
-/* Pitch keyboard — used inside the cell popover for synth row cells. */
+/* Pitch keyboard — used inside the cell popover for synth row cells.
+   Keys carry their own letter labels at the bottom; no caption row. */
 .pitch-picker { display: flex; flex-direction: column; gap: 0.4rem; }
-.pitch-label  { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
 .keyboard {
   --black-w: 18px;
-  position: relative; width: 100%; height: 92px;
+  position: relative; width: 100%; height: 76px;
   background: var(--panel-2); border: 1px solid var(--border);
   border-radius: var(--r-md); padding: 6px;
 }
-.keyboard-whites { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; height: 70px; }
-.keyboard-blacks { position: absolute; top: 6px; left: 6px; right: 6px; height: 44px; pointer-events: none; }
+.keyboard-whites { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; height: 64px; }
+.keyboard-blacks { position: absolute; top: 6px; left: 6px; right: 6px; height: 40px; pointer-events: none; }
 .key {
   position: relative; border-radius: 0 0 4px 4px; cursor: pointer;
   display: flex; align-items: flex-end; justify-content: center;
@@ -126,4 +126,3 @@ kbd {
   border: 1px solid #000; border-radius: 0 0 3px 3px;
   box-shadow: 0 2px 4px rgba(0,0,0,.6);
 }
-.keyboard-caption { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: var(--muted); }

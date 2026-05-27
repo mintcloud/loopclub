@@ -28,8 +28,6 @@ interface LibraryProps {
   playingStep: number
   onPlay: (record: LoopRecord) => void
   onStop: () => void
-  onPress: (record: LoopRecord) => void
-  pressingSeriesId: bigint | null
   onClaimRoyalty: (record: LoopRecord) => void
   claimingSeriesId: bigint | null
   refreshTick: number
@@ -53,8 +51,6 @@ export function Library({
   playingStep,
   onPlay,
   onStop,
-  onPress,
-  pressingSeriesId,
   onClaimRoyalty,
   claimingSeriesId,
   refreshTick,
@@ -310,7 +306,6 @@ export function Library({
           {filtered.map((r) => {
             const isPlaying = playingTokenId === r.seriesId
             const editionsMinted = r.nextEdition - 1
-            const isPressing = pressingSeriesId === r.seriesId
             const isClaiming = claimingSeriesId === r.seriesId
             const priceStr = formatPrice(r.nextPressPrice)
             const roy = royalty[r.seriesId.toString()]
@@ -375,17 +370,8 @@ export function Library({
                     ) : (
                       <button onClick={() => onPlay(r)}>▶ play</button>
                     )}
-                    <button
-                      className="btn-chrome"
-                      onClick={() => onPress(r)}
-                      disabled={isPressing}
-                      title={`Press copy #${r.nextEdition} of loop #${r.seriesId.toString()}`}
-                    >
-                      {isPressing ? 'pressing…' : `✦ press #${r.nextEdition} · ${priceStr}`}
-                    </button>
                     {roy && roy.claimable > 0n && (
                       <button
-                        className="btn-chrome"
                         onClick={() => onClaimRoyalty(r)}
                         disabled={isClaiming}
                         title={`Claim your royalty share of loop #${r.seriesId.toString()}`}
@@ -404,9 +390,7 @@ export function Library({
                         ✦ your NFT
                       </a>
                     )}
-                    <button onClick={() => copyShareLink(r.seriesId)} title="copy share link">
-                      ↗ share
-                    </button>
+                    <ShareButton seriesId={r.seriesId} />
                     <a
                       href={`${config.explorerUrl}/address/${config.loopchainAddress}`}
                       target="_blank"
@@ -435,9 +419,28 @@ function formatPrice(wei: bigint): string {
   return trimmed.length === 0 ? intPart : `${intPart}.${trimmed.slice(0, 2)}`
 }
 
-function copyShareLink(seriesId: bigint) {
-  const url = `${window.location.origin}${window.location.pathname}?loop=${seriesId.toString()}`
-  navigator.clipboard?.writeText(url).catch(() => void 0)
+function shareLink(seriesId: bigint): string {
+  return `${window.location.origin}${window.location.pathname}?loop=${seriesId.toString()}`
+}
+
+function ShareButton({ seriesId }: { seriesId: bigint }) {
+  const [copied, setCopied] = useState(false)
+  const onClick = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink(seriesId))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // clipboard may be blocked (insecure context, denied permission) —
+      // fall back to a prompt so the link is still grabable.
+      window.prompt('copy share link', shareLink(seriesId))
+    }
+  }
+  return (
+    <button onClick={onClick} title="copy share link">
+      {copied ? '✓ copied' : '↗ share'}
+    </button>
+  )
 }
 
 /** Count set bits in the 144-bit pattern — the number of filled cells in a loop. */
