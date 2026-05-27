@@ -33,7 +33,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     uint8  public constant TRACKS = 9;
     uint8  public constant CELLS = 144;          // STEPS * TRACKS
     uint8  public constant SYNTH_CELL_START = 128; // track 9 (index 8) → 8 * 16
-    uint8  public constant PITCH_OPTIONS = 8;    // 3-bit scale-degree index
+    uint16 public constant PITCH_OPTIONS = 128;  // full MIDI note range (0..127), 7-bit
     uint64 public constant LOOP_DURATION_SECONDS = 4;
     uint96 public constant ROYALTY_BPS = 500;    // 5%
     uint16 public constant FLIP_COCREATOR_BPS = 5_000; // 50% of a kit-flip fee → co-creators
@@ -67,7 +67,7 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     // Per-cell rental state (live grid).
     mapping(uint8 => address) public cellOwner;
     mapping(uint8 => uint64)  public cellExpiryLoop;
-    mapping(uint8 => uint16)  public cellSynthData; // synth cells (cellId >= 128); bits 0-2 = pitch
+    mapping(uint8 => uint16)  public cellSynthData; // synth cells (cellId >= 128); bits 0-6 = MIDI note
 
     // Series (one per record()) and per-NFT lookup tables.
     struct Series {
@@ -167,7 +167,8 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     }
 
     /// @notice Live synth word — 16 bits per synth cell, 16 synth cells → one uint256.
-    ///         v1 uses only bits 0-2 of each cell (pitch / scale degree); bits 3-15 are reserved.
+    ///         v1 uses only bits 0-6 of each cell (MIDI note number, 0..127); bits 7-15 are
+    ///         reserved for future per-cell fields (velocity, glide, etc.).
     function liveSynthData() public view returns (uint256 synthData) {
         uint64 nowLoop = currentLoop();
         for (uint8 i = 0; i < STEPS; i++) {
@@ -246,8 +247,9 @@ contract Loopchain is ERC721, IERC2981, Ownable {
     // ───────────────────────── Toggle (rent a cell) ─────────────────────────
 
     /// @param cellData For synth cells (cellId >= SYNTH_CELL_START), the 16-bit synth word.
-    ///        v1 validates and stores bits 0-2 only (pitch); bits 3-15 must be zero. Ignored
-    ///        for drum cells, which are binary on/off.
+    ///        v1 stores a 7-bit MIDI note number (0..127) in bits 0-6; bits 7-15 must be zero
+    ///        (reserved for velocity/glide/future per-cell fields). Ignored for drum cells,
+    ///        which are binary on/off.
     function toggle(uint8 cellId, uint16 durationLoops, uint16 cellData) external {
         if (cellId >= CELLS) revert BadCell();
         if (durationLoops == 0 || durationLoops > maxRentDurationLoops) revert BadDuration();
@@ -269,8 +271,9 @@ contract Loopchain is ERC721, IERC2981, Ownable {
         cellExpiryLoop[cellId] = newExpiry;
 
         if (cellId >= SYNTH_CELL_START) {
-            // v1: only the 3 pitch bits may be set — this also keeps reserved bits 3-15 zero
-            // until octave/velocity/glide are lit later (frontend-only, no redeploy).
+            // v1: cellData is the 7-bit MIDI note number (0..127). PITCH_OPTIONS = 128 enforces
+            // both the range AND that reserved bits 7-15 are zero — they're held for velocity /
+            // glide / future per-cell fields (frontend-only, no redeploy needed).
             if (cellData >= PITCH_OPTIONS) revert BadPitch();
             cellSynthData[cellId] = cellData;
         }
