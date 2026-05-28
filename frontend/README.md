@@ -16,7 +16,7 @@ npm run dev                  # → http://localhost:5173
 All in `.env.example`. The defaults are wired to the deployed MegaETH mainnet contracts (chain 4326):
 
 - `VITE_PRIVY_APP_ID` — `cmoxau2fi00xd0clevvngoxzr`
-- `VITE_LOOPCLUB_ADDRESS` — `0xb083b818C07889005BfFBe264449cA85ac2039D6` (sound-expansion 16×9 build)
+- `VITE_LOOPCLUB_ADDRESS` — `0x1030D1a60e248E280294d1b04394f706904E3631` (post-rename `Loopclub` redeploy, MIDI 128 + 16×9 grid + paid kit flip)
 - `VITE_PAYMENT_TOKEN_ADDRESS` — `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7` (USDm)
 - `VITE_RPC_URL`, `VITE_CHAIN_ID`, `VITE_EXPLORER_URL`
 - `VITE_ZERODEV_RPC_URL` — ZeroDev bundler+paymaster RPC, used by fast mode (session keys)

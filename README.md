@@ -2,7 +2,7 @@
 
 One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finished pattern is recorded as a **Series** of NFT editions priced on a bonding curve, and every edition pressed pays the loop's co-creators — the cell owners snapshotted when it was recorded.
 
-**Live:** MegaETH mainnet (chain 4326). loopclub `0x64D8…bf76` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
+**Live:** MegaETH mainnet (chain 4326). `Loopclub` `0x1030…3631` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
 
 ---
 
@@ -127,7 +127,7 @@ Rent is therefore an unattributed USDm balance that builds up on the contract ov
 | Bundler / paymaster | configured in Privy dashboard (Kernel MegaETH mainnet endpoints) |
 | Hot wallet funding | ✅ `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` funded |
 | Testnet deploy | chain 6343 — **stale**, runs the old one-shot model (not redeployed) |
-| **Mainnet deploy** | ✅ chain 4326 — loopclub `0x64D8…bf76` (Series + bonding curve, deployed 2026-05-15) |
+| **Mainnet deploy** | ✅ chain 4326 — `Loopclub` `0x1030…3631` (post-rename redeploy, MIDI 128 + 16×9 grid + paid kit flip, deployed 2026-05-28) |
 | Frontend (`frontend/`) | ✅ live on Vercel — repoint `VITE_LOOPCLUB_ADDRESS` to the new address + redeploy |
 | Toggle UX | ✅ silent (no modal), approve modal preserved |
 | Live grid | ✅ event-streamed — `CellRented` over WebSocket (getLogs-poll fallback), cells coloured by owner, block-sync badge |
@@ -204,10 +204,10 @@ npm run dev
 
 | Contract | Mainnet | Testnet |
 |---|---|---|
-| `Loopclub` | [`0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) — stale, old one-shot model |
+| `Loopclub` | [`0x1030D1a60e248E280294d1b04394f706904E3631`](https://megaeth.blockscout.com/address/0x1030D1a60e248E280294d1b04394f706904E3631) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) — stale, old one-shot model |
 | Payment token | USDm (real) `0xFAfD…79E7` | MockUsdm `0x6B92…dab3` (open faucet) |
 
-The previous mainnet one-shot `Loopclub` `0x6B92…dab3` is superseded — see [`docs/deployments.md`](docs/deployments.md).
+Previous mainnet deploys (one-shot `0x6B92…dab3`, `_popcount`-bug Series build `0x64D8…bf76`, pre-expansion `0xE9Ba…1a`, sound-expansion `0xb083…39D6`, pre-rename MIDI 128 `0xE67B…9A56`) are all superseded — see [`docs/deployments.md`](docs/deployments.md) for the full audit trail.
 
 ## Hot wallet
 
