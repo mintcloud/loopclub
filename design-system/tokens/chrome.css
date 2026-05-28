@@ -51,4 +51,30 @@
   --gold-fill-button: linear-gradient(180deg,
     #fff7d6 0%, #ffe590 14%, #f0bf3c 46%, #6a4a05 75%, #c2891b 90%, #f5d676 100%);
   --gold-border: #4a3000;
+
+  /* ── Focus halo recipe ──
+     What chrome buttons wear when keyboard focus lands on them. The system
+     default is a blue/purple outline that ruins the chrome illusion;
+     instead we wrap the pad in a 2px off-white ring that reads as light
+     catching the bevel of a pressed metal pad.
+
+     Pair the surface shadow with the halo so the bevel reads correctly:
+
+       .my-chrome-thing:focus-visible {
+         outline: none;
+         box-shadow:
+           inset 0 1px 0 rgba(255,255,255,.55),   ← top highlight
+           inset 0 -1px 0 rgba(0,0,0,.4),         ← bottom edge
+           0 2px 5px rgba(0,0,0,.55),             ← drop shadow
+           var(--focus-halo);                     ← the ring itself
+       }
+
+     For .btn-hot use --focus-halo-hot — a warm pink that sits inside the
+     LED-red glow without fighting it.
+
+     Mouse clicks should not show the halo; chrome buttons stay clean.
+     Always pair with `:focus { outline: none }` so the system ring is
+     silenced even on browsers that fall back from :focus-visible. */
+  --focus-halo:     0 0 0 2px rgba(245, 248, 255, 0.92);
+  --focus-halo-hot: 0 0 0 2px rgba(255, 235, 235, 0.92);
 }
