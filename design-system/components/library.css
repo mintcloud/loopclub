@@ -85,6 +85,18 @@
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.85rem;
 }
+@media (max-width: 560px) {
+  /* One full-width card per row on phones — minmax(220px,1fr) wastes a
+     half-column otherwise, and the MiniGrid preview wants the room. */
+  .library-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  .loop-card { padding: 0.6rem; }
+  .library-header { gap: 0.4rem; flex-wrap: wrap; }
+  .tabs { gap: 0.25rem; flex-wrap: wrap; }
+  .tab { font-size: 11px; padding: 0.35rem 0.6rem; }
+}
 .loop-card {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--r-lg); padding: 0.7rem;
