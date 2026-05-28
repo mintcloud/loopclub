@@ -35,7 +35,7 @@ Anyone can call `MockUsdm.faucet(amount)` to mint themselves test USDm — no al
 
 | Contract | Address | Deploy block | Deploy tx |
 |---|---|---|---|
-| `Loopchain` (MIDI 128 pitch — 16×9 grid + paid kit flip + full MIDI synth; pre-rename contract name — superseded by upcoming `loopclub` redeploy) | [`0xE67B314BFF454e99c875bb6666fe5d3F72E39A56`](https://megaeth.blockscout.com/address/0xE67B314BFF454e99c875bb6666fe5d3F72E39A56) | 17,085,145 | [`0x4dcf08a8…2425ef94`](https://megaeth.blockscout.com/tx/0x4dcf08a815d1510c1355910898fb7b2515290456e40520645edce4a22425ef94) |
+| `Loopchain` (MIDI 128 pitch — 16×9 grid + paid kit flip + full MIDI synth; pre-rename contract name — superseded by upcoming `Loopclub` redeploy) | [`0xE67B314BFF454e99c875bb6666fe5d3F72E39A56`](https://megaeth.blockscout.com/address/0xE67B314BFF454e99c875bb6666fe5d3F72E39A56) | 17,085,145 | [`0x4dcf08a8…2425ef94`](https://megaeth.blockscout.com/tx/0x4dcf08a815d1510c1355910898fb7b2515290456e40520645edce4a22425ef94) |
 | `USDm` (Ethena/MegaETH official, payment token) | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaeth.blockscout.com/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) | — | — |
 
 **Deployer / Owner / Treasury:** `0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` (rotate owner + treasury to a Safe later via `transferOwnership` / `setTreasury`)

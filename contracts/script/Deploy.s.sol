@@ -3,9 +3,9 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
 import {MockUsdm} from "../src/MockUsdm.sol";
-import {loopclub} from "../src/loopclub.sol";
+import {Loopclub} from "../src/Loopclub.sol";
 
-/// @notice Deploys MockUsdm (testnet only if PAYMENT_TOKEN env var is unset) and loopclub.
+/// @notice Deploys MockUsdm (testnet only if PAYMENT_TOKEN env var is unset) and Loopclub.
 contract Deploy is Script {
     function run() external {
         uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -26,9 +26,9 @@ contract Deploy is Script {
             console2.log("Deployed MockUsdm at:", payment);
         }
 
-        // 2. Deploy loopclub.
-        loopclub lc = new loopclub(payment, treasury, deployer);
-        console2.log("Deployed loopclub at:", address(lc));
+        // 2. Deploy Loopclub.
+        Loopclub lc = new Loopclub(payment, treasury, deployer);
+        console2.log("Deployed Loopclub at:", address(lc));
         console2.log("Owner / treasury:", deployer, "/", treasury);
 
         vm.stopBroadcast();

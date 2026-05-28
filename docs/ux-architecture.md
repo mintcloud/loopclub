@@ -79,7 +79,7 @@ I want to make sure we agree on this before getting into the stack. Here's the j
 │                                         │         │  DelegationManager  │
 │  MM Smart Accounts Kit                  │         │  0xdb9B1e94B5b69... │
 │   ├─ Stateless7702 implementation       │         │                     │
-│   └─ ERC-7710 delegation builder        │         │  loopclub.sol      │
+│   └─ ERC-7710 delegation builder        │         │  Loopclub.sol      │
 │                                         │         │  (our v1 contract)  │
 │  Session signer                         │         │                     │
 │   └─ random key in localStorage         │         │  USDm (ERC-20)      │
@@ -211,7 +211,7 @@ The previous 14-step plan from the last memo, with §3-§5 work folded in:
 |---|---|---|---|---|
 | 1 | Foundry repo init, install OZ + Solady + skills bundle | me | 30m | + `npx skills add` |
 | 2 | `MockUsdm.sol` (open-mint ERC-20 with EIP-2612 permit) | me | 30m | testnet only |
-| 3 | `loopclub.sol` (full v1 spec, ERC-721 + ERC-2981, USDm, holder snapshot, royalty pull-claim) | me | 2h | ~150 lines |
+| 3 | `Loopclub.sol` (full v1 spec, ERC-721 + ERC-2981, USDm, holder snapshot, royalty pull-claim) | me | 2h | ~150 lines |
 | 4 | Forge tests | me | 2h | rent expiry, mint distribution, royalty claim, revert paths |
 | 5 | Deploy script | me | 30m | env vars for paymentToken |
 | **6** | **Verify MegaETH bundler endpoint** | me | 30m | check docs.megaeth.com, ask in Discord. **If none, skip to 6a.** |

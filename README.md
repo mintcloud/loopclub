@@ -149,7 +149,7 @@ Detailed step-by-step status: [`docs/progress.md`](docs/progress.md).
 
 ```
 loopclub/
-├── contracts/        # Foundry project — loopclub.sol + MockUsdm.sol + tests + deploy
+├── contracts/        # Foundry project — Loopclub.sol + MockUsdm.sol + tests + deploy
 ├── frontend/         # Vite + React app — live on Vercel
 └── docs/
     ├── v1-spec.md            # the on-chain protocol spec
@@ -204,10 +204,10 @@ npm run dev
 
 | Contract | Mainnet | Testnet |
 |---|---|---|
-| `loopclub` | [`0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) — stale, old one-shot model |
+| `Loopclub` | [`0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76`](https://megaeth.blockscout.com/address/0x64D8242efd689c16211e4778e3bc8eA1bb9fbf76) | [`0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249`](https://megaeth-testnet-v2.blockscout.com/address/0xc655B264Fb2Ae5Ccc203Ba2524FAA8F1834ef249) — stale, old one-shot model |
 | Payment token | USDm (real) `0xFAfD…79E7` | MockUsdm `0x6B92…dab3` (open faucet) |
 
-The previous mainnet one-shot `loopclub` `0x6B92…dab3` is superseded — see [`docs/deployments.md`](docs/deployments.md).
+The previous mainnet one-shot `Loopclub` `0x6B92…dab3` is superseded — see [`docs/deployments.md`](docs/deployments.md).
 
 ## Hot wallet
 

@@ -6,10 +6,10 @@ Foundry project for the loopclub v1 contracts. See `loopclub-progress.md` for st
 
 ```
 src/
-  loopclub.sol       # ERC-721 + ERC-2981 + USDm rent/mint/royalty + kit flip
+  Loopclub.sol       # ERC-721 + ERC-2981 + USDm rent/mint/royalty + kit flip
   MockUsdm.sol       # open-mint test ERC-20 with EIP-2612 permit (testnet only)
 test/
-  loopclub.t.sol     # rent, expiry, collision, mint distribution, royalty, kit flip, treasury
+  Loopclub.t.sol     # rent, expiry, collision, mint distribution, royalty, kit flip, treasury
 script/
   Deploy.s.sol       # deploys MockUsdm (if no PAYMENT_TOKEN) then loopclub
 ```
@@ -42,7 +42,7 @@ Without `PAYMENT_TOKEN` set, the script deploys MockUsdm first, then loopclub po
 ## Verify
 
 ```bash
-forge verify-contract <ADDRESS> src/loopclub.sol:loopclub \
+forge verify-contract <ADDRESS> src/Loopclub.sol:Loopclub \
   --chain $CHAIN_ID \
   --etherscan-api-key $MEGAETH_EXPLORER_KEY
 ```
