@@ -7,13 +7,28 @@
    Wordmark — img treatment for the chrome script PNG.
    ============================================================ */
 
-/* ── Header wordmark — img element loading the chrome PNG. */
+/* ── Header wordmark — img element loading the chrome PNG.
+   Wrapped in an <a> so clicking the logo navigates back to the app root
+   (clears any ?loop= playback) — the standard "logo as home link" pattern. */
+.wordmark-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  border-radius: var(--r-sm);
+}
+.wordmark-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 .wordmark {
   display: block;
   height: 44px;
   width: auto;
   filter: drop-shadow(0 1px 6px rgba(0,0,0,.4));
+  transition: filter 0.12s ease, transform 0.08s ease;
 }
+.wordmark-link:hover .wordmark { filter: drop-shadow(0 1px 9px rgba(124, 92, 255, .45)); }
+.wordmark-link:active .wordmark { transform: translateY(1px); }
 
 /* ── Playback banner. */
 .playback-banner {

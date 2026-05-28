@@ -55,7 +55,10 @@ export function App() {
   const [openRow, setOpenRow] = useState<{ track: number; rect: DOMRect } | null>(null)
   const [showFund, setShowFund] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
-  const [audioOn, setAudioOn] = useState(false)
+  // Auto-on: the app opens with audio engaged so the playhead and cells
+  // start moving the instant the AudioContext can resume (which happens on
+  // the user's first interaction — see the gesture useEffect below).
+  const [audioOn, setAudioOn] = useState(true)
   // Cells a tools popover (row fill / renew) is previewing — drawn on the grid
   // with a "will-be-activated" highlight so the click target is visible.
   const [previewCells, setPreviewCells] = useState<number[] | null>(null)
@@ -133,6 +136,38 @@ export function App() {
 
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
+  }, [])
+
+  // Keep the audio engine in sync with the audioOn UI flag. Lets the rest
+  // of the app drive playback by flipping audioOn (autoplay on mount,
+  // Stop/Play deck button, enterPlayback) without each path knowing how
+  // to talk to the Tone.js engine.
+  useEffect(() => {
+    if (audioOn) void startAudio()
+    else stopAudio()
+  }, [audioOn])
+
+  // Browsers gate the AudioContext on a user gesture, so the queued
+  // startAudio() above stays suspended until the user interacts. Catch the
+  // first pointer / key / touch event and call startAudio() again from
+  // inside that handler — it's the gesture itself that resumes the context
+  // and engages the sequencer that was already armed.
+  useEffect(() => {
+    const onFirstGesture = () => {
+      if (audioOn && !audioRunning()) void startAudio()
+    }
+    document.addEventListener('pointerdown', onFirstGesture, { once: true })
+    document.addEventListener('keydown', onFirstGesture, { once: true })
+    document.addEventListener('touchstart', onFirstGesture, { once: true, passive: true })
+    return () => {
+      document.removeEventListener('pointerdown', onFirstGesture)
+      document.removeEventListener('keydown', onFirstGesture)
+      document.removeEventListener('touchstart', onFirstGesture)
+    }
+    // Armed once on mount — the handler captures the initial audioOn=true.
+    // If the user toggles Stop before their first gesture lands, the
+    // audioOn sync effect above stops the engine again on the next render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // On first load, if URL has ?loop=<seriesId>, auto-load + enter playback for that series.
@@ -525,9 +560,7 @@ export function App() {
   const enterPlayback = (record: LoopRecord) => {
     setPlayback(record)
     setSnapshot(record.pattern, record.synthData)
-    if (!audioRunning()) {
-      void startAudio().then(() => setAudioOn(true))
-    }
+    setAudioOn(true)
   }
 
   const exitPlayback = () => {
@@ -535,14 +568,10 @@ export function App() {
     setSnapshot(null, null)
   }
 
-  const onAudioToggle = async () => {
-    if (audioRunning()) {
-      stopAudio()
-      setAudioOn(false)
-    } else {
-      await startAudio()
-      setAudioOn(true)
-    }
+  const onAudioToggle = () => {
+    // The audioOn-sync useEffect drives the actual engine; this just
+    // flips the visible flag.
+    setAudioOn((on) => !on)
   }
 
   // Resolve a cell-tier intent. Single source of truth for try / toggle / max —
@@ -618,7 +647,9 @@ export function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <img className="wordmark" src={logoUrl} alt="loop club" />
+          <a className="wordmark-link" href="/" aria-label="loopclub home">
+            <img className="wordmark" src={logoUrl} alt="loop club" />
+          </a>
         </div>
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">

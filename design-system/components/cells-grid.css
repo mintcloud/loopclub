@@ -149,7 +149,9 @@
 }
 .grid .label.track-tools:hover::after { opacity: 1; color: var(--accent); }
 
-/* MiniGrid — 16×N thumbnail used inside loop cards. */
+/* MiniGrid — 16×N thumbnail used inside loop cards.
+   Mirrors the full nine-track palette so a recorded loop's preview shows
+   every lit track, not just the four originally styled here. */
 .mini-grid { display: flex; flex-direction: column; gap: 2px; }
 .mini-row  { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
 .mini-cell {
@@ -157,9 +159,14 @@
   border-radius: 2px; border: 1px solid transparent;
   min-height: 8px;
 }
-.mini-cell.beat-1     { border-left: 1px solid var(--accent-dim); }
-.mini-cell.on.kick    { background: var(--kick); }
-.mini-cell.on.snare   { background: var(--snare); }
-.mini-cell.on.hat     { background: var(--hat); }
-.mini-cell.on.synth   { background: var(--synth); }
-.mini-cell.playing    { outline: 1px solid #fff; outline-offset: -1px; }
+.mini-cell.beat-1      { border-left: 1px solid var(--accent-dim); }
+.mini-cell.on.kick     { background: var(--kick); }
+.mini-cell.on.snare    { background: var(--snare); }
+.mini-cell.on.clap     { background: var(--clap); }
+.mini-cell.on.hat      { background: var(--hat); }
+.mini-cell.on.open-hat { background: var(--open-hat); }
+.mini-cell.on.cowbell  { background: var(--cowbell); }
+.mini-cell.on.crash    { background: var(--crash); }
+.mini-cell.on.ride     { background: var(--ride); }
+.mini-cell.on.synth    { background: var(--synth); }
+.mini-cell.playing     { outline: 1px solid #fff; outline-offset: -1px; }
