@@ -13,6 +13,7 @@ import {
   config,
   megaethMainnet,
   LOOP_DURATION_SECONDS,
+  STEPS,
   SYNTH_CELL_START,
   SYNTH_PITCH_DEFAULT,
   DEFAULT_TOGGLE_LOOPS,
@@ -148,6 +149,25 @@ export function App() {
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
   }, [])
+
+  // Visual-only playhead ticker. Browsers won't let us resume the
+  // AudioContext until the first user gesture, but we can still march the
+  // playhead across the grid so the page feels alive on cold load. Runs
+  // while audio is "on" but the user hasn't interacted yet; once they do,
+  // startAudio() takes over and overrides setPlayingStep via onStep().
+  useEffect(() => {
+    if (hasGestured || !audioOn) return
+    const stepMs = (LOOP_DURATION_SECONDS * 1000) / STEPS
+    const start = performance.now()
+    let raf = 0
+    const tick = () => {
+      const elapsed = performance.now() - start
+      setPlayingStep(Math.floor(elapsed / stepMs) % STEPS)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [hasGestured, audioOn])
 
   // Keep the audio engine in sync with the audioOn UI flag. Lets the rest
   // of the app drive playback by flipping audioOn (Stop/Play deck button,
