@@ -49,6 +49,19 @@
     inset 0 -1px 0 rgba(255,255,255,.3);
   filter: brightness(0.98);
 }
+/* Mouse-click focus has no ring — chrome buttons stay clean. Keyboard
+   navigation gets a polished-edge highlight (a bright off-white halo)
+   that reads like light catching the bevel of a pressed metal pad —
+   never the system-default blue/purple outline. */
+.btn-chrome:focus { outline: none; }
+.btn-chrome:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 2px 5px rgba(0,0,0,.55),
+    0 0 0 2px rgba(245, 248, 255, 0.92);
+}
 .btn-chrome:disabled {
   background: var(--panel-2);
   border-color: var(--border);
@@ -72,6 +85,11 @@
   white-space: nowrap;
 }
 .btn-hot:hover { filter: brightness(1.08); }
+.btn-hot:focus { outline: none; }
+.btn-hot:focus-visible {
+  outline: none;
+  box-shadow: var(--hot-glow), 0 0 0 2px rgba(255, 235, 235, 0.92);
+}
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
