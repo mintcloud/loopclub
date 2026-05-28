@@ -44,4 +44,11 @@
   --hot-fill:   linear-gradient(180deg, #ff8a78 0%, #ff5436 45%, #b81f3a 80%, #ff7a8c 100%);
   --hot-border: #7a0e22;
   --hot-glow:   0 0 18px rgba(255,45,31,.55), inset 0 1px 0 rgba(255,255,255,.4);
+
+  /* Gold chrome — yellow-warmed sibling of --chrome-fill-button. Reserved
+     for marking the user-owned token ("See Edition NFT") so it reads as a
+     different metal next to the silver card-action chrome chips. */
+  --gold-fill-button: linear-gradient(180deg,
+    #fff7d6 0%, #ffe590 14%, #f0bf3c 46%, #6a4a05 75%, #c2891b 90%, #f5d676 100%);
+  --gold-border: #4a3000;
 }
