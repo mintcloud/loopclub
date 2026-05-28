@@ -55,11 +55,11 @@ token changes upstream, update the `:root` block in `styles.css` to match.
 ## Logo
 
 The header wordmark is the liquid-chrome `loopclub` PNG at
-`assets/logo.png` (sized via `.brand-logo` in `styles.css`). To feature
+`assets/loopclub-logo.png` (sized via `.brand-logo` in `styles.css`). To feature
 the logo large in the hero, add right above the `<h1>`:
 
 ```html
-<img class="brand-logo brand-logo--hero" src="assets/logo.png" alt="loop club" />
+<img class="brand-logo brand-logo--hero" src="assets/loopclub-logo.png" alt="loop club" />
 ```
 
 The CSS placeholder wordmark classes (`.wordmark`, `.wordmark--sm`,

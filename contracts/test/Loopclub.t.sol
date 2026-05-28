@@ -2,12 +2,12 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
-import {loopclub} from "../src/loopclub.sol";
+import {Loopclub} from "../src/Loopclub.sol";
 import {MockUsdm} from "../src/MockUsdm.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract loopclubTest is Test {
-    loopclub internal lc;
+contract LoopclubTest is Test {
+    Loopclub internal lc;
     MockUsdm internal usdm;
 
     address internal owner    = makeAddr("owner");
@@ -26,7 +26,7 @@ contract loopclubTest is Test {
 
     function setUp() public {
         usdm = new MockUsdm();
-        lc = new loopclub(address(usdm), treasury, owner);
+        lc = new Loopclub(address(usdm), treasury, owner);
 
         usdm.mint(alice, 10_000e18);
         usdm.mint(bob,   10_000e18);

@@ -115,7 +115,7 @@ If 7702 turns out flaky on MegaETH testnet (unlikely, but possible — 7702 is n
 When you have time:
 
 1. Hit the MegaETH testnet faucet with that address — `https://testnet.megaeth.com/#faucet` (or wherever it lives this week; Discord pinned message has the live link).
-2. Once it shows ~0.005 testnet ETH, ping me and I'll deploy. I do **not** need the private key — I'll send you the exact `forge script` command and you run it from your laptop. That keeps the key local. Output is the deployed `MockUsdm` and `loopclub` addresses, which you paste back to me.
+2. Once it shows ~0.005 testnet ETH, ping me and I'll deploy. I do **not** need the private key — I'll send you the exact `forge script` command and you run it from your laptop. That keeps the key local. Output is the deployed `MockUsdm` and `Loopclub` addresses, which you paste back to me.
 
 If you'd rather I run it on the VPS, I'd need the key — share via 1Password or a Telegram message you delete after, and I'll forget it post-deploy. Not preferred but workable.
 
