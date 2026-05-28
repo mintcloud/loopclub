@@ -135,6 +135,18 @@ export function App() {
     return () => clearInterval(id)
   }, [refreshWallet])
 
+  // After Privy login, the smart wallet client is provisioned asynchronously
+  // — `smartAddress` flips from null to a real address somewhere in the next
+  // few seconds. The 5s poll above can miss that window, leaving the chip
+  // stuck at "0 USDm" until the user reloads. Fire a short burst of catch-up
+  // reads so the balance arrives within ~1s of the address resolving.
+  useEffect(() => {
+    if (!authenticated) return
+    const delays = [400, 1200, 3000, 6000, 10000]
+    const ids = delays.map((ms) => setTimeout(() => void refreshWallet(), ms))
+    return () => ids.forEach(clearTimeout)
+  }, [authenticated, refreshWallet])
+
   // A new (or cleared) smart wallet means the cached balance is stale — drop
   // the loaded flag so the pre-flight guards wait for a fresh read.
   useEffect(() => {
