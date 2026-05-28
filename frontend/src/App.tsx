@@ -76,6 +76,13 @@ export function App() {
   const [libraryRefresh, setLibraryRefresh] = useState(0)
   const [pressingSeriesId, setPressingSeriesId] = useState<bigint | null>(null)
   const [claimingSeriesId, setClaimingSeriesId] = useState<bigint | null>(null)
+  // Click → confirmation modal → confirm-button calls the real press handler.
+  // One state covers both press paths (Edition #1 of a new loop, Edition #N of
+  // an existing series); the bound `onConfirm` is what differs.
+  const [pressConfirm, setPressConfirm] = useState<
+    | { edition: number; price: bigint; onConfirm: () => void }
+    | null
+  >(null)
   // Last pitch the user picked on the synth keyboard. Persisted across
   // popover open/close AND used as the fallback when a synth cell is
   // double-clicked directly (no popover): without this, an empty synth cell
@@ -735,7 +742,9 @@ export function App() {
             {authenticated && (
               <button
                 className="deck-btn press"
-                onClick={onRecord}
+                onClick={() =>
+                  setPressConfirm({ edition: 1, price: basePrice, onConfirm: onRecord })
+                }
                 disabled={!canRecord || busy?.startsWith('Pressing')}
                 title={
                   playback
@@ -748,7 +757,6 @@ export function App() {
                 <span className="deck-label">
                   {busy === 'Pressing copy #1…' ? 'Pressing…' : '✦ Press Edition #1'}
                 </span>
-                <span className="deck-sub">{basePriceStr} USDm</span>
               </button>
             )}
           </div>
@@ -802,7 +810,13 @@ export function App() {
             ) : (
               <button
                 className="btn-hot pb-press"
-                onClick={() => onPressSeries(playback)}
+                onClick={() =>
+                  setPressConfirm({
+                    edition: playback.nextEdition,
+                    price: playback.nextPressPrice,
+                    onConfirm: () => onPressSeries(playback),
+                  })
+                }
                 disabled={pressingSeriesId === playback.seriesId}
               >
                 {pressingSeriesId === playback.seriesId
@@ -927,6 +941,19 @@ export function App() {
             setShowFund(false)
             logout()
           }}
+        />
+      )}
+
+      {pressConfirm && (
+        <PressConfirmModal
+          edition={pressConfirm.edition}
+          price={pressConfirm.price}
+          onConfirm={() => {
+            const run = pressConfirm.onConfirm
+            setPressConfirm(null)
+            run()
+          }}
+          onCancel={() => setPressConfirm(null)}
         />
       )}
 
@@ -1092,6 +1119,49 @@ function FundModal({
             Disconnect
           </button>
           <button onClick={onClose}>close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Press confirmation — gate Edition #N before the on-chain call so the price,
+// the bonding-curve mechanic and the resale upside are stated once, clearly,
+// instead of being squeezed into a chrome pad's footer.
+function PressConfirmModal({
+  edition,
+  price,
+  onConfirm,
+  onCancel,
+}: {
+  edition: number
+  price: bigint
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const priceStr = price > 0n ? fmtUsdm(price) : null
+  return (
+    <div className="modal-bg" onClick={onCancel}>
+      <div className="modal press-confirm" onClick={(e) => e.stopPropagation()}>
+        <h3>
+          Press Edition #{edition}
+          {priceStr && <> — {priceStr} USDm</>}
+        </h3>
+        <p>You'll mint Edition #{edition} of this loop as an NFT, owned by your smart wallet.</p>
+        <p>
+          Each press of a loop costs more than the last — that's the bonding curve. Edition #
+          {edition + 1} will cost more than this one, and so on. Pressing earlier means a cheaper entry on
+          the curve.
+        </p>
+        <p>
+          Editions are NFTs you can transfer or resell. If the loop catches on, holding an earlier edition
+          can pay off on resale.
+        </p>
+        <div className="row">
+          <button className="btn" onClick={onCancel}>Cancel</button>
+          <button className="btn-chrome" onClick={onConfirm}>
+            ✦ Press Edition #{edition}
+          </button>
         </div>
       </div>
     </div>
