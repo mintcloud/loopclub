@@ -107,6 +107,15 @@
 .share-modal { min-width: 360px; max-width: 420px; gap: 0.7rem; }
 .share-modal h3 { display: flex; align-items: center; gap: 0.4rem; }
 .share-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+/* Share-modal close — default ghost (panel-2 + border), not the chrome
+   surface and not the transparent cell-popover X. Reads as a plain
+   secondary button next to the modal's chrome Copy / 𝕏 / ↗ actions. */
+.share-head .popover-x {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.share-head .popover-x:hover { border-color: var(--accent); color: var(--text); }
 .share-preview {
   background: var(--panel-2);
   border: 1px solid var(--border);
