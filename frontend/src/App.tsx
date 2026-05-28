@@ -564,26 +564,29 @@ export function App() {
   // 'toggle' preview keeps the cell purple-pulsing until the tx confirms.
   const handleCellTier = useCallback(
     (id: number, tier: CellTier, phase: ClickPhase, pitchOverride?: number) => {
+      // Synth-cell fallback: if no override and the cell is empty (no current
+      // owner OR expired), use the last key the user picked instead of the raw
+      // stored pitch — a brand-new synth cell stores 0, which is MIDI C-1 and
+      // basically inaudible. Re-rents on a cell you already own keep the
+      // existing pitch so the rhythm pattern doesn't flip notes under you.
+      // Applies to all tiers (try / toggle / max) so a first-time single click
+      // auditions at C3 too, not at the inaudible C-1.
+      const cell = grid.cells[id]
+      const isSynthCell = id >= SYNTH_CELL_START
+      const cellIsEmpty = !cell?.owner || (cell?.expiryLoop ?? 0) <= grid.currentLoop
+      const synthFallback = isSynthCell && cellIsEmpty ? lastSynthPitch : (cell?.pitch ?? 0)
+      const pitch = pitchOverride ?? synthFallback
+
       if (tier === 'try') {
-        void previewCell(id, pitchOverride ?? grid.cells[id]?.pitch ?? 0)
+        void previewCell(id, pitch)
         return
       }
-      const cell = grid.cells[id]
       const owner = cell?.owner ?? null
       const isOccupied =
         owner && smartAddress && owner.toLowerCase() !== smartAddress.toLowerCase()
       if (isOccupied) return // can't toggle someone else's cell
 
       const loops = tier === 'max' ? MAX_TOGGLE_LOOPS : DEFAULT_TOGGLE_LOOPS
-      // Synth-cell fallback: if no override and the cell is empty (no current
-      // owner OR expired), use the last key the user picked instead of the raw
-      // stored pitch — a brand-new synth cell stores 0, which is MIDI C-1 and
-      // basically inaudible. Re-rents on a cell you already own keep the
-      // existing pitch so the rhythm pattern doesn't flip notes under you.
-      const isSynthCell = id >= SYNTH_CELL_START
-      const cellIsEmpty = !cell?.owner || (cell?.expiryLoop ?? 0) <= grid.currentLoop
-      const synthFallback = isSynthCell && cellIsEmpty ? lastSynthPitch : (cell?.pitch ?? 0)
-      const pitch = pitchOverride ?? synthFallback
 
       if (phase === 'preview') {
         // Optimistic-paint only; the tx waits for the commit phase in case the
@@ -793,12 +796,14 @@ export function App() {
             // (which bypasses onSelect but still commits at `pitch`).
             setLastSynthPitch(pitch)
             handleCellTier(openCell.id, tier, phase, pitch)
-            // Try keeps the popover open so you can audition repeatedly; toggle
-            // and max commit a rent, so dismiss to clear the affordance. Close
-            // on either phase — closing on 'preview' makes the keyboard's
-            // double-click feel snappy (popover disappears the instant the
-            // optimistic paint lands).
-            if (tier !== 'try') setOpenCell(null)
+            // Close ONLY on commit, not preview. The previous "close on
+            // preview" path felt snappier but unmounted the keyboard before
+            // its useClickTier timer could fire the deferred toggle commit —
+            // so a double-click on a key would audition + paint optimistic,
+            // then never actually rent the cell. Closing on commit lets the
+            // commit phase land first; preview's optimistic paint still
+            // appears in the grid through `applyOptimistic`.
+            if (tier !== 'try' && phase === 'commit') setOpenCell(null)
           }}
         />
       )}
