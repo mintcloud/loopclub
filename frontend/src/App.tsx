@@ -150,21 +150,38 @@ export function App() {
   }, [])
 
   // Keep the audio engine in sync with the audioOn UI flag. Lets the rest
-  // of the app drive playback by flipping audioOn (autoplay on mount,
-  // Stop/Play deck button, enterPlayback) without each path knowing how
-  // to talk to the Tone.js engine. Gated on hasGestured so the autoplay
-  // path waits until the AudioContext can actually be resumed.
+  // of the app drive playback by flipping audioOn (Stop/Play deck button,
+  // enterPlayback) without each path knowing how to talk to Tone.js.
+  // Gated on hasGestured so the autoplay path waits until the AudioContext
+  // can actually be resumed.
   useEffect(() => {
     if (audioOn && hasGestured) void startAudio()
     else if (!audioOn) stopAudio()
   }, [audioOn, hasGestured])
 
-  // Catch the first pointer / key / touch event and flip hasGestured —
-  // that re-runs the audioOn sync effect above with a now-resumable
-  // AudioContext, so the sequencer starts ticking on a context that's
-  // actually running (not on a suspended one that never advances).
+  // Refs let the document-level gesture handler (registered once at mount)
+  // see the latest audioOn value without re-binding on every flip.
+  const audioOnRef = useRef(audioOn)
+  audioOnRef.current = audioOn
+  const hasGesturedRef = useRef(hasGestured)
+  hasGesturedRef.current = hasGestured
+
+  // Catch the first pointer / key / touch event and (a) flip hasGestured
+  // for any later UI that depends on it and (b) call startAudio() right
+  // here, inside the gesture's user-activation window. We don't wait for
+  // the state-update → effect cycle above — Safari/iOS can lose activation
+  // between the click and the microtask that runs the effect, leaving the
+  // AudioContext suspended and the sequencer ticking against a stalled
+  // clock. Calling startAudio() synchronously in the handler guarantees
+  // Tone.start() runs while the activation is still live.
   useEffect(() => {
-    const onFirstGesture = () => setHasGestured(true)
+    if (hasGesturedRef.current) return
+    const onFirstGesture = () => {
+      if (hasGesturedRef.current) return
+      hasGesturedRef.current = true
+      setHasGestured(true)
+      if (audioOnRef.current) void startAudio()
+    }
     document.addEventListener('pointerdown', onFirstGesture, { once: true })
     document.addEventListener('keydown', onFirstGesture, { once: true })
     document.addEventListener('touchstart', onFirstGesture, { once: true, passive: true })

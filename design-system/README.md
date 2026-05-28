@@ -134,6 +134,7 @@ intent. Read those files directly when you need detail.
 --chrome-fill --chrome-fill-button --chrome-fill-pressed --chrome-border --chrome-shadow
 --rainbow-rim --rainbow-glow
 --hot-fill --hot-border --hot-glow
+--focus-halo --focus-halo-hot   /* keyboard focus rings — never the system blue */
 
 /* MegaETH soft palette (decorative) */
 --moon-white --full-moon --night-sky --peach --coral --hot-pink --magenta
