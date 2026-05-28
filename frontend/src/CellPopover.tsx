@@ -29,6 +29,12 @@ interface Props {
   // When set, the cell is held by another player — the popover renders a
   // read-only "claimed" card instead of the toggle controls (try still works).
   occupied?: { who: string; loopsLeft: number }
+  // Pitch the synth keyboard opens on. App owns the value so it sticks across
+  // re-opens; defaults to SYNTH_PITCH_DEFAULT (C3) on first open.
+  initialPitch?: number
+  // Fired whenever the user selects a different key — App stores it as the
+  // next popover's initialPitch.
+  onPitchChange?: (pitch: number) => void
 }
 
 interface PopoverPos {
@@ -49,8 +55,17 @@ export function CellPopover({
   onClose,
   onTier,
   occupied,
+  initialPitch,
+  onPitchChange,
 }: Props) {
-  const [pitch, setPitch] = useState(SYNTH_PITCH_DEFAULT)
+  const [pitch, setPitchState] = useState(initialPitch ?? SYNTH_PITCH_DEFAULT)
+  // Wrap setPitch so every user-driven key change bubbles up to App. The
+  // keyboard's onSelect and the previous-key tracking inside useClickTier both
+  // route through here, so App always sees the freshest pick.
+  const setPitch = (next: number) => {
+    setPitchState(next)
+    onPitchChange?.(next)
+  }
   const [pos, setPos] = useState<PopoverPos | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
