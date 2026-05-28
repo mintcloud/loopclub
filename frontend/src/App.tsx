@@ -710,6 +710,7 @@ export function App() {
 
   return (
     <div className="app">
+      <MobileHint />
       <header className="header">
         <div className="header-left">
           <a className="wordmark-link" href="/" aria-label="loopclub home">
@@ -1101,4 +1102,42 @@ function countCells(pattern: bigint): number {
     v >>= 1n
   }
   return n
+}
+
+// "Save to Home Screen / rotate" hint — phone-portrait only, dismissable.
+// The 16-step grid is inherently wide; rather than squashing cells until
+// they're untappable we let the grid scroll horizontally AND tell first-time
+// mobile visitors about the two workarounds (landscape, install as PWA).
+// CSS hides this block on tablets+ and in landscape — the storage check just
+// stops it from re-appearing after a dismiss on the phones that show it.
+const HINT_DISMISS_KEY = 'loopclub:mobile-hint:dismissed'
+function MobileHint() {
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(HINT_DISMISS_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  if (dismissed) return null
+  const onDismiss = () => {
+    setDismissed(true)
+    try {
+      localStorage.setItem(HINT_DISMISS_KEY, '1')
+    } catch {
+      // private mode / storage disabled — fine, just hides for this session
+    }
+  }
+  return (
+    <div className="mobile-hint" role="note" aria-label="Mobile tip">
+      <span className="mh-icon" aria-hidden="true">⤢</span>
+      <span className="mh-copy">
+        <strong>Best on landscape</strong> — rotate your phone, or add loopclub to your Home
+        Screen for full-screen mode. Scroll the grid sideways to see every step.
+      </span>
+      <button className="mh-x" onClick={onDismiss} aria-label="Dismiss tip">
+        ✕
+      </button>
+    </div>
+  )
 }

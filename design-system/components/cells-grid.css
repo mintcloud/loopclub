@@ -18,6 +18,65 @@
   color: var(--muted);
   text-transform: uppercase;
 }
+
+/* ── Mobile grid shell — horizontal scroll keeps cells tappable.
+   On narrow viewports, 16 cells + a 70px label column won't fit while
+   leaving cells at a tappable size (~28px min). Rather than squash them
+   into invisibility, wrap the grid in .grid-wrap and let it scroll
+   horizontally. The label column is position:sticky so it stays visible
+   as the user pans across the steps. */
+.grid-wrap { width: 100%; }
+@media (max-width: 720px) {
+  .grid-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    /* Right-edge fade hints there's more grid to scroll to. */
+    mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+    padding-right: 8px;
+  }
+  .grid-wrap .grid {
+    /* 56 label + 16*28 cells + 17*3 gaps = 555px */
+    min-width: 555px;
+    grid-template-columns: 56px repeat(16, minmax(28px, 1fr));
+    gap: 3px;
+  }
+  .grid-wrap .grid .label {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--bg);
+    /* Left-align + overflow:hidden so labels longer than the sticky column
+       (COWBELL, OPEN-HAT) clip cleanly to the right rather than spilling
+       past the grid's left edge under the sticky column. */
+    justify-content: flex-start;
+    padding-left: 0.1rem;
+    padding-right: 0.25rem;
+    overflow: hidden;
+    text-overflow: clip;
+    font-size: 10px;
+    line-height: 1.05;
+    box-shadow: 6px 0 6px -6px rgba(0, 0, 0, 0.6);
+  }
+  /* The track dot keeps a hair of margin from the label text. */
+  .grid-wrap .grid .label .track-dot { margin-right: 3px; }
+  .grid-wrap .grid .step-num {
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+  /* Tap-down feels better than hover lift on touch — don't jump under finger. */
+  .grid-wrap .grid .cell:hover { transform: none; }
+}
+@media (max-width: 480px) {
+  .grid-wrap .grid {
+    /* Phones: tighter label, still tappable at 26px. Label column is 52px so
+       "COWBELL"/"OPEN-HAT" fit on one line at 10px without clipping. */
+    min-width: 510px;
+    grid-template-columns: 52px repeat(16, minmax(26px, 1fr));
+  }
+}
 .track-dot {
   width: 6px; height: 6px; border-radius: 50%;
   display: inline-block; flex-shrink: 0; margin-right: 4px;

@@ -204,3 +204,34 @@
 }
 .grid-status > .contrib-strip { flex: 1 1 auto; min-width: 0; }
 .grid-status > .sync-badge { flex: 0 0 auto; }
+
+/* ── Mobile (≤720px) — collapse the deck tray and account cluster so the
+   header stays one screen-row tall on a phone. The chrome pads keep their
+   look, just sized down; nothing wraps to a second line on a 360px viewport. */
+@media (max-width: 720px) {
+  :root {
+    --topbar-cluster-h: 44px;
+    --deck-pad-w: 92px;
+    --deck-pad-h: 38px;
+  }
+  .deck-controls {
+    gap: 6px;
+    padding: 2px;
+  }
+  .deck-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  .deck-btn .deck-sub {
+    /* The "1 USDm" sub-label eats too much pad height on small chrome;
+       hide it on phones — the price still surfaces in the title tooltip. */
+    display: none;
+  }
+  .account-group {
+    padding: 0 var(--space-1);
+    gap: var(--space-1);
+  }
+  .account-group .balance { font-size: 10px; }
+  .wallet-btn { height: 32px; padding: 0 var(--space-2); font-size: 11px; }
+  .connect-btn { height: var(--deck-pad-h); padding: 0 var(--space-3); font-size: 12px; }
+}
