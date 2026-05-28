@@ -125,16 +125,6 @@
   line-height: var(--lh-tight);
   white-space: nowrap;
 }
-/* Sub-label — carries the press price so the pad keeps its footprint
-   while the other two pads stay single-line. Dark muted ink for
-   legibility on the silver surface. */
-.deck-btn .deck-sub {
-  font-size: var(--fs-nano);
-  color: rgba(10, 10, 18, 0.62);
-  letter-spacing: var(--ls-meta);
-  font-variant-numeric: tabular-nums;
-}
-.deck-btn.active .deck-sub { color: rgba(233, 233, 242, 0.66); }
 /* Disabled — keep the chrome surface so the pad still reads as part of
    the deck (matching Play/Stop), just dimmed and desaturated so it
    reads as not-pressable. Swapping the surface to a flat panel-2 made
@@ -143,7 +133,6 @@
   filter: saturate(0.35) brightness(0.78);
   cursor: not-allowed;
 }
-.deck-btn:disabled .deck-sub { color: rgba(10, 10, 18, 0.45); }
 
 /* ───── Account group — balance + "⊕ My wallet", kept together ─────
    Unwrapped on the navbar — see the deck-controls comment above for
@@ -221,11 +210,6 @@
   .deck-btn {
     padding: 4px 8px;
     font-size: 12px;
-  }
-  .deck-btn .deck-sub {
-    /* The "1 USDm" sub-label eats too much pad height on small chrome;
-       hide it on phones — the price still surfaces in the title tooltip. */
-    display: none;
   }
   .account-group {
     padding: 0 var(--space-1);
