@@ -24,7 +24,7 @@ import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
 import type { ClickPhase } from './useClickTier'
-import { startAudio, stopAudio, audioRunning, setLiveState, setSnapshot, onStep, previewCell } from './audio'
+import { startAudio, stopAudio, setLiveState, setSnapshot, onStep, previewCell } from './audio'
 
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
@@ -59,6 +59,11 @@ export function App() {
   // start moving the instant the AudioContext can resume (which happens on
   // the user's first interaction — see the gesture useEffect below).
   const [audioOn, setAudioOn] = useState(true)
+  // The AudioContext can only be resumed from inside (or shortly after) a
+  // user gesture. Until that gesture lands, defer the startAudio() call —
+  // calling it pre-gesture creates a sequencer on a suspended context, and
+  // when the gesture arrives the engine looks "running" so we never resume.
+  const [hasGestured, setHasGestured] = useState(false)
   // Cells a tools popover (row fill / renew) is previewing — drawn on the grid
   // with a "will-be-activated" highlight so the click target is visible.
   const [previewCells, setPreviewCells] = useState<number[] | null>(null)
@@ -141,21 +146,19 @@ export function App() {
   // Keep the audio engine in sync with the audioOn UI flag. Lets the rest
   // of the app drive playback by flipping audioOn (autoplay on mount,
   // Stop/Play deck button, enterPlayback) without each path knowing how
-  // to talk to the Tone.js engine.
+  // to talk to the Tone.js engine. Gated on hasGestured so the autoplay
+  // path waits until the AudioContext can actually be resumed.
   useEffect(() => {
-    if (audioOn) void startAudio()
-    else stopAudio()
-  }, [audioOn])
+    if (audioOn && hasGestured) void startAudio()
+    else if (!audioOn) stopAudio()
+  }, [audioOn, hasGestured])
 
-  // Browsers gate the AudioContext on a user gesture, so the queued
-  // startAudio() above stays suspended until the user interacts. Catch the
-  // first pointer / key / touch event and call startAudio() again from
-  // inside that handler — it's the gesture itself that resumes the context
-  // and engages the sequencer that was already armed.
+  // Catch the first pointer / key / touch event and flip hasGestured —
+  // that re-runs the audioOn sync effect above with a now-resumable
+  // AudioContext, so the sequencer starts ticking on a context that's
+  // actually running (not on a suspended one that never advances).
   useEffect(() => {
-    const onFirstGesture = () => {
-      if (audioOn && !audioRunning()) void startAudio()
-    }
+    const onFirstGesture = () => setHasGestured(true)
     document.addEventListener('pointerdown', onFirstGesture, { once: true })
     document.addEventListener('keydown', onFirstGesture, { once: true })
     document.addEventListener('touchstart', onFirstGesture, { once: true, passive: true })
@@ -164,10 +167,6 @@ export function App() {
       document.removeEventListener('keydown', onFirstGesture)
       document.removeEventListener('touchstart', onFirstGesture)
     }
-    // Armed once on mount — the handler captures the initial audioOn=true.
-    // If the user toggles Stop before their first gesture lands, the
-    // audioOn sync effect above stops the engine again on the next render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // On first load, if URL has ?loop=<seriesId>, auto-load + enter playback for that series.
