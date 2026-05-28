@@ -79,7 +79,10 @@ export const TRACK_LABELS = [
 // most musically.
 export const SYNTH_PITCH_MIN = 24 // C1 (low end of the in-app keyboard)
 export const SYNTH_PITCH_MAX = 60 // C4 (high end, inclusive — 37 keys total)
-export const SYNTH_PITCH_DEFAULT = 36 // C2 — opens a third of the way in, in the 303 sweet spot
+// C3 — middle of the in-app range. Sub-bass (C1/C2) reads as inaudible on
+// laptop speakers, so we open higher; the App remembers whatever the user last
+// picked and feeds it back in as `initialPitch`, so subsequent opens stick.
+export const SYNTH_PITCH_DEFAULT = 48
 
 // Names of the 12 pitch classes in semitone order. Indexed by `midi % 12`.
 const PITCH_CLASS_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const

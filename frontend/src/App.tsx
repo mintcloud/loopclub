@@ -14,6 +14,7 @@ import {
   megaethMainnet,
   LOOP_DURATION_SECONDS,
   SYNTH_CELL_START,
+  SYNTH_PITCH_DEFAULT,
   DEFAULT_TOGGLE_LOOPS,
   MAX_TOGGLE_LOOPS,
   type CellTier,
@@ -66,6 +67,11 @@ export function App() {
   const [libraryRefresh, setLibraryRefresh] = useState(0)
   const [pressingSeriesId, setPressingSeriesId] = useState<bigint | null>(null)
   const [claimingSeriesId, setClaimingSeriesId] = useState<bigint | null>(null)
+  // Last pitch the user picked on the synth keyboard. Persisted across
+  // popover open/close AND used as the fallback when a synth cell is
+  // double-clicked directly (no popover): without this, an empty synth cell
+  // re-toggles at pitch 0 (MIDI 0 = C-1, basically silent on laptop speakers).
+  const [lastSynthPitch, setLastSynthPitch] = useState<number>(SYNTH_PITCH_DEFAULT)
 
   const smartAddress = (smartWalletClient?.account?.address ?? null) as `0x${string}` | null
 
@@ -569,7 +575,15 @@ export function App() {
       if (isOccupied) return // can't toggle someone else's cell
 
       const loops = tier === 'max' ? MAX_TOGGLE_LOOPS : DEFAULT_TOGGLE_LOOPS
-      const pitch = pitchOverride ?? cell?.pitch ?? 0
+      // Synth-cell fallback: if no override and the cell is empty (no current
+      // owner OR expired), use the last key the user picked instead of the raw
+      // stored pitch — a brand-new synth cell stores 0, which is MIDI C-1 and
+      // basically inaudible. Re-rents on a cell you already own keep the
+      // existing pitch so the rhythm pattern doesn't flip notes under you.
+      const isSynthCell = id >= SYNTH_CELL_START
+      const cellIsEmpty = !cell?.owner || (cell?.expiryLoop ?? 0) <= grid.currentLoop
+      const synthFallback = isSynthCell && cellIsEmpty ? lastSynthPitch : (cell?.pitch ?? 0)
+      const pitch = pitchOverride ?? synthFallback
 
       if (phase === 'preview') {
         // Optimistic-paint only; the tx waits for the commit phase in case the
@@ -586,7 +600,7 @@ export function App() {
     // onToggle is intentionally captured from closure; grid.cells changes every
     // tick but we want the latest value at click time, which the closure gives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [smartAddress, grid.cells],
+    [smartAddress, grid.cells, lastSynthPitch],
   )
 
   // 500ms hover-hold opens the popover — discovery surface for the gesture.
@@ -770,8 +784,14 @@ export function App() {
           cellId={openCell.id}
           anchorRect={openCell.rect}
           occupied={openCell.occupied}
+          initialPitch={lastSynthPitch}
+          onPitchChange={setLastSynthPitch}
           onClose={() => setOpenCell(null)}
           onTier={(tier, pitch, phase) => {
+            // Whatever pitch the gesture ended on becomes the next default —
+            // covers the case where the user double-clicks a key directly
+            // (which bypasses onSelect but still commits at `pitch`).
+            setLastSynthPitch(pitch)
             handleCellTier(openCell.id, tier, phase, pitch)
             // Try keeps the popover open so you can audition repeatedly; toggle
             // and max commit a rent, so dismiss to clear the affordance. Close

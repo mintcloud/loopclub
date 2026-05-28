@@ -221,6 +221,20 @@ export function useLiveGrid(): LiveGrid {
     }
   }, [snapshot, applyEvent])
 
+  // Tab-visibility resume. Chrome throttles backgrounded tabs' setInterval to
+  // ~1/min, which stalls both the 1s event poll and the 20s reconcile. With
+  // two windows open (e.g. main + incognito for testing), the inactive one
+  // falls seconds-to-minutes behind chain — so when it returns to the
+  // foreground we force an immediate full snapshot to catch up. The event
+  // watcher resumes on its own and viem back-fills from the last block it saw.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void snapshot()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [snapshot])
+
   // Derive the live pattern + synth-data words the grid + audio engine consume.
   // synthData mirrors the contract: 16 bits per synth cell, bits 0-2 = pitch.
   const { pattern, synthData, liveCellCount } = useMemo(() => {
