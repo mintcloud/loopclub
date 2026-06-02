@@ -359,10 +359,12 @@ function Keyboard({
               }}
               title={`${label} (MIDI ${midi}) — 1 click try · 2 toggle · 3 max`}
             >
-              <span className="key-label">{label[0]}</span>
+              {/* Octave number first so it sits ABOVE the letter; the letter
+                  stays pinned to the bottom (flex-end), aligned across all keys. */}
               {isOctaveAnchor && (
                 <span className="key-octave">{label.slice(1)}</span>
               )}
+              <span className="key-label">{label[0]}</span>
             </button>
           )
         })}

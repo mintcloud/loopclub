@@ -441,18 +441,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
    breathe; the keyboard layout, fixed key width, octave arrows and horizontal
    scroll all live in the design system (popovers.css). On small viewports we
    cap max-width to the screen and the keyboard viewport scrolls. */
+/* FIXED width (not min-width): the keyboard track is intrinsically far wider
+   than this, so a min-width would let the popover grow to fit the whole range
+   and there'd be nothing to scroll. Pinning the width forces the inner
+   .keyboard-viewport to overflow → horizontal scroll + working octave arrows.
+   ~1.5 octaves show at once. */
 .cell-popover.synth-popover {
-  min-width: 380px;
-  max-width: calc(100vw - 16px);
+  width: min(380px, calc(100vw - 16px));
 }
 /* Whites have no gap, so lean on each key's own right border to separate them. */
 .cell-popover.synth-popover .key.white {
   border-right-color: rgba(0, 0, 0, 0.18);
 }
 .cell-popover.synth-popover .key.white:last-child { border-right-color: var(--border); }
-/* Stack the letter + octave caption on each white key (octave only shows on
-   Cs). The base .key was flex-end / center; switch to a column so the letter
-   sits above the octave number. */
+/* Stack octave-number-above-letter on each white key (octave only shows on Cs).
+   Column + flex-end keeps the LETTER pinned to the bottom so every key's letter
+   lines up on the same baseline; the octave number floats just above it on Cs. */
 .cell-popover.synth-popover .key.white {
   flex-direction: column;
   justify-content: flex-end;
@@ -464,6 +468,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   font-size: 10px;
   line-height: 1;
   opacity: 0.55;
-  margin-top: 2px;
+  margin-bottom: 1px;
 }
 .cell-popover.synth-popover .key.white.active .key-octave { opacity: 0.9; }
