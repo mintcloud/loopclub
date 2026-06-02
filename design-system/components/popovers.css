@@ -120,9 +120,18 @@ kbd {
 }
 .key.white.disabled { background: linear-gradient(180deg, #2a2a44 0%, #1c1c34 100%); color: var(--muted); cursor: not-allowed; opacity: 0.55; }
 .key.black {
-  position: absolute; top: 0;
+  position: absolute; top: 0; z-index: 1;
   width: var(--black-w); height: 44px;
+  /* The blacks layer is pointer-events:none so the gaps fall through to the
+     white keys underneath; re-enable hits on the keys themselves. */
+  pointer-events: auto; cursor: pointer; padding: 0;
   background: linear-gradient(180deg, #1a1a2a 0%, #06060c 100%);
   border: 1px solid #000; border-radius: 0 0 3px 3px;
   box-shadow: 0 2px 4px rgba(0,0,0,.6);
+}
+.key.black:hover:not(.active) { background: linear-gradient(180deg, #2c2c44 0%, #101020 100%); }
+.key.black.active {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 8px rgba(124,92,255,.5);
 }

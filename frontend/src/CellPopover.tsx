@@ -342,20 +342,33 @@ function Keyboard({
         })}
       </div>
       <div className="keyboard-blacks">
-        {blacks.map(({ midi, anchorWhite }) => (
-          <span
-            key={midi}
-            className="key black"
-            // The black key sits over the boundary between the white key at
-            // `anchorWhite - 1` and the one at `anchorWhite`. CSS grid spreads
-            // whites evenly across the row; the boundary lives at
-            // `anchorWhite * (100% / totalWhites)`.
-            style={{
-              left: `calc(${anchorWhite} * (100% / var(--white-count)) - (var(--black-w) / 2))`,
-            }}
-            aria-hidden
-          />
-        ))}
+        {blacks.map(({ midi, anchorWhite }) => {
+          const active = midi === selected
+          const label = midiToLabel(midi) // e.g. "A#2", "F#3"
+          const cls = ['key', 'black']
+          if (active) cls.push('active')
+          return (
+            <button
+              key={midi}
+              type="button"
+              className={cls.join(' ')}
+              // The black key sits over the boundary between the white key at
+              // `anchorWhite - 1` and the one at `anchorWhite`. CSS grid spreads
+              // whites evenly across the row; the boundary lives at
+              // `anchorWhite * (100% / totalWhites)`.
+              style={{
+                left: `calc(${anchorWhite} * (100% / var(--white-count)) - (var(--black-w) / 2))`,
+              }}
+              onClick={() => {
+                // Same gesture as a white key: highlight now, settle the tier
+                // (try/toggle/max) once the click count is known.
+                onSelect(midi)
+                dispatchKeyClick(midi)
+              }}
+              title={`${label} (MIDI ${midi}) — 1 click try · 2 toggle · 3 max`}
+            />
+          )
+        })}
       </div>
     </div>
   )
