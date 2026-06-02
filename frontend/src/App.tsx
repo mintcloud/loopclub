@@ -658,10 +658,20 @@ export function App() {
         void previewCell(id, pitch)
         return
       }
+      // Only LIVE rents block a toggle. cellOwner stays set on-chain after a
+      // rent expires (the contract never zeroes it), so `cell.owner` can be a
+      // stale address whose lease already lapsed — `cellIsEmpty` is the
+      // expiry-aware truth, mirroring the contract's `expiry > nowLoop` guard.
+      // Without the `!cellIsEmpty` gate, every expired-but-previously-rented
+      // cell (e.g. a whole synth row left over from an earlier loop) is wrongly
+      // treated as someone else's and can never be re-rented.
       const owner = cell?.owner ?? null
       const isOccupied =
-        owner && smartAddress && owner.toLowerCase() !== smartAddress.toLowerCase()
-      if (isOccupied) return // can't toggle someone else's cell
+        !cellIsEmpty &&
+        owner &&
+        smartAddress &&
+        owner.toLowerCase() !== smartAddress.toLowerCase()
+      if (isOccupied) return // can't toggle someone else's *live* cell
 
       const loops = tier === 'max' ? MAX_TOGGLE_LOOPS : DEFAULT_TOGGLE_LOOPS
 
