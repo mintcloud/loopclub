@@ -95,20 +95,40 @@ kbd {
 .row-tools .muted { color: var(--muted); font-size: 10px; }
 
 /* Pitch keyboard — used inside the cell popover for synth row cells.
-   Keys carry their own letter labels at the bottom; no caption row. */
+   Keys carry their own letter labels at the bottom; no caption row.
+
+   The keys are a FIXED width (--white-w), so the full pitch range is wider
+   than the popover and the .keyboard-viewport scrolls horizontally — only
+   ~1.5 octaves are visible at once. The flanking .kb-arrow buttons jump one
+   octave per click; the strip is also drag/trackpad-scrollable. */
 .pitch-picker { display: flex; flex-direction: column; gap: 0.4rem; }
-.keyboard {
-  --black-w: 18px;
-  position: relative; width: 100%; height: 76px;
+.keyboard-row { display: flex; align-items: stretch; gap: 6px; }
+.kb-arrow {
+  flex: 0 0 auto; width: 30px;
   background: var(--panel-2); border: 1px solid var(--border);
-  border-radius: var(--r-md); padding: 6px;
+  border-radius: var(--r-md); color: var(--text);
+  font-family: inherit; font-size: 22px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
-.keyboard-whites { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; height: 64px; }
-.keyboard-blacks { position: absolute; top: 6px; left: 6px; right: 6px; height: 40px; pointer-events: none; }
+.kb-arrow:hover { border-color: var(--accent); color: var(--accent); }
+.kb-arrow:active { background: var(--panel); }
+.keyboard-viewport {
+  flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  scrollbar-width: thin;
+}
+.keyboard {
+  --white-w: 38px;
+  --black-w: 24px;
+  position: relative; width: max-content; height: 116px; padding: 6px;
+}
+.keyboard-whites { display: grid; grid-template-columns: repeat(var(--white-count, 7), var(--white-w)); gap: 0; height: 104px; }
+.keyboard-blacks { position: absolute; top: 6px; left: 6px; height: 66px; pointer-events: none; }
 .key {
   position: relative; border-radius: 0 0 4px 4px; cursor: pointer;
   display: flex; align-items: flex-end; justify-content: center;
-  padding: 0 0 4px; font-family: inherit; font-size: 10px;
+  padding: 0 0 5px; font-family: inherit; font-size: 12px;
   border: 1px solid var(--border);
 }
 .key.white { background: linear-gradient(180deg, #f5f5fa 0%, #d8d8e2 100%); color: #14142a; }
@@ -121,7 +141,7 @@ kbd {
 .key.white.disabled { background: linear-gradient(180deg, #2a2a44 0%, #1c1c34 100%); color: var(--muted); cursor: not-allowed; opacity: 0.55; }
 .key.black {
   position: absolute; top: 0; z-index: 1;
-  width: var(--black-w); height: 44px;
+  width: var(--black-w); height: 62px;
   /* The blacks layer is pointer-events:none so the gaps fall through to the
      white keys underneath; re-enable hits on the keys themselves. */
   pointer-events: auto; cursor: pointer; padding: 0;

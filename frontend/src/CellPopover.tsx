@@ -295,23 +295,49 @@ function Keyboard({
 
   const { whites, blacks } = useMemo(buildKeyboardLayout, [])
 
-  // Scroll the selected key into view on mount — the keyboard now spans 22
-  // white keys and the default (C3) lives a third of the way in, so without
-  // this on a narrow popover the user might not see the active key.
+  // Keys are now a fixed width (see --white-w in CSS), so the full 3-octave
+  // span is wider than the popover and the viewport scrolls horizontally. Only
+  // ~1.5 octaves show at once; the arrows jump a whole octave at a time and the
+  // user can also drag/trackpad-scroll the strip directly.
   const containerRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+
+  // Center the selected key in the viewport on mount so the active note is
+  // visible even though most of the keyboard is scrolled off-screen.
   useLayoutEffect(() => {
-    const el = containerRef.current?.querySelector('.key.white.active') as HTMLElement | null
+    const el = containerRef.current?.querySelector('.key.active') as HTMLElement | null
     el?.scrollIntoView({ block: 'nearest', inline: 'center' })
   }, [])
 
+  // Scroll one octave (7 white keys) left/right. We measure a real white key
+  // so the jump tracks the actual rendered width, not a hard-coded guess.
+  const scrollByOctave = (dir: -1 | 1) => {
+    const vp = viewportRef.current
+    if (!vp) return
+    const key = containerRef.current?.querySelector('.key.white') as HTMLElement | null
+    const step = (key?.offsetWidth ?? 36) * 7
+    vp.scrollBy({ left: dir * step, behavior: 'smooth' })
+  }
+
   return (
-    <div
-      className="keyboard"
-      ref={containerRef}
-      style={{ ['--white-count' as string]: whites.length }}
-    >
-      <div className="keyboard-whites">
-        {whites.map(({ midi }) => {
+    <div className="keyboard-row">
+      <button
+        type="button"
+        className="kb-arrow"
+        onClick={() => scrollByOctave(-1)}
+        aria-label="scroll down an octave"
+        title="Lower octave"
+      >
+        ‹
+      </button>
+      <div className="keyboard-viewport" ref={viewportRef}>
+        <div
+          className="keyboard"
+          ref={containerRef}
+          style={{ ['--white-count' as string]: whites.length }}
+        >
+          <div className="keyboard-whites">
+            {whites.map(({ midi }) => {
           const active = midi === selected
           const label = midiToLabel(midi) // e.g. "C3", "F#3"
           const cls = ['key', 'white']
@@ -353,11 +379,11 @@ function Keyboard({
               type="button"
               className={cls.join(' ')}
               // The black key sits over the boundary between the white key at
-              // `anchorWhite - 1` and the one at `anchorWhite`. CSS grid spreads
-              // whites evenly across the row; the boundary lives at
-              // `anchorWhite * (100% / totalWhites)`.
+              // `anchorWhite - 1` and the one at `anchorWhite`. Whites are a
+              // fixed --white-w with no gap, so that boundary is exactly
+              // `anchorWhite * --white-w`; center the black key on it.
               style={{
-                left: `calc(${anchorWhite} * (100% / var(--white-count)) - (var(--black-w) / 2))`,
+                left: `calc(${anchorWhite} * var(--white-w) - (var(--black-w) / 2))`,
               }}
               onClick={() => {
                 // Same gesture as a white key: highlight now, settle the tier
@@ -369,7 +395,18 @@ function Keyboard({
             />
           )
         })}
+          </div>
+        </div>
       </div>
+      <button
+        type="button"
+        className="kb-arrow"
+        onClick={() => scrollByOctave(1)}
+        aria-label="scroll up an octave"
+        title="Higher octave"
+      >
+        ›
+      </button>
     </div>
   )
 }
