@@ -235,6 +235,34 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   50%      { filter: brightness(1.25); }
 }
 
+/* Jam preview — a proposed cell another player already holds live. Dimmed and
+ * struck so it reads as "can't rent this one right now" against the free
+ * (gold preview-fill) cells around it. */
+.cell.jam-conflict {
+  position: relative;
+  opacity: 0.4;
+  box-shadow: 0 0 0 1px var(--danger, #ff5470) inset;
+}
+.cell.jam-conflict::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 1px),
+    var(--danger, #ff5470) calc(50% - 1px),
+    var(--danger, #ff5470) calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+  pointer-events: none;
+}
+
+/* Jam banner — same shell as the playback banner, tinted toward the loopclub
+ * blue/teal so a Claude-jammed loop reads distinctly from a loop playback. */
+.jam-banner {
+  background: linear-gradient(90deg, rgba(92, 182, 255, .18), rgba(100, 220, 200, .16));
+}
+
 /* rent is nearly up — anyone can grab the cell soon */
 .cell.expiring {
   animation: expirePulse 1.4s ease-in-out infinite;
