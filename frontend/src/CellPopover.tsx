@@ -195,7 +195,7 @@ export function CellPopover({
             onClick={() => onTier('try', pitch, 'commit')}
           />
           <TierRow
-            label={`Toggle · ${DEFAULT_TOGGLE_LOOPS} loops`}
+            label={`Rent Cell · ${DEFAULT_TOGGLE_LOOPS} loops`}
             sub={`${toggleCost} USDm · ${DEFAULT_TOGGLE_LOOPS * LOOP_DURATION_SECONDS}s live`}
             gesture="2 clicks"
             hotkey="T"
@@ -205,7 +205,7 @@ export function CellPopover({
             onClick={() => onTier('toggle', pitch, 'commit')}
           />
           <TierRow
-            label={`Max · ${MAX_TOGGLE_LOOPS} loops`}
+            label={`Max Rent Cell · ${MAX_TOGGLE_LOOPS} loops`}
             sub={`${maxCost} USDm · ${MAX_TOGGLE_LOOPS * LOOP_DURATION_SECONDS}s live`}
             gesture="3 clicks"
             hotkey="M"
