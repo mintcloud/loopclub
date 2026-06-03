@@ -25,6 +25,7 @@ import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
 import { useSessionKey, type SessionKey } from './useSessionKey'
+import { fromLink, litCells, synthPitches, LinkError } from 'loopclub-loopgen'
 import type { ClickPhase } from './useClickTier'
 import { startAudio, stopAudio, setLiveState, setSnapshot, onStep, previewCell } from './audio'
 
@@ -72,6 +73,14 @@ export function App() {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [playback, setPlayback] = useState<LoopRecord | null>(null)
+  // "Jam with Claude" preview: a not-yet-committed loop decoded from a ?jam=
+  // link, held BESIDE the live grid (like `playback`, never written into it).
+  // Read-only — the user auditions it, picks a duration, and rents the free
+  // cells via the existing rentBatch. null = not in jam mode.
+  const [jam, setJam] = useState<{ pattern: bigint; synthData: bigint; name?: string } | null>(null)
+  // Rent duration for a jam commit. Matches the main flow's per-cell default
+  // (16) and cap (MAX_TOGGLE_LOOPS = 32); same numeric control as the row tools.
+  const [jamDuration, setJamDuration] = useState<number>(DEFAULT_TOGGLE_LOOPS)
   const [shareSeriesId, setShareSeriesId] = useState<bigint | null>(null)
   const [libraryRefresh, setLibraryRefresh] = useState(0)
   const [pressingSeriesId, setPressingSeriesId] = useState<bigint | null>(null)
@@ -160,10 +169,11 @@ export function App() {
     setBalanceLoaded(false)
   }, [smartAddress])
 
-  // Feed the audio engine the live grid whenever it changes (unless replaying a loop).
+  // Feed the audio engine the live grid whenever it changes (unless replaying a
+  // loop or previewing a jam — both drive the engine via setSnapshot instead).
   useEffect(() => {
-    if (!playback) setLiveState(grid.pattern, grid.synthData)
-  }, [grid.pattern, grid.synthData, playback])
+    if (!playback && !jam) setLiveState(grid.pattern, grid.synthData)
+  }, [grid.pattern, grid.synthData, playback, jam])
 
   useEffect(() => {
     onStep((step) => setPlayingStep(step))
@@ -291,6 +301,25 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // On first load, if URL has ?jam=<payload>, decode it (loopgen) and enter the
+  // jam preview. The grid shows the proposed loop in track colours; the audio
+  // engine plays it via setSnapshot. Hard-validated input — a malformed link is
+  // ignored and we fall through to a normal live load (never white-screen).
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get('jam')
+    if (!raw) return
+    try {
+      const wire = fromLink(raw)
+      setJam({ pattern: wire.pattern, synthData: wire.synthData })
+      setSnapshot(wire.pattern, wire.synthData)
+      setAudioOn(true)
+    } catch (e) {
+      // LinkError = expected for a bad/old payload; anything else is a real bug.
+      if (!(e instanceof LinkError)) console.warn('jam link load failed', e)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const flash = (msg: string, isError = false) => {
     if (isError) setError(msg)
     else setBusy(msg)
@@ -391,7 +420,15 @@ export function App() {
   // Each cell is a toggle() call; the batch is atomic, so if a player snipes a
   // target between here and mining the whole batch reverts (rare — then retry).
   // Callers are expected to pre-filter cells already held live by someone else.
-  const rentBatch = async (cellIds: number[], duration: number, verb: string) => {
+  // `pitchMap` supplies synth pitches for cells that aren't on the live grid yet
+  // (a jammed loop): cellId → 7-bit MIDI note. Falls back to the live grid's
+  // stored pitch when absent, so row-fill / renew callers pass nothing.
+  const rentBatch = async (
+    cellIds: number[],
+    duration: number,
+    verb: string,
+    pitchMap?: Map<number, number>,
+  ) => {
     if (!smartWalletClient || !smartAddress || cellIds.length === 0) return
 
     const cost = rentPerLoop * BigInt(duration) * BigInt(cellIds.length)
@@ -403,7 +440,8 @@ export function App() {
       return
     }
 
-    const pitchOf = (id: number) => (id >= SYNTH_CELL_START ? (grid.cells[id]?.pitch ?? 0) : 0)
+    const pitchOf = (id: number) =>
+      pitchMap?.get(id) ?? (id >= SYNTH_CELL_START ? (grid.cells[id]?.pitch ?? 0) : 0)
 
     // Light every cell instantly — pending until the batch confirms.
     for (const id of cellIds) grid.applyOptimistic(id, smartAddress, duration, pitchOf(id))
@@ -629,6 +667,21 @@ export function App() {
     setSnapshot(null, null)
   }
 
+  // Leave jam preview → back to the live grid, audio follows live state again.
+  const exitJam = () => {
+    setJam(null)
+    setSnapshot(null, null)
+  }
+
+  // Commit a jammed loop: rent the free cells through the EXISTING batch path
+  // (same as a row fill), carrying the jam's synth pitches since those cells
+  // aren't on the live grid yet. Then drop back to the live grid, where the
+  // freshly-rented cells now appear from the chain.
+  const commitJam = () => {
+    if (!jam || jamFree.length === 0) return
+    void rentBatch(jamFree, jamDuration, 'Jamming', synthPitches(jam)).then(exitJam)
+  }
+
   const onAudioToggle = () => {
     // The audioOn-sync useEffect drives the actual engine; this just
     // flips the visible flag.
@@ -717,11 +770,32 @@ export function App() {
   }
 
   const userEmail = user?.email?.address ?? user?.google?.email ?? null
+  // Recording presses the LIVE grid — suspended while previewing a jam too.
   const canRecord =
-    authenticated && smartAddress && grid.pattern !== 0n && !playback
+    authenticated && smartAddress && grid.pattern !== 0n && !playback && !jam
 
-  const displayPattern = playback ? playback.pattern : grid.pattern
-  const displaySynthData = playback ? playback.synthData : grid.synthData
+  // Jam-preview derived state. A proposed cell is "taken" only if someone else
+  // holds it live right now; everything else is free to rent (cells the user
+  // already holds re-rent harmlessly, extending them).
+  const jamCells = jam ? litCells(jam) : []
+  const jamTaken = jam
+    ? jamCells.filter((id) => {
+        const c = grid.cells[id]
+        const owner = c?.owner ?? null
+        return Boolean(
+          owner &&
+            smartAddress &&
+            owner.toLowerCase() !== smartAddress.toLowerCase() &&
+            (c?.expiryLoop ?? 0) > grid.currentLoop,
+        )
+      })
+    : []
+  const jamTakenSet = new Set(jamTaken)
+  const jamFree = jamCells.filter((id) => !jamTakenSet.has(id))
+  const jamCost = rentPerLoop * BigInt(jamDuration) * BigInt(jamFree.length)
+
+  const displayPattern = jam ? jam.pattern : playback ? playback.pattern : grid.pattern
+  const displaySynthData = jam ? jam.synthData : playback ? playback.synthData : grid.synthData
 
   const basePriceStr = fmtUsdm(basePrice)
 
@@ -830,19 +904,68 @@ export function App() {
         </div>
       )}
 
+      {jam && (
+        <div className="playback-banner jam-banner">
+          <div className="pb-status">
+            <span>
+              ✦ Jammed with Claude{jam.name ? ` — "${jam.name}"` : ''} ·{' '}
+              <strong>{jamFree.length}</strong> of {jamCells.length} cell
+              {jamCells.length === 1 ? '' : 's'} free right now
+            </span>
+            <button onClick={exitJam}>◼ back to live jam</button>
+          </div>
+          <div className="pb-cta">
+            <div className="pb-cta-copy">
+              <span className="pb-sub">
+                Audition it free. Rent the open cell{jamFree.length === 1 ? '' : 's'} to press this
+                loop onto the live grid.
+              </span>
+              <label className="popover-duration">
+                loops
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_TOGGLE_LOOPS}
+                  value={jamDuration}
+                  onChange={(e) =>
+                    setJamDuration(Math.max(1, Math.min(MAX_TOGGLE_LOOPS, Number(e.target.value) || 1)))
+                  }
+                />
+              </label>
+            </div>
+            {!authenticated ? (
+              <button className="btn-chrome pb-press" onClick={login}>
+                Connect to rent
+              </button>
+            ) : (
+              <button
+                className="btn-hot pb-press"
+                onClick={commitJam}
+                disabled={jamFree.length === 0 || Boolean(busy)}
+              >
+                {jamFree.length === 0
+                  ? 'All cells taken'
+                  : `✦ Rent ${jamFree.length} cell${jamFree.length === 1 ? '' : 's'} · ${fmtUsdm(jamCost)} USDm`}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid-wrap">
         <Grid
           pattern={displayPattern}
           synthData={displaySynthData}
           playingStep={playingStep}
-          onCellTier={playback ? undefined : handleCellTier}
-          onCellHover={playback ? undefined : handleCellHover}
-          cells={playback ? undefined : grid.cells}
+          onCellTier={playback || jam ? undefined : handleCellTier}
+          onCellHover={playback || jam ? undefined : handleCellHover}
+          cells={playback || jam ? undefined : grid.cells}
           myAddress={smartAddress}
           currentLoop={grid.currentLoop}
-          lastRent={playback ? null : grid.lastRent}
-          onRowLabelClick={playback || !authenticated ? undefined : handleRowLabelClick}
-          previewCells={playback ? null : previewCells}
+          lastRent={playback || jam ? null : grid.lastRent}
+          onRowLabelClick={playback || jam || !authenticated ? undefined : handleRowLabelClick}
+          previewCells={jam ? jamFree : playback ? null : previewCells}
+          conflictCells={jam ? jamTaken : null}
         />
       </div>
 

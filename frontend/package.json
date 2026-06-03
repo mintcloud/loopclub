@@ -15,6 +15,7 @@
     "@zerodev/permissions": "^5.6.3",
     "@zerodev/sdk": "^5.5.10",
     "@zerodev/webauthn-key": "^5.5.0",
+    "loopclub-loopgen": "file:../loopgen",
     "ox": "^0.8.9",
     "permissionless": "^0.2.57",
     "react": "^19.0.0",

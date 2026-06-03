@@ -39,6 +39,9 @@ interface GridProps {
   // Cells the user is hovering on in a tools popover — drawn with a distinct
   // "will-be-activated" highlight so they can see what a click would do.
   previewCells?: number[] | null
+  // Jam-preview only: proposed cells already held live by someone else. Drawn
+  // struck-through/dim so the user sees they can't be rented right now.
+  conflictCells?: number[] | null
 }
 
 export function Grid({
@@ -53,6 +56,7 @@ export function Grid({
   lastRent,
   onRowLabelClick,
   previewCells,
+  conflictCells,
 }: GridProps) {
   // Cells that just landed from a CellRented event get a one-shot pop animation.
   const [landed, setLanded] = useState<Set<number>>(() => new Set())
@@ -75,6 +79,7 @@ export function Grid({
   }, [lastRent])
 
   const previewSet = useMemo(() => new Set(previewCells ?? []), [previewCells])
+  const conflictSet = useMemo(() => new Set(conflictCells ?? []), [conflictCells])
 
   // Tracks the pending hover-hold so we can cancel on leave or click.
   const hoverRef = useRef<{ cellId: number; timer: number } | null>(null)
@@ -219,6 +224,7 @@ export function Grid({
           landed={landed}
           audited={audited}
           previewSet={previewSet}
+          conflictSet={conflictSet}
           onRowLabelClick={onRowLabelClick}
         />
       ))}
@@ -241,6 +247,7 @@ interface RowProps {
   landed: Set<number>
   audited: Set<number>
   previewSet: Set<number>
+  conflictSet: Set<number>
   onRowLabelClick?: (track: number, rect: DOMRect) => void
 }
 
@@ -259,6 +266,7 @@ function Row({
   landed,
   audited,
   previewSet,
+  conflictSet,
   onRowLabelClick,
 }: RowProps) {
   const liveMode = cells !== undefined
@@ -320,6 +328,9 @@ function Row({
         // preview is only drawn on cells the click would actually rent — i.e.
         // empty / lapsed ones; never on a cell another player live-holds.
         if (previewSet.has(cellId) && status !== 'occupied') cls.push('preview-fill')
+        // jam-preview: a proposed cell another player already holds live — show
+        // it struck so the user sees why it won't be rented.
+        if (conflictSet.has(cellId)) cls.push('jam-conflict')
 
         const style: CSSProperties = {}
         if (on && liveMode && owner && !mine) {
