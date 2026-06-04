@@ -217,6 +217,13 @@ export function App() {
   audioOnRef.current = audioOn
   const hasGesturedRef = useRef(hasGestured)
   hasGesturedRef.current = hasGestured
+  // True only for the brief window between the first user gesture (which
+  // unlocks + starts the AudioContext) and the click that rides along with
+  // it. The deck button reads this in onAudioToggle to swallow that one
+  // click — so tapping Play/Stop as your very first action doesn't
+  // start-then-immediately-stop the engine. See onAudioToggle for the bug
+  // this kills ("autoplay on but silent — I had to Stop then Play").
+  const armedByGestureRef = useRef(false)
 
   // Catch the first pointer / key / touch event and (a) flip hasGestured
   // for any later UI that depends on it and (b) call startAudio() right
@@ -232,7 +239,24 @@ export function App() {
       if (hasGesturedRef.current) return
       hasGesturedRef.current = true
       setHasGestured(true)
-      if (audioOnRef.current) void startAudio()
+      if (audioOnRef.current) {
+        void startAudio()
+        // This same physical interaction also fires a `click`. If it landed
+        // on the deck button, that click would otherwise toggle audioOn back
+        // off (it's already true) — start-then-stop. Arm the swallow, then
+        // disarm on the very next click *after* React's handlers have run
+        // (the document listener sits above React's root, so onAudioToggle
+        // sees it armed first). A gesture that lands elsewhere disarms here
+        // so a later, deliberate Stop is never swallowed.
+        armedByGestureRef.current = true
+        document.addEventListener(
+          'click',
+          () => {
+            armedByGestureRef.current = false
+          },
+          { once: true },
+        )
+      }
     }
     document.addEventListener('pointerdown', onFirstGesture, { once: true })
     document.addEventListener('keydown', onFirstGesture, { once: true })
@@ -688,11 +712,17 @@ export function App() {
   const onAudioToggle = () => {
     // First interaction on a fresh load (incl. a ?jam= autoplay): audioOn is
     // already true and the playhead is marching silently, waiting for a gesture
-    // to unlock the AudioContext. The document-level gesture handler starts the
-    // engine on this same click — so if we let this toggle flip audioOn→false,
-    // we'd start and immediately stop, leaving it silent until a second Play.
-    // (That's the "I had to click Stop then Play to hear it" bug.) Absorb this
-    // click as "yes, play": unlock + start in-gesture, never stop.
+    // to unlock the AudioContext. The document-level gesture handler already
+    // unlocked + started the engine on the pointerdown that precedes this
+    // click and armed armedByGestureRef. Swallow this one click so it doesn't
+    // flip audioOn→false and start-then-stop the engine. (That was the
+    // "autoplay on but silent — had to Stop then Play" bug.)
+    if (armedByGestureRef.current) {
+      armedByGestureRef.current = false
+      return
+    }
+    // Fallback: a gesture path that somehow didn't start the engine (e.g.
+    // audio was off). Unlock + start in-gesture, never stop.
     if (!hasGestured) {
       setHasGestured(true)
       setAudioOn(true)
@@ -834,7 +864,12 @@ export function App() {
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">
             <button className="deck-btn" onClick={onAudioToggle}>
-              <span className="deck-label">{audioOn ? '◼ Stop' : '▶ Play'}</span>
+              {/* Honest label: the AudioContext can't make sound until the
+                  first gesture, so read "▶ Play" until the engine is actually
+                  running (audioOn AND gestured). Keeps the homepage and a
+                  ?jam= deep link identical — both show Play, march the
+                  playhead, and start sound on the first tap. */}
+              <span className="deck-label">{audioOn && hasGestured ? '◼ Stop' : '▶ Play'}</span>
             </button>
             {authenticated && (
               <button
@@ -1273,54 +1308,123 @@ function FundModal({
   )
 }
 
-// "Jam with Claude" — discovery + onboarding for the loopclub MCP. A user runs
-// the one-line install in Claude Code / Desktop, describes a beat to Claude, and
-// gets back a ?jam= link that opens straight into this app, loaded and ready to
-// audition. No keys leave the chat — Claude only encodes the pattern.
-function JamWithClaudeModal({ onClose }: { onClose: () => void }) {
-  const cmd = 'claude mcp add loopclub -- npx -y loopclub-mcp'
+// A read-only value + one-click Copy, styled as the design system's share-url
+// row. Each instance owns its own "Copied!" flash so several can sit in one
+// modal (connector name, URL, install command) without sharing state.
+function CopyField({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(cmd)
+      await navigator.clipboard.writeText(value)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      // ignore
+      // Clipboard blocked — the field stays selected for a manual copy.
     }
   }
+  return (
+    <div className="share-url">
+      <input readOnly value={value} aria-label={label} onFocus={(e) => e.currentTarget.select()} />
+      <button className="btn-chrome" onClick={copy}>
+        {copied ? 'Copied!' : 'Copy'}
+      </button>
+    </div>
+  )
+}
+
+// "Jam with Claude" — first-run onboarding for the loopclub MCP. Two paths:
+//   • Claude.ai / Desktop (default): open Claude's connector settings in a new
+//     tab and paste the hosted MCP URL — zero local install. There's no public
+//     deep link that pre-fills a connector, so we open the settings page and
+//     hand over copy-ready name + URL fields.
+//   • Claude Code: the one-line `claude mcp add` install.
+// Either way the user describes a beat, Claude calls build_loop, and the ?jam=
+// link it returns opens straight into this app. No keys leave the chat.
+function JamWithClaudeModal({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<'cloud' | 'cli'>('cloud')
+  const cliCmd = 'claude mcp add loopclub -- npx -y loopclub-mcp'
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal jam-help" onClick={(e) => e.stopPropagation()}>
         <h3>✦ Jam with Claude</h3>
         <p>
-          Build a loop by <em>describing</em> it to Claude — “dark techno, four-on-the-floor kick,
-          off-beat hats, a low synth drone.” Claude composes it and hands you a link that opens right
-          here, pre-loaded and ready to audition. You rent the cells; Claude never touches your wallet.
+          Describe a beat to Claude — “dark techno, four-on-the-floor kick, off-beat hats, a low synth
+          drone.” It composes the loop and hands you a link that opens right here, pre-loaded and ready
+          to audition. You rent the cells; Claude never touches your wallet.
         </p>
-        <ol className="jam-steps">
-          <li>
-            <strong>Add the loopclub server</strong> once, in Claude Code or Claude Desktop:
-            <div className="share-url">
-              <input readOnly value={cmd} onFocus={(e) => e.currentTarget.select()} />
-              <button className="btn-chrome" onClick={copy}>
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-            <span className="muted">
-              Desktop users: add it under <code>mcpServers</code> in{' '}
-              <code>claude_desktop_config.json</code> instead.
-            </span>
-          </li>
-          <li>
-            <strong>Ask Claude to jam</strong> — “jam me a house loop at 124 bpm” — or use the built-in{' '}
-            <code>/jam</code> prompt the server ships.
-          </li>
-          <li>
-            <strong>Open the link</strong> Claude returns. The loop loads here as a free preview; rent
-            the open cells to press it onto the live grid.
-          </li>
-        </ol>
+
+        <div className="jam-tabs" role="tablist">
+          <button
+            role="tab"
+            aria-selected={tab === 'cloud'}
+            className={tab === 'cloud' ? 'active' : ''}
+            onClick={() => setTab('cloud')}
+          >
+            Claude.ai · Desktop
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === 'cli'}
+            className={tab === 'cli' ? 'active' : ''}
+            onClick={() => setTab('cli')}
+          >
+            Claude Code
+          </button>
+        </div>
+
+        {tab === 'cloud' ? (
+          <ol className="jam-steps">
+            <li>
+              <strong>Open Claude’s connector settings</strong> in a new tab:
+              <div className="row jam-open-row">
+                <a
+                  className="btn-chrome"
+                  href="https://claude.ai/settings/connectors"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open Claude connectors ↗
+                </a>
+              </div>
+              <span className="muted">Custom connectors need a Claude Pro or Max plan.</span>
+            </li>
+            <li>
+              <strong>Add a custom connector</strong> — click “Add custom connector” and paste:
+              <span className="muted">Name</span>
+              <CopyField value="loopclub" label="Connector name" />
+              <span className="muted">Remote MCP URL</span>
+              <CopyField value={config.mcpUrl} label="Connector URL" />
+            </li>
+            <li>
+              <strong>Ask Claude to jam</strong> — “jam me a house loop at 124 bpm.” It calls{' '}
+              <code>build_loop</code> and replies with a link.
+            </li>
+            <li>
+              <strong>Open the link.</strong> The loop loads here as a free preview; rent the open cells
+              to press it onto the live grid.
+            </li>
+          </ol>
+        ) : (
+          <ol className="jam-steps">
+            <li>
+              <strong>Add the loopclub server</strong> once, from your terminal:
+              <CopyField value={cliCmd} label="Install command" />
+              <span className="muted">
+                Claude Desktop: add it under <code>mcpServers</code> in{' '}
+                <code>claude_desktop_config.json</code>.
+              </span>
+            </li>
+            <li>
+              <strong>Ask Claude to jam</strong> — “jam me a house loop at 124 bpm” — or use the built-in{' '}
+              <code>/jam</code> prompt the server ships.
+            </li>
+            <li>
+              <strong>Open the link</strong> Claude returns. The loop loads here as a free preview; rent
+              the open cells to press it onto the live grid.
+            </li>
+          </ol>
+        )}
+
         <p className="muted">
           Full setup &amp; the tools Claude can call:{' '}
           <a href="https://github.com/mintcloud/loopclub/tree/main/mcp" target="_blank" rel="noreferrer">

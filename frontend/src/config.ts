@@ -28,6 +28,11 @@ export const config = {
   loopclubAddress: import.meta.env.VITE_LOOPCLUB_ADDRESS as `0x${string}`,
   paymentTokenAddress: import.meta.env.VITE_PAYMENT_TOKEN_ADDRESS as `0x${string}`,
   explorerUrl: import.meta.env.VITE_EXPLORER_URL as string,
+  // Remote loopclub MCP endpoint a claude.ai (Pro/Max/Desktop) user pastes
+  // into Settings → Connectors to "Jam with Claude" with zero local install.
+  // Branded host is mcp.loopclub.xyz; override on Vercel if the live tunnel
+  // is still on a different host (e.g. mcp.tg-itsavibe.com) while DNS moves.
+  mcpUrl: (import.meta.env.VITE_LOOPCLUB_MCP_URL as string | undefined) || 'https://mcp.loopclub.xyz/mcp',
   // ZeroDev bundler + paymaster RPC, used by "fast mode" (session keys) to
   // submit toggle UserOps signed by the in-browser session key. Same endpoint
   // the Privy Kernel wallet already uses. Session keys stay off unless set.
