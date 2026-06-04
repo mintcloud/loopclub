@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "tsc -p ../loopgen/tsconfig.json",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -p ../loopgen/tsconfig.json && tsc -b --noEmit"
   },
   "dependencies": {
     "@privy-io/react-auth": "^3.23.1",
