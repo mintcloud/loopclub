@@ -1333,10 +1333,10 @@ function CopyField({ value, label }: { value: string; label?: string }) {
 }
 
 // "Jam with Claude" — first-run onboarding for the loopclub MCP. Two paths:
-//   • Claude.ai / Desktop (default): open Claude's connector settings in a new
-//     tab and paste the hosted MCP URL — zero local install. There's no public
-//     deep link that pre-fills a connector, so we open the settings page and
-//     hand over copy-ready name + URL fields.
+//   • Claude.ai / Desktop (default): deep-link straight into Claude's
+//     "Add custom connector" modal (the /customize/connectors?modal= URL — the
+//     old /settings/connectors page is now a dead-end that just says "moved to
+//     Customize") and paste the hosted MCP URL — zero local install.
 //   • Claude Code: the one-line `claude mcp add` install.
 // Either way the user describes a beat, Claude calls build_loop, and the ?jam=
 // link it returns opens straight into this app. No keys leave the chat.
@@ -1375,11 +1375,11 @@ function JamWithClaudeModal({ onClose }: { onClose: () => void }) {
         {tab === 'cloud' ? (
           <ol className="jam-steps">
             <li>
-              <strong>Open Claude’s connector settings</strong> in a new tab:
+              <strong>Open the “Add custom connector” dialog</strong> in a new tab:
               <div className="row jam-open-row">
                 <a
                   className="btn-chrome"
-                  href="https://claude.ai/settings/connectors"
+                  href="https://claude.ai/customize/connectors?modal=add-custom-connector"
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -1389,7 +1389,7 @@ function JamWithClaudeModal({ onClose }: { onClose: () => void }) {
               <span className="muted">Custom connectors need a Claude Pro or Max plan.</span>
             </li>
             <li>
-              <strong>Add a custom connector</strong> — click “Add custom connector” and paste:
+              <strong>Paste the connector details</strong> — in the dialog that opens, fill in:
               <span className="muted">Name</span>
               <CopyField value="loopclub" label="Connector name" />
               <span className="muted">Remote MCP URL</span>
