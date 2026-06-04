@@ -1,0 +1,29 @@
+# Cloudflare Tunnel ingress for mcp.loopclub.xyz
+#
+# Add the `mcp.loopclub.xyz` rule to your existing tunnel's config (the same
+# tunnel that already fronts loopclub). Cloudflare terminates TLS and is the
+# PRIMARY edge control — turn on the WAF / rate-limiting / bot-management rules
+# noted in SECURITY.md. The origin (this Node service) binds to 127.0.0.1 and is
+# never directly reachable from the internet.
+#
+#   1. Route DNS:   cloudflared tunnel route dns <tunnel> mcp.loopclub.xyz
+#   2. Add the ingress rule below, above the catch-all 404.
+#   3. Restart cloudflared.
+
+tunnel: <YOUR_TUNNEL_ID>
+credentials-file: /home/theo/.cloudflared/<YOUR_TUNNEL_ID>.json
+
+ingress:
+  # … your existing app/landing rules …
+
+  - hostname: mcp.loopclub.xyz
+    service: http://127.0.0.1:8787
+    originRequest:
+      # The Host header reaches the origin as mcp.loopclub.xyz, which the
+      # service's MCP_ALLOWED_HOSTS allowlist expects. Do NOT rewrite it.
+      connectTimeout: 10s
+      # Streamable HTTP replies are plain JSON in stateless mode (no SSE),
+      # so no special chunked/streaming tweaks are needed.
+
+  # Catch-all — keep last.
+  - service: http_status:404

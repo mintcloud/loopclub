@@ -1,0 +1,56 @@
+# loopclub-mcp remote (Streamable HTTP) — systemd unit.
+#
+# Pure Node service, no Docker required. Install as a SYSTEM service:
+#   sudo cp deploy/loopclub-mcp-http.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now loopclub-mcp-http
+#
+# …or as a USER service (no sudo) under ~/.config/systemd/user/ and
+#   systemctl --user enable --now loopclub-mcp-http   (needs `loginctl enable-linger theo`)
+#
+# Adjust WorkingDirectory / ExecStart paths if the repo lives elsewhere.
+
+[Unit]
+Description=loopclub MCP (remote Streamable HTTP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/theo/projects/loopclub/mcp
+ExecStart=/usr/bin/node dist/http.js
+Restart=on-failure
+RestartSec=2
+
+# ── Configuration ──────────────────────────────────────────────────────────
+Environment=PORT=8787
+Environment=MCP_BIND_HOST=127.0.0.1
+Environment=MCP_ALLOWED_HOSTS=mcp.loopclub.xyz,localhost,127.0.0.1
+Environment=MCP_ALLOWED_ORIGINS=https://app.loopclub.xyz,https://loopclub.xyz
+Environment=LOOPCLUB_ORIGIN=https://app.loopclub.xyz
+# Optional tuning (defaults shown):
+# Environment=MCP_MAX_BODY_BYTES=65536
+# Environment=MCP_RATE_MAX=120
+# Environment=MCP_RATE_WINDOW_MS=60000
+# Environment=MCP_REQUEST_TIMEOUT_MS=15000
+
+# ── Hardening (defense in depth; the process needs no privileges) ───────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+SystemCallArchitectures=native
+# Cap resources so a flood that slips past Cloudflare can't take the box down.
+MemoryMax=256M
+TasksMax=64
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target

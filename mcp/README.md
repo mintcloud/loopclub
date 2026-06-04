@@ -44,6 +44,38 @@ apex `loopclub.xyz` is the landing page and ignores the param):
 }}}
 ```
 
+## Remote (hosted) — add it on claude.ai with no install
+
+The same server runs over MCP's **Streamable HTTP** transport so claude.ai
+(Pro/Max) users can add it as a **custom connector** by URL — no local tooling:
+
+> Settings → Connectors → Add custom connector → `https://mcp.loopclub.xyz/mcp`
+
+Run it yourself:
+```bash
+npm run build
+npm run start:http          # listens on 127.0.0.1:8787 (POST /mcp), front with a proxy
+```
+It binds to **localhost only** and is meant to sit behind a TLS-terminating
+reverse proxy / Cloudflare tunnel (see `deploy/`). It is **no-auth by design** —
+the server holds no keys, signs nothing, and is a pure stateless encoder, so
+there is nothing to steal. The risks of a public endpoint are *abuse / DoS*, not
+data loss; those are bounded both in-process (body cap, input bounds, host/origin
+allowlist, rate limit, stateless JSON mode) and at the edge (Cloudflare WAF).
+**Full threat model: [`SECURITY.md`](./SECURITY.md).**
+
+Config (env, all optional):
+
+| var | default | purpose |
+|-----|---------|---------|
+| `PORT` | `8787` | listen port |
+| `MCP_BIND_HOST` | `127.0.0.1` | bind address — keep on localhost behind a proxy |
+| `MCP_ALLOWED_HOSTS` | `mcp.loopclub.xyz,localhost,127.0.0.1` | Host-header allowlist (DNS-rebind defense) |
+| `MCP_ALLOWED_ORIGINS` | `https://app.loopclub.xyz,https://loopclub.xyz` | Origin allowlist (absent Origin = allowed; foreign = 403) |
+| `MCP_MAX_BODY_BYTES` | `65536` | request body cap |
+| `MCP_RATE_MAX` / `MCP_RATE_WINDOW_MS` | `120` / `60000` | coarse per-IP rate limit (Cloudflare is primary) |
+| `LOOPCLUB_ORIGIN` | `https://app.loopclub.xyz` | origin baked into emitted `?jam=` links |
+
 ## What it exposes
 
 **Tools**
