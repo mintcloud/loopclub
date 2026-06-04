@@ -1,29 +1,27 @@
-# Cloudflare Tunnel ingress for mcp.loopclub.xyz
+# Cloudflare Tunnel ingress for the loopclub MCP.
 #
-# Add the `mcp.loopclub.xyz` rule to your existing tunnel's config (the same
-# tunnel that already fronts loopclub). Cloudflare terminates TLS and is the
-# PRIMARY edge control — turn on the WAF / rate-limiting / bot-management rules
-# noted in SECURITY.md. The origin (this Node service) binds to 127.0.0.1 and is
-# never directly reachable from the internet.
+# The VPS already runs tunnel "my-vps" (id 736eda62-c751-4cb5-aefe-c3bfe7ba167a)
+# as a system service (User=theo), reading ~/.cloudflared/config.yml and serving
+# *.tg-itsavibe.com. Add ONE hostname line to that existing file — do NOT create
+# a new tunnel.
 #
-#   1. Route DNS:   cloudflared tunnel route dns <tunnel> mcp.loopclub.xyz
-#   2. Add the ingress rule below, above the catch-all 404.
-#   3. Restart cloudflared.
+# Why mcp.tg-itsavibe.com and not mcp.loopclub.xyz:
+#   loopclub.xyz DNS is on Vercel (ns*.vercel-dns.com), not Cloudflare, so this
+#   tunnel can't bind a loopclub.xyz hostname. mcp.tg-itsavibe.com is already a
+#   Cloudflare zone on the account → works immediately AND still sits behind the
+#   Cloudflare edge (WAF + rate-limiting apply). To get the branded
+#   mcp.loopclub.xyz you'd have to move loopclub.xyz's nameservers to Cloudflare
+#   (re-creating the Vercel records) — not worth it just for the MCP.
+#
+# Steps:
+#   1. cloudflared tunnel route dns my-vps mcp.tg-itsavibe.com
+#   2. Add the rule below to ~/.cloudflared/config.yml ABOVE the catch-all 404.
+#   3. sudo systemctl restart cloudflared
 
-tunnel: <YOUR_TUNNEL_ID>
-credentials-file: /home/theo/.cloudflared/<YOUR_TUNNEL_ID>.json
+# ── add this block to the existing ingress list ──────────────────────────────
+  # loopclub MCP — remote Streamable HTTP (stateless pure encoder)
+  - hostname: mcp.tg-itsavibe.com
+    service: http://localhost:3008
 
-ingress:
-  # … your existing app/landing rules …
-
-  - hostname: mcp.loopclub.xyz
-    service: http://127.0.0.1:8787
-    originRequest:
-      # The Host header reaches the origin as mcp.loopclub.xyz, which the
-      # service's MCP_ALLOWED_HOSTS allowlist expects. Do NOT rewrite it.
-      connectTimeout: 10s
-      # Streamable HTTP replies are plain JSON in stateless mode (no SSE),
-      # so no special chunked/streaming tweaks are needed.
-
-  # Catch-all — keep last.
-  - service: http_status:404
+  # … keep the existing catch-all LAST:
+  # - service: http_status:404
