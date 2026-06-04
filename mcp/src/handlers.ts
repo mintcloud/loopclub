@@ -16,8 +16,11 @@ import {
   type Wire,
 } from 'loopclub-loopgen'
 
-/** Production origin for emitted links. Override with LOOPCLUB_ORIGIN. */
-export const ORIGIN = process.env.LOOPCLUB_ORIGIN ?? 'https://loopclub.xyz'
+/** Production origin for emitted links. Override with LOOPCLUB_ORIGIN.
+ *  Must be the APP subdomain (app.loopclub.xyz) — that's where the `?jam=`
+ *  handler lives. The apex (loopclub.xyz) is the marketing landing page and
+ *  ignores `?jam=`, so a link there silently drops the loop. */
+export const ORIGIN = process.env.LOOPCLUB_ORIGIN ?? 'https://app.loopclub.xyz'
 
 const RENT_NOTE =
   'Open the link to audition the loop free. Pressing the cells on-chain costs ' +

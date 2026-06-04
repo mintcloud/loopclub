@@ -57,6 +57,9 @@ export function App() {
   } | null>(null)
   const [openRow, setOpenRow] = useState<{ track: number; rect: DOMRect } | null>(null)
   const [showFund, setShowFund] = useState(false)
+  // "Jam with Claude" discovery: explains how to connect the loopclub MCP so a
+  // loop built in a Claude chat opens straight into this app via a ?jam= link.
+  const [showJamHelp, setShowJamHelp] = useState(false)
   const [playingStep, setPlayingStep] = useState<number>(-1)
   // Auto-on: the app opens with audio engaged so the playhead and cells
   // start moving the instant the AudioContext can resume (which happens on
@@ -683,6 +686,19 @@ export function App() {
   }
 
   const onAudioToggle = () => {
+    // First interaction on a fresh load (incl. a ?jam= autoplay): audioOn is
+    // already true and the playhead is marching silently, waiting for a gesture
+    // to unlock the AudioContext. The document-level gesture handler starts the
+    // engine on this same click — so if we let this toggle flip audioOn→false,
+    // we'd start and immediately stop, leaving it silent until a second Play.
+    // (That's the "I had to click Stop then Play to hear it" bug.) Absorb this
+    // click as "yes, play": unlock + start in-gesture, never stop.
+    if (!hasGestured) {
+      setHasGestured(true)
+      setAudioOn(true)
+      void startAudio()
+      return
+    }
     // The audioOn-sync useEffect drives the actual engine; this just
     // flips the visible flag.
     setAudioOn((on) => !on)
@@ -807,6 +823,13 @@ export function App() {
           <a className="wordmark-link" href="/" aria-label="loopclub home">
             <img className="wordmark" src={logoUrl} alt="loop club" />
           </a>
+          <button
+            className="jam-claude-btn"
+            onClick={() => setShowJamHelp(true)}
+            title="Build loops by chatting with Claude"
+          >
+            ✦ Jam with Claude
+          </button>
         </div>
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">
@@ -939,7 +962,7 @@ export function App() {
               </button>
             ) : (
               <button
-                className="btn-hot pb-press"
+                className="btn-chrome pb-press"
                 onClick={commitJam}
                 disabled={jamFree.length === 0 || Boolean(busy)}
               >
@@ -1079,6 +1102,8 @@ export function App() {
           onCancel={() => setPressConfirm(null)}
         />
       )}
+
+      {showJamHelp && <JamWithClaudeModal onClose={() => setShowJamHelp(false)} />}
 
       {error && <div className="toast error">{error}</div>}
       {!error && busy && <div className="toast">{busy}</div>}
@@ -1242,6 +1267,70 @@ function FundModal({
             Disconnect
           </button>
           <button onClick={onClose}>close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// "Jam with Claude" — discovery + onboarding for the loopclub MCP. A user runs
+// the one-line install in Claude Code / Desktop, describes a beat to Claude, and
+// gets back a ?jam= link that opens straight into this app, loaded and ready to
+// audition. No keys leave the chat — Claude only encodes the pattern.
+function JamWithClaudeModal({ onClose }: { onClose: () => void }) {
+  const cmd = 'claude mcp add loopclub -- npx -y loopclub-mcp'
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(cmd)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // ignore
+    }
+  }
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal jam-help" onClick={(e) => e.stopPropagation()}>
+        <h3>✦ Jam with Claude</h3>
+        <p>
+          Build a loop by <em>describing</em> it to Claude — “dark techno, four-on-the-floor kick,
+          off-beat hats, a low synth drone.” Claude composes it and hands you a link that opens right
+          here, pre-loaded and ready to audition. You rent the cells; Claude never touches your wallet.
+        </p>
+        <ol className="jam-steps">
+          <li>
+            <strong>Add the loopclub server</strong> once, in Claude Code or Claude Desktop:
+            <div className="share-url">
+              <input readOnly value={cmd} onFocus={(e) => e.currentTarget.select()} />
+              <button className="btn-chrome" onClick={copy}>
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <span className="muted">
+              Desktop users: add it under <code>mcpServers</code> in{' '}
+              <code>claude_desktop_config.json</code> instead.
+            </span>
+          </li>
+          <li>
+            <strong>Ask Claude to jam</strong> — “jam me a house loop at 124 bpm” — or use the built-in{' '}
+            <code>/jam</code> prompt the server ships.
+          </li>
+          <li>
+            <strong>Open the link</strong> Claude returns. The loop loads here as a free preview; rent
+            the open cells to press it onto the live grid.
+          </li>
+        </ol>
+        <p className="muted">
+          Full setup &amp; the tools Claude can call:{' '}
+          <a href="https://github.com/mintcloud/loopclub/tree/main/mcp" target="_blank" rel="noreferrer">
+            loopclub-mcp readme ↗
+          </a>
+        </p>
+        <div className="row">
+          <button className="btn-chrome" onClick={onClose}>
+            Got it
+          </button>
         </div>
       </div>
     </div>
