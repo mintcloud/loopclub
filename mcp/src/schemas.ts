@@ -16,9 +16,23 @@ type _AssertDrumsAreInstruments =
 const _drumGuard: _AssertDrumsAreInstruments = true
 void _drumGuard
 
+// Upper bounds. The grid is only 16 steps × 9 tracks, so a real loop is tiny —
+// these caps are loose enough to never reject a legitimate spec but tight enough
+// that a malicious caller can't make encode() do unbounded work. They matter
+// most when the server is exposed over public, unauthenticated HTTP (the remote
+// build): without a `.max()`, `tracks: [<millions>]` is a free CPU/memory DoS.
+const MAX_TRACKS = 32 // 9 instruments; 32 tolerates dup/odd tracks, caps the rest
+const MAX_STEPS = 16 // a drum row has at most 16 lit steps
+const MAX_NOTES = 16 // the synth row is monophonic across 16 steps
+const MAX_NAME = 120 // label is cosmetic; cap the share-copy string
+// A jam link for a full grid is ~70 base64url chars; 4096 is generous headroom
+// while bounding the base64 decode allocation in fromLink().
+const MAX_LINK = 4096
+const MAX_BIGINT_STR = 128 // a 144-bit value is ≤44 decimal / ≤38 hex chars
+
 const DrumTrack = z.object({
   instrument: z.enum(DRUM_INSTRUMENTS),
-  steps: z.array(z.number().int().min(0).max(15)).describe('lit step indices, 0–15'),
+  steps: z.array(z.number().int().min(0).max(15)).max(MAX_STEPS).describe('lit step indices, 0–15'),
 })
 
 const SynthTrack = z.object({
@@ -28,10 +42,11 @@ const SynthTrack = z.object({
       z.object({
         step: z.number().int().min(0).max(15),
         pitch: z
-          .union([z.number(), z.string()])
+          .union([z.number(), z.string().max(8)])
           .describe('MIDI note (0–127) or name like "C3" / "F#3"'),
       }),
     )
+    .max(MAX_NOTES)
     .describe('one note per active synth step; the row is monophonic per step'),
 })
 
@@ -39,15 +54,23 @@ export const Track = z.discriminatedUnion('instrument', [DrumTrack, SynthTrack])
 
 /** ZodRawShape for `build_loop`. */
 export const buildLoopShape = {
-  tracks: z.array(Track).min(1).describe('the loop, as a list of tracks'),
-  name: z.string().optional().describe('optional label, used in the share copy'),
+  tracks: z.array(Track).min(1).max(MAX_TRACKS).describe('the loop, as a list of tracks'),
+  name: z.string().max(MAX_NAME).optional().describe('optional label, used in the share copy'),
 }
 
 /** ZodRawShape for `describe_loop`. */
 export const describeLoopShape = {
-  link: z.string().optional().describe('a loopclub ?jam= link or just the jam param'),
-  pattern: z.string().optional().describe('alternatively, the raw pattern as a hex/decimal bigint'),
-  synthData: z.string().optional().describe('the raw synthData bigint (paired with `pattern`)'),
+  link: z.string().max(MAX_LINK).optional().describe('a loopclub ?jam= link or just the jam param'),
+  pattern: z
+    .string()
+    .max(MAX_BIGINT_STR)
+    .optional()
+    .describe('alternatively, the raw pattern as a hex/decimal bigint'),
+  synthData: z
+    .string()
+    .max(MAX_BIGINT_STR)
+    .optional()
+    .describe('the raw synthData bigint (paired with `pattern`)'),
 }
 
 /** ZodRawShape for the `jam` prompt arguments. */
