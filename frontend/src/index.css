@@ -263,6 +263,54 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   background: linear-gradient(90deg, rgba(92, 182, 255, .18), rgba(100, 220, 200, .16));
 }
 
+/* "Jam with Claude" header affordance — a quiet pill next to the wordmark, the
+ * blue/teal jam tint so it reads as the same feature as the jam banner. */
+.jam-claude-btn {
+  background: linear-gradient(90deg, rgba(92, 182, 255, .14), rgba(100, 220, 200, .12));
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.32rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.1s ease, transform 0.06s ease;
+}
+.jam-claude-btn:hover  { filter: brightness(1.12); }
+.jam-claude-btn:active { transform: translateY(1px); }
+@media (max-width: 720px) {
+  /* Drop the label to its glyph on phones so the header doesn't wrap badly. */
+  .jam-claude-btn { font-size: 0; padding: 0.32rem 0.55rem; }
+  .jam-claude-btn::before { content: '✦ jam'; font-size: 11px; }
+}
+
+/* "Jam with Claude" help modal — wider than the default modal so the install
+ * command + numbered steps breathe. */
+.jam-help { min-width: 360px; max-width: 460px; gap: 0.7rem; text-align: left; }
+.jam-help p { color: var(--muted); font-size: 12px; line-height: 1.55; }
+.jam-help .jam-steps {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.jam-help .jam-steps .share-url { margin-top: 0.4rem; }
+.jam-help .jam-steps .muted { display: block; margin-top: 0.35rem; }
+.jam-help code {
+  font-family: var(--font-mono);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 4px);
+  padding: 0.05rem 0.3rem;
+  font-size: 11px;
+}
+
 /* rent is nearly up — anyone can grab the cell soon */
 .cell.expiring {
   animation: expirePulse 1.4s ease-in-out infinite;

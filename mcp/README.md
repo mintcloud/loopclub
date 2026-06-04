@@ -35,11 +35,12 @@ claude mcp add loopclub -- npx -y loopclub-mcp
 ```
 
 Set `LOOPCLUB_ORIGIN` to point links at a specific deployment (defaults to
-`https://loopclub.xyz`):
+`https://app.loopclub.xyz` — the app subdomain that handles `?jam=` links; the
+apex `loopclub.xyz` is the landing page and ignores the param):
 ```json
 { "mcpServers": { "loopclub": {
   "command": "npx", "args": ["-y", "loopclub-mcp"],
-  "env": { "LOOPCLUB_ORIGIN": "https://loopclub.xyz" }
+  "env": { "LOOPCLUB_ORIGIN": "https://app.loopclub.xyz" }
 }}}
 ```
 
