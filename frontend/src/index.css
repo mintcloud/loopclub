@@ -302,6 +302,46 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .jam-help .jam-steps .share-url { margin-top: 0.4rem; }
 .jam-help .jam-steps .muted { display: block; margin-top: 0.35rem; }
+/* In the cloud path a step stacks a "Name" / "URL" label above each copy
+ * field — tighten the gap so the label hugs its field. */
+.jam-help .jam-steps .muted + .share-url { margin-top: 0.2rem; }
+
+/* Two onboarding paths (Claude.ai · Desktop / Claude Code) as a segmented
+ * control above the steps. */
+.jam-tabs {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.2rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+}
+.jam-tabs button {
+  flex: 1;
+  padding: 0.34rem 0.5rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm, 4px);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.jam-tabs button:hover { color: var(--text); }
+.jam-tabs button.active {
+  color: var(--text);
+  background: var(--panel);
+  border-color: var(--border);
+}
+/* The "Open Claude connectors" link is an <a> styled as a chrome button — keep
+ * it inline-sized and stop the step's flex column from stretching it. */
+.jam-open-row { margin-top: 0.4rem; }
+.jam-open-row .btn-chrome {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
 .jam-help code {
   font-family: var(--font-mono);
   background: var(--panel-2);
