@@ -103,7 +103,7 @@ import logoUrl from 'design-system/assets/loopclub-logo.png';
 | `.deck-controls` + `.deck-btn` | header deck-pad tray (Play / Audition / Press) |
 | `.deck-btn.active`             | engaged deck pad — dark pressed-chrome reflection |
 | `.account-group` + `.wallet-btn` | header chip — balance + "⊕ My wallet"   |
-| `.connect-btn`                 | pre-auth CTA — `.btn-chrome` at cluster height |
+| `.connect-btn`                 | pre-auth CTA — `.btn-chrome` at deck-pad height (matches the Stop/Play/Press pads) |
 | `.grid-wrap` + `.sync-badge`   | grid-anchored block-pulse heartbeat       |
 | `.playback-banner` + `.pb-*`   | replay state banner above the grid        |
 | `.modal-bg` + `.modal`         | centred dialog                            |
