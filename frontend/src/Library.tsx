@@ -329,35 +329,34 @@ export function Library({
                     {editionsMinted}× pressed · {r.holders.length} contrib
                   </span>
                 </div>
-                {(isOwner || isContributor) && (
-                  <div className="role-badges">
-                    {isOwner && topEdition && (
-                      <span
-                        className="role-badge owned"
-                        title={
-                          myEditions.length === 1
-                            ? `You hold edition #${topEdition.edition}${
-                                topEdition.edition === 1 ? ' — the original press' : ''
-                              } of this loop`
-                            : `You hold ${myEditions.length} editions of this loop: ${myEditions
-                                .map((e) => `#${e.edition}`)
-                                .join(', ')}`
-                        }
-                      >
-                        ✦ edition #{topEdition.edition}
-                        {myEditions.length > 1 ? ` +${myEditions.length - 1}` : ''}
-                      </span>
-                    )}
-                    {isContributor && (
-                      <span
-                        className="role-badge contrib"
-                        title="You rented a cell that became part of this loop"
-                      >
-                        ♪ contributor
-                      </span>
-                    )}
-                  </div>
-                )}
+                {/* Always rendered (CSS reserves min-height) so cards with no role
+                    stay vertically aligned with owned/contributor cards in the grid. */}
+                <div className="role-badges">
+                  {isOwner && topEdition && (
+                    <span
+                      className="role-badge owned"
+                      title={
+                        myEditions.length === 1
+                          ? `You hold edition #${topEdition.edition}${
+                              topEdition.edition === 1 ? ' — the original press' : ''
+                            } of this loop`
+                          : `You hold ${myEditions.length} editions of this loop: ${myEditions
+                              .map((e) => `#${e.edition}`)
+                              .join(', ')}`
+                      }
+                    >
+                      ✦ owner
+                    </span>
+                  )}
+                  {isContributor && (
+                    <span
+                      className="role-badge contrib"
+                      title="You rented a cell that became part of this loop"
+                    >
+                      ♪ contributor
+                    </span>
+                  )}
+                </div>
                 <MiniGrid pattern={r.pattern} synthData={r.synthData} playingStep={isPlaying ? playingStep : -1} />
                 <div className="loop-card-foot">
                   <span className="muted owner">
@@ -387,7 +386,7 @@ export function Library({
                         rel="noreferrer"
                         title={`View your Edition #${topEdition.edition} NFT on Blockscout`}
                       >
-                        ↗ See Edition NFT
+                        ↗ see edition NFT
                       </a>
                     )}
                     <ShareButton record={r} editionsMinted={editionsMinted} />

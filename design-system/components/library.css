@@ -116,7 +116,10 @@
   gap: 0.5rem; font-size: 11px;
 }
 .loop-card-foot .owner { font-family: var(--font-mono); color: var(--muted); }
-.card-actions { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
+/* Tightened gap + chip padding so play / see edition NFT / share fit on one
+   line even in the narrowest 3-column desktop card. flex-wrap stays as a
+   safety net for the rare 4th chip (claim royalties). */
+.card-actions { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
 /* Card actions — chrome chips, smaller siblings of the deck pads.
    Play / Stop / Claim / Share all use the silver chrome surface; the
    "See Edition NFT" link gets the gold variant (.nft-link) so the
@@ -126,7 +129,7 @@
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.02em;
-  padding: 0.32rem 0.7rem;
+  padding: 0.32rem 0.5rem;
   background: var(--chrome-fill-button);
   border: 1px solid var(--chrome-border);
   border-radius: var(--r-sm);
@@ -176,8 +179,11 @@
     0 0 14px rgba(255,194,75,.45);
 }
 
-/* Role badges */
-.role-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+/* Role badges. The row is always rendered (even with no badge) and reserves
+   the height of one badge so loops you neither own nor contributed to stay
+   vertically aligned with the ones that carry a tag — mini-grids and action
+   buttons then line up across the whole grid. */
+.role-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; min-height: 1.18rem; }
 .role-badge {
   font-size: 10px; padding: 0.13rem 0.42rem;
   border-radius: var(--r-xs); letter-spacing: 0.02em;
