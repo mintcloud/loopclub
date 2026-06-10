@@ -59,7 +59,7 @@ design-system/
 - **Vivid LED grid cells.** Off cells are recessed dark bezels; on cells halate in their track colour (kick coral / snare peach / hat mint / synth sky / clap orange / open-hat green / cowbell purple / crash pink / ride blue).
 - **`--hot-fill`** red is reserved for one-shot urgent CTAs (press now, expiring rent).
 - **Michroma** (`--font-tech`, Eurostile-Extended lineage — Dreamcast / Y2K OS) is the hero voice: every silkscreened legend (deck pads, tabs, track labels, chrome pills, modal headings), uppercase with `--ls-tech` tracking. **Gilroy** for body copy and small dense UI. Monos are for true readouts ONLY: **Major Mono Display** (`--font-readout`) on counters (block #, step numbers), **Space Mono** (`--font-mono`) on addresses/code. A mono anywhere else is the default-coder voice creeping back.
-- **Curated unicode glyph set** (`▶ ◼ ✦ ♪ ⚡ ⊕ ↗ ✕ # · …`) — never emoji.
+- **Curated unicode glyph set** (`▶ ◼ ✦ ♪ ⚡ ¤ ↗ ✕ # · …`) — never emoji. `¤` (generic currency) is the wallet/funds mark.
 - **Voice** — lowercase, monospace, command-style. Em dash separator. "Your" not "we". No marketing words.
 
 ---
@@ -110,7 +110,7 @@ import logoUrl from 'design-system/assets/loopclub-logo.png';
 | `.renew-strip` + `.rc.*`       | recent cells + one-click renew            |
 | `.deck-controls` + `.deck-btn` | header deck-pad tray (Play / Audition / Press) |
 | `.deck-btn.active`             | engaged deck pad — dark pressed-chrome reflection |
-| `.account-group` + `.wallet-btn` | header chip — balance + "⊕ My wallet"   |
+| `.account-group` + `.wallet-btn` | header chip — funds readout + ¤ wallet glyph pad |
 | `.connect-btn`                 | pre-auth CTA — `.btn-chrome` at deck-pad height (matches the Stop/Play/Press pads) |
 | `.grid-wrap` + `.sync-badge`   | grid-anchored block-pulse heartbeat       |
 | `.playback-banner` + `.pb-*`   | replay state banner above the grid        |
