@@ -10,24 +10,35 @@
   padding-top: 0.5rem; border-top: 1px solid var(--border);
 }
 .library-header { display: flex; justify-content: space-between; align-items: center; }
+/* Section header — liquid metal mapped onto the lettering itself
+   (chrome surface clipped to the glyphs), not a flat text label. */
 .library-header h2 {
-  margin: 0; font-family: var(--font-display);
-  font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em;
+  margin: 0; font-family: var(--font-tech);
+  font-size: 15px; font-weight: 400;
+  letter-spacing: var(--ls-tech); text-transform: uppercase;
+  background: var(--chrome-surface);
+  background-blend-mode: var(--chrome-blend);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
 }
 /* Library tabs — chrome pads, same metal recipe as the deck buttons.
    Active tab flips to the pressed-chrome reflection (dim graphite) with
    the accent ring around it, mirroring .deck-btn.active. */
 .tabs { display: flex; gap: 0.35rem; }
 .tab {
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: var(--ls-tech);
+  text-transform: uppercase;
+  font-weight: 400;
   padding: 0.4rem 0.85rem;
-  background: var(--chrome-fill-button);
+  background: var(--chrome-surface-button);
+  background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
   border-radius: var(--r-md);
   color: #0a0a12;
-  font-family: var(--font-mono);
+  font-family: var(--font-tech);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.55),
     inset 0 -1px 0 rgba(0,0,0,.4),
@@ -44,14 +55,14 @@
   filter: brightness(0.98);
 }
 .tab.active {
-  background: var(--chrome-fill-pressed);
+  background: var(--chrome-surface-pressed);
   color: #e9e9f2;
   filter: none;
+  /* engaged = prismatic rim, not the old violet ring */
   box-shadow:
     inset 0 2px 6px rgba(0,0,0,.7),
     inset 0 -1px 0 rgba(255,255,255,.1),
-    0 0 0 1px var(--accent),
-    0 0 9px rgba(124, 92, 255, 0.32);
+    var(--rainbow-glow);
 }
 /* Same chrome focus recipe as .btn-chrome / .deck-btn — silence the system
    blue/purple ring and wrap the pad in the off-white halo on keyboard focus.
@@ -70,8 +81,7 @@
   box-shadow:
     inset 0 2px 6px rgba(0,0,0,.7),
     inset 0 -1px 0 rgba(255,255,255,.1),
-    0 0 0 1px var(--accent),
-    0 0 9px rgba(124, 92, 255, 0.32),
+    var(--rainbow-glow),
     var(--focus-halo);
 }
 .tab:disabled {
@@ -95,22 +105,22 @@
   .loop-card { padding: 0.6rem; }
   .library-header { gap: 0.4rem; flex-wrap: wrap; }
   .tabs { gap: 0.25rem; flex-wrap: wrap; }
-  .tab { font-size: 11px; padding: 0.35rem 0.6rem; }
+  .tab { font-size: 9px; padding: 0.35rem 0.6rem; }
 }
 .loop-card {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--r-lg); padding: 0.7rem;
   display: flex; flex-direction: column; gap: 0.55rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   transition: border-color 0.1s ease;
 }
 .loop-card.role-contrib { border-color: var(--contrib); }
 .loop-card.role-owned   { border-color: var(--owned); box-shadow: var(--shadow-glow-owned); }
-.loop-card.playing      { border-color: var(--accent); box-shadow: var(--shadow-glow-accent); }
+.loop-card.playing      { border-color: rgba(255,255,255,.75); box-shadow: var(--rainbow-glow); }
 .loop-card-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; gap: 0.5rem; }
 .loop-card-head > span { white-space: nowrap; }
-.loop-card-head .owner { color: var(--muted); font-size: 11px; }
-.token-id { color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
+.loop-card-head .owner { color: var(--muted); font-size: 11px; font-family: var(--font-mono); }
+.token-id { color: #c8cdd8; font-weight: 600; letter-spacing: 0.02em; font-family: var(--font-mono); }
 .loop-card-foot {
   display: flex; flex-direction: column; align-items: stretch;
   gap: 0.5rem; font-size: 11px;
@@ -125,12 +135,16 @@
    "See Edition NFT" link gets the gold variant (.nft-link) so the
    user-owned token reads as a different metal at a glance. */
 .card-actions button, .card-actions a {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 10px;
-  letter-spacing: 0.01em;
+  /* Gilroy caps, not Michroma — these chips must clear one line per card
+     (play / see edition NFT / share) and the tech face is too wide here. */
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   padding: 0.3rem 0.4rem;
-  background: var(--chrome-fill-button);
+  background: var(--chrome-surface-button);
+  background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
   border-radius: var(--r-sm);
   color: #0a0a12;
@@ -161,7 +175,7 @@
   transform: none;
 }
 .card-actions a.nft-link {
-  background: var(--gold-fill-button);
+  background: var(--gold-surface-button);
   border-color: var(--gold-border);
   color: #1f1500;
   box-shadow:
@@ -185,10 +199,11 @@
    buttons then line up across the whole grid. */
 .role-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; min-height: 1.18rem; }
 .role-badge {
-  font-size: 10px; padding: 0.13rem 0.42rem;
-  border-radius: var(--r-xs); letter-spacing: 0.02em;
+  font-size: 9px; padding: 0.13rem 0.42rem;
+  border-radius: var(--r-xs); letter-spacing: 0.05em;
+  text-transform: uppercase;
   border: 1px solid transparent; white-space: nowrap;
-  font-family: var(--font-mono);
+  font-family: var(--font-body); font-weight: 700;
 }
 .role-badge.owned   { color: var(--owned);   border-color: rgba(255,194,75,.45); background: rgba(255,194,75,.1); }
 .role-badge.contrib { color: var(--contrib); border-color: rgba(92,255,198,.4);  background: rgba(92,255,198,.09); }

@@ -53,13 +53,15 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  background: var(--chrome-fill-button);
+  background: var(--chrome-surface-button);
+  background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
   border-radius: var(--r-md);
   color: #0a0a12;
-  font-family: var(--font-mono);
-  font-size: var(--fs-ui);
-  letter-spacing: var(--ls-ui);
+  font-family: var(--font-tech);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
     inset 0 -1px 0 rgba(0, 0, 0, 0.4),
@@ -70,6 +72,12 @@
 .deck-btn:hover:not(:disabled) {
   filter: brightness(1.06);
   transform: translateY(-1px);
+  /* oil-slick refraction on the pad edge */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 2px 5px rgba(0, 0, 0, 0.55),
+    var(--rainbow-glow);
 }
 .deck-btn:active:not(:disabled) {
   transform: translateY(0);
@@ -108,7 +116,7 @@
    ring around an engaged pad was reading as a stray UI border on the
    dark navbar and is gone. Light ink, since the surface is now dark. */
 .deck-btn.active {
-  background: var(--chrome-fill-pressed);
+  background: var(--chrome-surface-pressed);
   border-color: var(--chrome-border);
   color: #e9e9f2;
   filter: none;
@@ -174,9 +182,8 @@
 .connect-btn {
   height: var(--deck-pad-h);
   padding: 0 var(--space-5);
-  /* Match the deck pads' label (--fs-ui = 13px) — .btn-chrome's default
-     12px reads visibly smaller next to "Stop" otherwise. */
-  font-size: var(--fs-ui);
+  /* Match the deck pads' legend size. */
+  font-size: 10px;
 }
 
 /* ───── Grid status row ─────
@@ -209,7 +216,7 @@
   }
   .deck-btn {
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 9px;
   }
   .account-group {
     padding: 0 var(--space-1);
@@ -217,5 +224,5 @@
   }
   .account-group .balance { font-size: 10px; }
   .wallet-btn { height: 32px; padding: 0 var(--space-2); font-size: 11px; }
-  .connect-btn { height: var(--deck-pad-h); padding: 0 var(--space-3); font-size: 12px; }
+  .connect-btn { height: var(--deck-pad-h); padding: 0 var(--space-3); font-size: 9px; }
 }

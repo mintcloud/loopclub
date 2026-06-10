@@ -1,0 +1,54 @@
+/* ============================================================
+   loopclub Design System — Flair
+   The committed imperfections. Machine output is suspiciously
+   even; these are the few deliberately human moves — film grain
+   over the whole stage, and a hand-slapped holographic sticker.
+   (The third one, the flash-photo glint, lives on the grid
+   faceplate in cells-grid.css.)
+   ============================================================ */
+
+/* ── Film grain — one quiet layer of texture over everything.
+   Fixed overlay so it doesn't scroll with content (reads as the
+   screen's surface, not the page's). Kept under modals' z-index
+   ceiling is wrong on purpose: grain sits over ALL of it, like a
+   scanned flyer. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  background: var(--grain-texture);
+  background-size: 160px 160px;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+/* ── Holo sticker — a chrome chip slapped on at an angle next to the
+   wordmark. The rotation is the point: everything else on this page
+   is grid-true, so one off-grid element reads as a human hand. */
+.holo-sticker {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.62rem;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  background:
+    var(--metal-texture) 0 0 / 140px 140px padding-box,
+    var(--chrome-fill-button) padding-box,
+    var(--rainbow-rim) border-box;
+  background-blend-mode: soft-light, normal, normal;
+  color: #0a0a12;
+  font-family: var(--font-tech);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 10px rgba(92, 200, 255, 0.18);
+  white-space: nowrap;
+  user-select: none;
+}
+@media (max-width: 720px) {
+  /* Garnish, not content — give phones the header room back. */
+  .holo-sticker { display: none; }
+}

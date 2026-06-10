@@ -10,17 +10,17 @@
 .cell-popover {
   position: absolute;
   background: var(--panel);
-  border: 1px solid var(--accent-dim);
+  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: 0.7rem;
   display: flex; flex-direction: column; gap: 0.55rem;
   min-width: 240px;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 12px;
   box-shadow: var(--shadow-popover);
 }
 .popover-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
-.popover-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.popover-title { font-family: var(--font-tech); font-size: var(--fs-tech-small); color: var(--muted); text-transform: uppercase; letter-spacing: var(--ls-tech); }
 .popover-x {
   padding: 0.1rem 0.35rem; font-size: 11px; line-height: 1;
   background: transparent; border-color: transparent; color: var(--muted);
@@ -46,8 +46,8 @@
 }
 .cell-popover.above .popover-arrow {
   bottom: -6px;
-  border-right: 1px solid var(--accent-dim);
-  border-bottom: 1px solid var(--accent-dim);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 kbd {
   font-family: inherit; font-size: 10px; font-weight: 600;
@@ -60,13 +60,13 @@ kbd {
   position: absolute;
   z-index: 46;
   background: var(--panel);
-  border: 1px solid var(--accent-dim);
+  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: 0.7rem;
   display: flex; flex-direction: column; gap: 0.55rem;
   width: 256px;
   box-shadow: var(--shadow-popover);
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 12px;
 }
 .row-tools-grid {
@@ -76,10 +76,10 @@ kbd {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
   padding: 0.45rem 0.6rem;
   background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-sm);
-  color: var(--text); font-family: var(--font-mono); font-size: 12px;
+  color: var(--text); font-family: var(--font-body); font-size: 12px;
   cursor: pointer; text-align: left;
 }
-.row-tools-grid button:hover:not(:disabled) { border-color: var(--accent); }
+.row-tools-grid button:hover:not(:disabled) { border-color: #7d8696; }
 .row-tools-grid button:disabled { opacity: 0.5; cursor: not-allowed; }
 .rt-label { font-size: 12px; letter-spacing: 0.02em; }
 .rt-cost  { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -88,9 +88,9 @@ kbd {
 .row-tools-euclid button {
   flex: 1; font-size: 11px; white-space: nowrap;
   background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
-  border-radius: var(--r-sm); padding: 0.4rem 0.55rem; font-family: var(--font-mono); cursor: pointer;
+  border-radius: var(--r-sm); padding: 0.4rem 0.55rem; font-family: var(--font-body); cursor: pointer;
 }
-.row-tools-euclid button:hover:not(:disabled) { border-color: var(--accent); }
+.row-tools-euclid button:hover:not(:disabled) { border-color: #7d8696; }
 .row-tools-euclid button:disabled { opacity: 0.5; cursor: not-allowed; }
 .row-tools .muted { color: var(--muted); font-size: 10px; }
 
@@ -110,7 +110,7 @@ kbd {
   font-family: inherit; font-size: 22px; line-height: 1; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.kb-arrow:hover { border-color: var(--accent); color: var(--accent); }
+.kb-arrow:hover { border-color: #7d8696; color: var(--text); }
 .kb-arrow:active { background: var(--panel); }
 .keyboard-viewport {
   flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden;

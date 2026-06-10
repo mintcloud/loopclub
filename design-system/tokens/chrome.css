@@ -5,6 +5,25 @@
    ============================================================ */
 
 :root {
+  /* ── Raster textures (assets/textures/, regenerate with scripts/gen-textures.py).
+     A perfectly even vector gradient is the tell of machine-made chrome; every
+     chrome surface layers one of these over its gradient so the metal picks up
+     the uneven, photographic streaking of the wordmark. */
+  --metal-texture:   url('../assets/textures/liquid-metal.png');
+  --brushed-texture: url('../assets/textures/brushed-metal.png');
+  --grain-texture:   url('../assets/textures/grain.png');
+
+  /* Composite surfaces — texture layer riding on the gradient base. Use as
+       background: var(--chrome-surface-button);
+       background-blend-mode: var(--chrome-blend);
+     (background-blend-mode is not reset by the background shorthand). */
+  --chrome-surface:         var(--metal-texture) 0 0 / 340px 340px, var(--chrome-fill);
+  --chrome-surface-button:  var(--metal-texture) 0 0 / 180px 180px, var(--chrome-fill-button);
+  --chrome-surface-pressed: var(--metal-texture) 0 0 / 180px 180px, var(--chrome-fill-pressed);
+  --gold-surface-button:    var(--metal-texture) 0 0 / 180px 180px, var(--gold-fill-button);
+  --hot-surface:            var(--metal-texture) 0 0 / 180px 180px, var(--hot-fill);
+  --chrome-blend: soft-light, normal;
+
   /* Full 9-stop gradient for large chrome surfaces. */
   --chrome-fill: linear-gradient(180deg,
     #ffffff 0%,
@@ -38,6 +57,12 @@
     #ff3366 0%,  #ff8a3c 18%, #ffd23c 34%,
     #5cff7a 50%, #3cc8ff 66%, #6c5cff 82%, #ff5cb8 100%);
   --rainbow-glow: 0 0 0 1px rgba(255, 92, 184, .6), 0 0 14px rgba(92, 200, 255, .35);
+  /* Promoted rim states — the prismatic refraction is the brand signature,
+     not a rationed garnish. -strong rings engaged/active surfaces; -halo is
+     a filter (stacked drop-shadows) for the playhead, where box-shadow is
+     already spoken for by the LED bloom. */
+  --rainbow-glow-strong: 0 0 0 1px rgba(255, 92, 184, .75), 0 0 10px rgba(92, 200, 255, .55), 0 0 22px rgba(255, 51, 102, .3);
+  --prism-halo: drop-shadow(0 0 5px rgba(92, 200, 255, .85)) drop-shadow(0 0 9px rgba(255, 92, 184, .65));
 
   /* "Press now" red — saturated LED gradient lifted from the wordmark
      left-edge orange-red. Reserved for one-shot urgent actions. */

@@ -11,13 +11,13 @@
   border: 1px solid var(--border);
   padding: 0.5rem 0.9rem;
   border-radius: var(--r-md);
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: var(--fs-ui);
   cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.1s ease, background 0.1s ease, transform 0.06s ease;
 }
-.btn:hover  { border-color: var(--accent); }
+.btn:hover  { border-color: #7d8696; }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
@@ -25,13 +25,15 @@
    Hairline highlight at the top edge; dark band lives at ~75% so labels
    stay legible. Reads like a real metal pad from a drum machine. */
 .btn-chrome {
-  background: var(--chrome-fill-button);
+  background: var(--chrome-surface-button);
+  background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
   color: #0a0a12;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 12px;
-  letter-spacing: 0.02em;
+  font-family: var(--font-tech);
+  font-weight: 400;
+  font-size: var(--fs-tech);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
   text-shadow: none;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.55),
@@ -42,7 +44,16 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.btn-chrome:hover  { filter: brightness(1.06); border-color: var(--chrome-border); }
+.btn-chrome:hover {
+  filter: brightness(1.06);
+  border-color: var(--chrome-border);
+  /* oil-slick refraction catches the edge on hover */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 2px 5px rgba(0,0,0,.55),
+    var(--rainbow-glow);
+}
 .btn-chrome:active {
   box-shadow:
     inset 0 1px 2px rgba(0,0,0,.4),
@@ -71,15 +82,18 @@
 
 /* Urgent CTA — LED-red, glowing. Sparingly: "press now" only. */
 .btn-hot {
-  background: var(--hot-fill);
+  background: var(--hot-surface);
+  background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--hot-border);
   color: white;
   box-shadow: var(--hot-glow);
   padding: 0.5rem 0.9rem;
   border-radius: var(--r-md);
-  font-family: var(--font-mono);
-  font-size: var(--fs-ui);
-  font-weight: 600;
+  font-family: var(--font-tech);
+  font-size: var(--fs-tech);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
+  font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
 }

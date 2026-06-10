@@ -12,8 +12,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-readout);
+  font-size: 10px;
   color: var(--muted);
   background: var(--panel);
   border: 1px solid var(--border);
@@ -41,13 +41,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--chrome-fill-button);
+  background: var(--chrome-surface-button);
+  background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
   color: #0a0a12;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.02em;
+  font-family: var(--font-tech);
+  font-weight: 400;
+  font-size: var(--fs-tech-small);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
   padding: 0.3rem 0.7rem;
   border-radius: var(--r-pill);
   box-shadow:
@@ -69,13 +71,15 @@
 .fastmode-btn,
 .fastmode-badge {
   display: inline-flex; align-items: center; gap: 0.4rem;
-  background: var(--chrome-fill-button);
+  background: var(--chrome-surface-button);
+  background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
   color: #0a0a12;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.02em;
+  font-family: var(--font-tech);
+  font-weight: 400;
+  font-size: var(--fs-tech-small);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
   padding: 0.3rem 0.7rem;
   border-radius: var(--r-pill);
   font-variant-numeric: tabular-nums;
@@ -93,18 +97,18 @@
 /* ── Contributor strip — per-wallet colour chips below the grid. */
 .contrib-strip {
   display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
   min-height: 1.4rem;
 }
 .contrib-strip.empty { color: var(--muted); }
-.contrib-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.contrib-label { color: var(--muted); text-transform: uppercase; font-family: var(--font-tech); font-size: var(--fs-tech-small); letter-spacing: var(--ls-tech); white-space: nowrap; }
 .contrib-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .contrib-chip {
   display: inline-flex; align-items: center; gap: 0.35rem;
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--r-pill); padding: 0.2rem 0.55rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   white-space: nowrap;
 }
 .contrib-chip.mine { border-color: var(--accent); color: var(--text); }
@@ -114,7 +118,7 @@
 /* ── Renew strip — your recent cells + one-click re-rent. */
 .renew-strip {
   display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
-  font-family: var(--font-mono); font-size: 11px;
+  font-family: var(--font-body); font-size: 11px;
   min-height: 1.6rem;
 }
 .renew-strip.urgent .rc.expiring { box-shadow: 0 0 8px rgba(255, 194, 75, 0.4); }
