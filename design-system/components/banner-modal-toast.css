@@ -17,7 +17,7 @@
   border-radius: var(--r-sm);
 }
 .wordmark-link:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid rgba(245, 248, 255, 0.92);
   outline-offset: 3px;
 }
 .wordmark {
@@ -27,7 +27,8 @@
   filter: drop-shadow(0 1px 6px rgba(0,0,0,.4));
   transition: filter 0.12s ease, transform 0.08s ease;
 }
-.wordmark-link:hover .wordmark { filter: drop-shadow(0 1px 9px rgba(124, 92, 255, .45)); }
+/* Hover = the rim's own refraction, not a violet tint. */
+.wordmark-link:hover .wordmark { filter: drop-shadow(0 1px 7px rgba(92, 200, 255, .5)) drop-shadow(0 0 12px rgba(255, 92, 184, .35)); }
 .wordmark-link:active .wordmark { transform: translateY(1px); }
 @media (max-width: 720px) {
   .wordmark { height: 34px; }
@@ -36,20 +37,25 @@
 /* ── Playback banner. */
 .playback-banner {
   display: flex; flex-direction: column;
-  background: linear-gradient(90deg, rgba(124,92,255,.18), rgba(92,182,255,.18));
-  border: 1px solid var(--accent);
+  /* Brushed graphite band with a faint prismatic edge — the violet wash is gone. */
+  background:
+    var(--brushed-texture) 0 0 / 480px 480px,
+    linear-gradient(180deg, #171a22 0%, #0d0f15 100%);
+  background-blend-mode: soft-light, normal;
+  border: 1px solid #2b303c;
   border-radius: var(--r-lg);
   padding: 0.7rem 0.85rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 12px;
   gap: 0.6rem;
+  box-shadow: 0 0 0 1px rgba(255, 92, 184, .22), 0 0 14px rgba(92, 200, 255, .14);
 }
-.playback-banner strong { color: var(--accent); }
+.playback-banner strong { color: var(--text); }
 .pb-status { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
 .pb-cta {
   display: flex; justify-content: space-between; align-items: center; gap: 1rem;
   background: rgba(0,0,0,.3);
-  border: 1px solid var(--accent-dim);
+  border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: 0.65rem 0.8rem;
 }
@@ -68,7 +74,7 @@
   border-radius: var(--r-lg); padding: 1.25rem;
   min-width: 360px; max-width: 460px;
   display: flex; flex-direction: column; gap: 0.85rem;
-  font-family: var(--font-mono); font-size: 13px;
+  font-family: var(--font-body); font-size: 13px;
 }
 @media (max-width: 480px) {
   /* On a 360px phone the 360px min-width spills past the safe-area inset
@@ -82,7 +88,7 @@
     padding: 0.95rem;
   }
 }
-.modal h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.modal h3 { margin: 0; font-family: var(--font-tech); font-size: 12px; font-weight: 400; text-transform: uppercase; letter-spacing: var(--ls-tech); }
 .modal p  { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .modal .row { display: flex; gap: 0.5rem; justify-content: flex-end; }
 .share-url { display: flex; gap: 0.4rem; align-items: stretch; }
@@ -97,12 +103,15 @@
    silver and reads clearly. */
 .share-url .btn-chrome {
   padding: 0.55rem 1.05rem;
-  font-size: 13px;
-  letter-spacing: 0.03em;
+  font-size: var(--fs-tech);
+  letter-spacing: var(--ls-tech);
   border-radius: var(--r-md);
   color: #0a0a12;
-  background: linear-gradient(180deg,
-    #ffffff 0%, #eef1f6 12%, #c0c6d2 45%, #b0b6c2 72%, #2a2f3a 82%, #5a6170 92%, #c8cdd8 100%);
+  background:
+    var(--metal-texture) 0 0 / 180px 180px,
+    linear-gradient(180deg,
+      #ffffff 0%, #eef1f6 12%, #c0c6d2 45%, #b0b6c2 72%, #2a2f3a 82%, #5a6170 92%, #c8cdd8 100%);
+  background-blend-mode: var(--chrome-blend);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.7),
     inset 0 -1px 0 rgba(0,0,0,.45),
@@ -130,7 +139,7 @@
   border: 1px solid var(--border);
   color: var(--muted);
 }
-.share-head .popover-x:hover { border-color: var(--accent); color: var(--text); }
+.share-head .popover-x:hover { border-color: #7d8696; color: var(--text); }
 .share-preview {
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -145,18 +154,18 @@
   color: var(--text);
   padding: 0.45rem 0.6rem;
   border-radius: var(--r-sm);
-  font-family: var(--font-mono); font-size: 12px;
+  font-family: var(--font-body); font-size: 12px;
   text-decoration: none;
   cursor: pointer;
 }
-.share-actions .share-action:hover { border-color: var(--accent); }
+.share-actions .share-action:hover { border-color: #7d8696; }
 
 /* ── Toast. */
 .toast {
   position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
   background: var(--panel-2); border: 1px solid var(--border);
   padding: 0.6rem 1rem; border-radius: var(--r-md);
-  font-family: var(--font-mono); font-size: 12px;
+  font-family: var(--font-body); font-size: 12px;
   color: var(--text); z-index: 50; max-width: 80vw;
 }
 .toast.error { border-color: var(--danger); color: var(--danger); }

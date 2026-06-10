@@ -1,7 +1,8 @@
 # loopclub Design System
 
-> Liquid-chrome wordmark, vivid LED instruments, deep-black stage. The visual
-> system behind loopclub — a collaborative on-chain drum machine on MegaETH.
+> Y2K rave drum-machine: liquid metal, prismatic refraction, vivid LED
+> instruments, deep-black stage. The visual system behind loopclub — a
+> collaborative on-chain drum machine on MegaETH.
 
 This package contains every visual token, component recipe, asset, and font
 the loopclub app uses. The whole thing is plain CSS + assets — no build step,
@@ -30,8 +31,12 @@ design-system/
 │   ├── strips-badges.css   ← .sync-badge, .chrome-pill, .fastmode-*, .contrib-*, .renew-strip
 │   ├── library.css         ← .library, .loop-card, role badges, tabs
 │   ├── banner-modal-toast.css ← .playback-banner, .modal, .toast, .wordmark
-│   └── topbar.css          ← .deck-controls, .deck-btn, .account-group, grid-anchored sync badge
+│   ├── topbar.css          ← .deck-controls, .deck-btn, .account-group, grid-anchored sync badge
+│   └── flair.css           ← film grain overlay, .holo-sticker (the committed imperfections)
+├── scripts/
+│   └── gen-textures.py                 ← regenerates assets/textures (stdlib only)
 ├── assets/
+│   ├── textures/                       ← raster liquid-metal / brushed / grain PNGs
 │   ├── loopclub-logo.png               ← canonical wordmark (use this)
 │   ├── loopclub-logo-transparent.png   ← legacy (pre-rebrand)
 │   ├── loopclub-logo-cropped.png       ← legacy black-bg variant
@@ -47,10 +52,13 @@ design-system/
 
 - **Black stage** (`--bg: #020205`) so the chrome wordmark reflects.
 - **Liquid-chrome wordmark** is the brand mark. **Always the PNG, never a recreation.** Mood is Daft Punk *Discovery* — polished mercury, rainbow rim, slightly molten contours.
-- **Chrome surfaces** (`var(--chrome-fill-button)`) for primary actions. Flat printed-legend text, dark band at ~75% so labels stay legible. Reads like a TR-808 pad / cassette deck button.
+- **Chrome surfaces** (`var(--chrome-surface-button)` + `background-blend-mode: var(--chrome-blend)`) for primary actions. Every chrome fill carries a raster liquid-metal texture over its gradient — a perfectly even vector gradient is the tell of machine-made chrome. Flat printed-legend text, dark band at ~75% so labels stay legible. Reads like a TR-808 pad / cassette deck button.
+- **Prismatic rim is the signature.** The wordmark's oil-slick refraction rides every engaged/hover state: chrome button hover (`--rainbow-glow`), the active library tab, the playhead column (`--prism-halo`), the playing loop card. Violet `--accent` is demoted to one job: marking *your* cells.
+- **The grid is a faceplate, not flat cells on black.** `.grid-wrap` is a brushed-metal plate with corner screws; cells are its LED windows.
+- **Committed imperfections** (components/flair.css): film grain over the whole stage, one hand-placed glint on the faceplate, one rotated holo sticker in the header. Deliberate asymmetry — don't tidy them.
 - **Vivid LED grid cells.** Off cells are recessed dark bezels; on cells halate in their track colour (kick coral / snare peach / hat mint / synth sky / clap orange / open-hat green / cowbell purple / crash pink / ride blue).
 - **`--hot-fill`** red is reserved for one-shot urgent CTAs (press now, expiring rent).
-- **Space Mono** everywhere in product chrome. **Gilroy** (heavy) for display/headings. JetBrains Mono + Major Mono Display loaded as alternates.
+- **Michroma** (`--font-tech`, Eurostile-Extended lineage — Dreamcast / Y2K OS) is the hero voice: every silkscreened legend (deck pads, tabs, track labels, chrome pills, modal headings), uppercase with `--ls-tech` tracking. **Gilroy** for body copy and small dense UI. Monos are for true readouts ONLY: **Major Mono Display** (`--font-readout`) on counters (block #, step numbers), **Space Mono** (`--font-mono`) on addresses/code. A mono anywhere else is the default-coder voice creeping back.
 - **Curated unicode glyph set** (`▶ ◼ ✦ ♪ ⚡ ⊕ ↗ ✕ # · …`) — never emoji.
 - **Voice** — lowercase, monospace, command-style. Em dash separator. "Your" not "we". No marketing words.
 
@@ -87,8 +95,8 @@ import logoUrl from 'design-system/assets/loopclub-logo.png';
 | `.sync-badge` + `.sync-dot`    | block-pulse heartbeat                     |
 | `.fastmode-btn` / `.fastmode-badge` | session-key fast mode (chrome chip)  |
 | `.cell` + `.cell.on.<track>`   | LED grid cell                             |
-| `.cell.playing`                | white outline on the current step         |
-| `.cell.preview`                | dashed violet outline on hovered fills    |
+| `.cell.playing`                | white outline + prismatic halo on the current step |
+| `.cell.preview`                | dashed silver outline on hovered fills    |
 | `.cell.pending`                | optimistic tx in flight                   |
 | `.cell.beat-1`                 | chrome stripe on every 4th step           |
 | `.grid` + `.step-num`          | 16-step matrix layout                     |
@@ -109,6 +117,7 @@ import logoUrl from 'design-system/assets/loopclub-logo.png';
 | `.modal-bg` + `.modal`         | centred dialog                            |
 | `.toast`                       | bottom-centred transient status           |
 | `.wordmark`                    | header img with drop shadow               |
+| `.holo-sticker`                | rotated chrome chip with rainbow rim (header garnish) |
 
 All component CSS is in `components/*.css` — every rule is commented with the
 intent. Read those files directly when you need detail.

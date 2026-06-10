@@ -860,6 +860,9 @@ export function App() {
           >
             ✦ Jam with Claude
           </button>
+          <span className="holo-sticker" aria-hidden="true">
+            est. 2026 · onchain
+          </span>
         </div>
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">
