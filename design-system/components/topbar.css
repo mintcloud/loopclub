@@ -21,9 +21,10 @@
   /* Shared outer height for every header cluster, so the deck tray, the
      account chip and the connect button all sit on the same baseline. */
   --topbar-cluster-h: 56px;
-  /* Deck-pad footprint — identical for Play / Audition / Press so the
-     row reads like a drum-machine control strip, not loose buttons. */
-  --deck-pad-w: 118px;
+  /* Deck-pad footprint — shared minimum for Play / Audition / Press so the
+     row reads like a drum-machine control strip, not loose buttons. (96px:
+     the bar must hold deck + fast mode + account on one line at 960.) */
+  --deck-pad-w: 96px;
   --deck-pad-h: 46px;
 }
 
@@ -37,7 +38,7 @@
   align-items: stretch;
   gap: var(--space-1);
   height: var(--topbar-cluster-h);
-  padding: var(--space-1);
+  padding: var(--space-1) 0;
 }
 
 /* The pads carry the chrome surface — the same metallic recipe as
@@ -151,19 +152,25 @@
   align-items: center;
   gap: var(--space-2);
   height: var(--topbar-cluster-h);
-  padding: 0 var(--space-2) 0 var(--space-3);
+  padding: 0 0 0 var(--space-2);
 }
 .account-group .balance { white-space: nowrap; }
 
 /* Wallet button — compact ghost button. Pair with .btn in the markup
    (`class="btn wallet-btn"`); this only trims the footprint to sit
    inside the account chip. */
+/* Glyph-only — the .balance readout beside it already carries the address
+   and funds, so the button is just the ⊕ port. aria-label/title in markup. */
 .wallet-btn {
   height: 36px;
-  padding: 0 var(--space-3);
+  width: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--r-md);
-  font-size: var(--fs-meta);
-  letter-spacing: var(--ls-ui);
+  font-size: 17px;
+  line-height: 1;
 }
 
 /* The header's balance readout — wallet address · USDm, tabular. */
@@ -173,6 +180,8 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+/* The number the user actually needs — bright against the dim address. */
+.balance .balance-funds { color: var(--text); }
 
 /* ───── Connect button — pre-auth CTA ─────
    Pair with .btn-chrome in the markup (`class="btn-chrome connect-btn"`).
@@ -200,6 +209,7 @@
 }
 .grid-status > .contrib-strip { flex: 1 1 auto; min-width: 0; }
 .grid-status > .sync-badge { flex: 0 0 auto; }
+.grid-status > .holo-sticker { flex: 0 0 auto; }
 
 /* ── Mobile (≤720px) — collapse the deck tray and account cluster so the
    header stays one screen-row tall on a phone. The chrome pads keep their
@@ -223,6 +233,6 @@
     gap: var(--space-1);
   }
   .account-group .balance { font-size: 10px; }
-  .wallet-btn { height: 32px; padding: 0 var(--space-2); font-size: 11px; }
+  .wallet-btn { height: 32px; width: 32px; padding: 0; font-size: 15px; }
   .connect-btn { height: var(--deck-pad-h); padding: 0 var(--space-3); font-size: 9px; }
 }
