@@ -860,9 +860,6 @@ export function App() {
           >
             ✦ Jam with Claude
           </button>
-          <span className="holo-sticker" aria-hidden="true">
-            est. 2026 · onchain
-          </span>
         </div>
         <div className="right">
           <div className="deck-controls" role="group" aria-label="Deck">
@@ -902,18 +899,21 @@ export function App() {
             </button>
           ) : (
             <div className="account-group">
-              <span className="balance">
-                {smartAddress ? `${smartAddress.slice(0, 6)}…${smartAddress.slice(-4)}` : '…'}
-                {' · '}
-                {formatUnits(usdmBalance, 18).slice(0, 6)} USDm
+              {/* Funds only — the figure you act on. Full address lives in the
+                  hover title and the ⊕ wallet modal; the bar must stay one line. */}
+              <span className="balance" title={smartAddress ?? 'resolving wallet…'}>
+                <span className="balance-funds">
+                  {smartAddress ? `${formatUnits(usdmBalance, 18).slice(0, 6)} USDm` : '…'}
+                </span>
               </span>
               <button
                 className="btn wallet-btn"
                 onClick={() => setShowFund(true)}
                 title="Wallet — fund or disconnect"
+                aria-label="My wallet — fund or disconnect"
                 disabled={!smartAddress}
               >
-                ⊕ My wallet
+                ⊕
               </button>
             </div>
           )}
@@ -1037,6 +1037,9 @@ export function App() {
           <span />
         )}
         <SyncBadge blockNumber={grid.blockNumber} />
+        <span className="holo-sticker" aria-hidden="true">
+          est. 2026 · onchain
+        </span>
       </div>
 
       {!playback && authenticated && smartAddress && (
@@ -1191,7 +1194,7 @@ function FastMode({ session, ready }: { session: SessionKey; ready: boolean }) {
     return (
       <span className="fastmode-badge" title="Cell toggles are signed locally — no wallet round-trip">
         <span className="fastmode-bolt">⚡</span>
-        fast mode · {mins}m
+        fast · {mins}m
         <button className="fastmode-off" onClick={session.disarm} title="Turn off fast mode">
           ✕
         </button>
