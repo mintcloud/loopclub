@@ -170,7 +170,9 @@
   background: rgba(255, 255, 255, 0.03);
   border-color: #3a4150;
   border-radius: var(--r-pill);
-  font-size: 10px;
+  /* The ▾ triangle only fills ~half its em box — 16px here lands it at a
+     legible size inside the 24px pill, where 10px read as a speck. */
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -234,6 +236,6 @@
     gap: var(--space-1);
   }
   .account-group .balance { font-size: 10px; }
-  .wallet-btn { height: 22px; padding: 0 0.55rem; font-size: 10px; }
+  .wallet-btn { height: 22px; padding: 0 0.55rem; font-size: 14px; }
   .connect-btn { height: var(--deck-pad-h); padding: 0 var(--space-3); font-size: 9px; }
 }
