@@ -7,19 +7,22 @@
    Chrome pill (generic chrome chip)
    ============================================================ */
 
-/* ── Sync badge — pulses every new block. */
+/* ── Sync badge — pulses every new block.
+   Flat tech pill, same quiet recipe as the header's "Jam with Claude"
+   affordance: Michroma legend, hairline border, no chrome. The tracker
+   readout face (Major Mono) was unreadable at this size. */
 .sync-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: var(--font-readout);
-  font-size: 10px;
-  /* Light readout on a graphite chip — the old muted-on-panel recipe sank
-     into the stage once the tracker face arrived. */
-  color: #d6dae2;
-  background: linear-gradient(180deg, #171a22 0%, #0d0f15 100%);
-  border: 1px solid #2b303c;
-  padding: 0.22rem 0.6rem;
+  font-family: var(--font-tech);
+  font-size: var(--fs-tech-small);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #3a4150;
+  padding: 0.24rem 0.6rem;
   border-radius: var(--r-pill);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

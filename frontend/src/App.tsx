@@ -900,7 +900,7 @@ export function App() {
           ) : (
             <div className="account-group">
               {/* Funds only — the figure you act on. Full address lives in the
-                  hover title and the ¤ wallet modal; the bar must stay one line. */}
+                  hover title and the wallet modal; the bar must stay one line. */}
               <span className="balance" title={smartAddress ?? 'resolving wallet…'}>
                 <span className="balance-funds">
                   {smartAddress ? `${formatUnits(usdmBalance, 18).slice(0, 6)} USDm` : '…'}
@@ -913,7 +913,7 @@ export function App() {
                 aria-label="My wallet — fund or disconnect"
                 disabled={!smartAddress}
               >
-                ¤
+                ▾
               </button>
             </div>
           )}
@@ -1266,7 +1266,7 @@ function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => vo
 }
 
 // Wallet modal — fund the smart wallet and (per the new account-group) sign out.
-// Opened from the header ¤ wallet button.
+// Opened from the header ▾ wallet button.
 function FundModal({
   address,
   usdmBalance,
@@ -1302,7 +1302,7 @@ function FundModal({
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        <p className="muted">Deposits land in a few seconds. Reopen this any time via the ¤ button in the bar.</p>
+        <p className="muted">Deposits land in a few seconds. Reopen this any time via the ▾ button in the bar.</p>
         <div className="row wallet-modal-actions">
           <button className="disconnect" onClick={onDisconnect}>
             Disconnect
