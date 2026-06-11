@@ -10,9 +10,10 @@ Pure stdlib (zlib PNG writer) — no PIL/numpy. Deterministic seeds, so the
 assets are reproducible: `python3 scripts/gen-textures.py` from design-system/.
 
 Outputs into assets/textures/ (all 8-bit grayscale, tileable):
-  liquid-metal.png   512px  mercury reflection bands — blend over chrome fills
-  brushed-metal.png  512px  horizontal brushed streaks — the grid faceplate
-  grain.png          160px  film grain — full-stage overlay at ~5% opacity
+  liquid-metal.png       512px  mercury reflection bands — blend over chrome fills
+  liquid-metal-soft.png  512px  same bands at ~40% amplitude — phone-size chrome
+  brushed-metal.png      512px  horizontal brushed streaks — the grid faceplate
+  grain.png              160px  film grain — full-stage overlay at ~5% opacity
 """
 
 import math
@@ -73,10 +74,15 @@ def fbm(u, v, lattices):
     return total / amp_sum
 
 
-def liquid_metal(size=512, seed=909):
+def liquid_metal(size=512, seed=909, amplitude=150, name='liquid-metal.png'):
     """Mercury reflection: smooth blobs run through a banding curve, so the
     contour lines become alternating light/dark reflection streaks — the same
-    visual grammar as the wordmark's letterforms."""
+    visual grammar as the wordmark's letterforms.
+
+    amplitude sets the swing around mid-gray (mid-gray is the soft-light
+    identity, so amplitude is effectively the strength of the effect). The
+    soft variant keeps the same bands but bites ~40% as hard — on phone-size
+    buttons the full-strength troughs land under the label ink and eat it."""
     lattices = [make_lattice(n, n, seed + i) for i, n in enumerate((2, 4, 8))]
     px = []
     for y in range(size):
@@ -91,8 +97,8 @@ def liquid_metal(size=512, seed=909):
             # specular kick where a band peaks — the hard glint chrome has
             spec = max(0.0, band - 0.94) / 0.06
             m = min(1.0, m + spec * 0.55)
-            px.append(max(0, min(255, int(128 + (m - 0.5) * 150))))
-    write_png_gray(os.path.join(OUT_DIR, 'liquid-metal.png'), size, px)
+            px.append(max(0, min(255, int(128 + (m - 0.5) * amplitude))))
+    write_png_gray(os.path.join(OUT_DIR, name), size, px)
 
 
 def brushed_metal(size=512, seed=303):
@@ -122,5 +128,6 @@ def grain(size=160, seed=707):
 if __name__ == '__main__':
     os.makedirs(OUT_DIR, exist_ok=True)
     liquid_metal()
+    liquid_metal(amplitude=60, name='liquid-metal-soft.png')
     brushed_metal()
     grain()
