@@ -108,7 +108,7 @@
   border-radius: var(--r-md);
   color: #0a0a12;
   background:
-    var(--metal-texture) 0 0 / 180px 180px,
+    var(--chrome-texture) 0 0 / var(--chrome-tile-button) var(--chrome-tile-button),
     linear-gradient(180deg,
       #ffffff 0%, #eef1f6 12%, #c0c6d2 45%, #b0b6c2 72%, #2a2f3a 82%, #5a6170 92%, #c8cdd8 100%);
   background-blend-mode: var(--chrome-blend);

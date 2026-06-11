@@ -9,19 +9,34 @@
      A perfectly even vector gradient is the tell of machine-made chrome; every
      chrome surface layers one of these over its gradient so the metal picks up
      the uneven, photographic streaking of the wordmark. */
-  --metal-texture:   url('../assets/textures/liquid-metal.png');
-  --brushed-texture: url('../assets/textures/brushed-metal.png');
-  --grain-texture:   url('../assets/textures/grain.png');
+  --metal-texture:      url('../assets/textures/liquid-metal.png');
+  --metal-texture-soft: url('../assets/textures/liquid-metal-soft.png');
+  --brushed-texture:    url('../assets/textures/brushed-metal.png');
+  --grain-texture:      url('../assets/textures/grain.png');
+
+  /* The marble scales with the screen. At desktop sizes a 180px tile puts
+     whole reflection bands across a button; on a 390px phone the same tile
+     means one dark trough can blanket the entire label. Two levers, both
+     keyed to viewport width:
+       tile size — 28vw, clamped: full 180px above ~640px, down to 110px on
+         phones so the bands stay finer than the letterforms;
+       texture strength — under 720px (the system's mobile breakpoint) the
+         buttons swap to liquid-metal-soft.png, the same bands at ~40%
+         amplitude, so soft-light can streak the metal but never drop a
+         trough dark enough to swallow the #0a0a12 label ink. */
+  --chrome-texture: var(--metal-texture);
+  --chrome-tile:        340px;
+  --chrome-tile-button: clamp(110px, 28vw, 180px);
 
   /* Composite surfaces — texture layer riding on the gradient base. Use as
        background: var(--chrome-surface-button);
        background-blend-mode: var(--chrome-blend);
      (background-blend-mode is not reset by the background shorthand). */
-  --chrome-surface:         var(--metal-texture) 0 0 / 340px 340px, var(--chrome-fill);
-  --chrome-surface-button:  var(--metal-texture) 0 0 / 180px 180px, var(--chrome-fill-button);
-  --chrome-surface-pressed: var(--metal-texture) 0 0 / 180px 180px, var(--chrome-fill-pressed);
-  --gold-surface-button:    var(--metal-texture) 0 0 / 180px 180px, var(--gold-fill-button);
-  --hot-surface:            var(--metal-texture) 0 0 / 180px 180px, var(--hot-fill);
+  --chrome-surface:         var(--chrome-texture) 0 0 / var(--chrome-tile) var(--chrome-tile), var(--chrome-fill);
+  --chrome-surface-button:  var(--chrome-texture) 0 0 / var(--chrome-tile-button) var(--chrome-tile-button), var(--chrome-fill-button);
+  --chrome-surface-pressed: var(--chrome-texture) 0 0 / var(--chrome-tile-button) var(--chrome-tile-button), var(--chrome-fill-pressed);
+  --gold-surface-button:    var(--chrome-texture) 0 0 / var(--chrome-tile-button) var(--chrome-tile-button), var(--gold-fill-button);
+  --hot-surface:            var(--chrome-texture) 0 0 / var(--chrome-tile-button) var(--chrome-tile-button), var(--hot-fill);
   --chrome-blend: soft-light, normal;
 
   /* Full 9-stop gradient for large chrome surfaces. */
@@ -102,4 +117,14 @@
      silenced even on browsers that fall back from :focus-visible. */
   --focus-halo:     0 0 0 2px rgba(245, 248, 255, 0.92);
   --focus-halo-hot: 0 0 0 2px rgba(255, 235, 235, 0.92);
+}
+
+/* Phones: same mercury, lighter touch. The bands stay (flat chrome is the
+   machine-made tell) but at ~40% amplitude the troughs top out around
+   #626262 under soft-light — dark enough to streak, never enough to bury
+   printed-legend ink. Every composite surface above inherits this swap. */
+@media (max-width: 720px) {
+  :root {
+    --chrome-texture: var(--metal-texture-soft);
+  }
 }
