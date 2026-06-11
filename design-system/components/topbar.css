@@ -156,20 +156,21 @@
 }
 .account-group .balance { white-space: nowrap; }
 
-/* Wallet button — compact ghost button. Pair with .btn in the markup
-   (`class="btn wallet-btn"`); this only trims the footprint to sit
-   inside the account chip. */
-/* Glyph-only — the .balance readout beside it already carries the address
-   and funds, so the button is just the ⊕ port. aria-label/title in markup. */
+/* Wallet button — compact flat pill, same hairline-border recipe as the
+   header's "Jam with Claude" affordance. Pair with .btn in the markup
+   (`class="btn wallet-btn"`). Glyph-only (chevron = account-menu port) —
+   the .balance readout beside it already carries the funds; aria-label/
+   title in markup. */
 .wallet-btn {
-  height: 36px;
-  width: 36px;
-  padding: 0;
+  height: 24px;
+  padding: 0 0.8rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-md);
-  font-size: 17px;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: #3a4150;
+  border-radius: var(--r-pill);
+  font-size: 10px;
   line-height: 1;
 }
 
@@ -233,6 +234,6 @@
     gap: var(--space-1);
   }
   .account-group .balance { font-size: 10px; }
-  .wallet-btn { height: 32px; width: 32px; padding: 0; font-size: 15px; }
+  .wallet-btn { height: 22px; padding: 0 0.55rem; font-size: 10px; }
   .connect-btn { height: var(--deck-pad-h); padding: 0 var(--space-3); font-size: 9px; }
 }
