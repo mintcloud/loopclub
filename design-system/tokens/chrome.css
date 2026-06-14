@@ -17,16 +17,21 @@
   /* The marble scales with the screen. At desktop sizes a 180px tile puts
      whole reflection bands across a button; on a 390px phone the same tile
      means one dark trough can blanket the entire label. Two levers, both
-     keyed to viewport width:
-       tile size — 28vw, clamped: full 180px above ~640px, down to 110px on
-         phones so the bands stay finer than the letterforms;
-       texture strength — under 720px (the system's mobile breakpoint) the
-         buttons swap to liquid-metal-soft.png, the same bands at ~40%
-         amplitude, so soft-light can streak the metal but never drop a
-         trough dark enough to swallow the #0a0a12 label ink. */
+     keyed to the SHORTER screen axis (vmin) so a button looks identical in
+     portrait and landscape — rotating the phone must not redraw the metal:
+       tile size — 28vmin, clamped: full 180px on big screens, down to 110px
+         on phones (in either orientation) so the bands stay finer than the
+         letterforms;
+       texture strength — on phone-sized viewports (narrow OR short, so
+         landscape phones are caught too) the buttons swap to
+         liquid-metal-soft.png, the same bands at ~40% amplitude, so
+         soft-light can streak the metal but never drop a trough dark enough
+         to swallow the #0a0a12 label ink. Keying on width alone made
+         landscape phones (width > 720px) snap back to the full-strength
+         texture — the "it gets darker when I rotate" bug. */
   --chrome-texture: var(--metal-texture);
   --chrome-tile:        340px;
-  --chrome-tile-button: clamp(110px, 28vw, 180px);
+  --chrome-tile-button: clamp(110px, 28vmin, 180px);
 
   /* Composite surfaces — texture layer riding on the gradient base. Use as
        background: var(--chrome-surface-button);
@@ -122,8 +127,13 @@
 /* Phones: same mercury, lighter touch. The bands stay (flat chrome is the
    machine-made tell) but at ~40% amplitude the troughs top out around
    #626262 under soft-light — dark enough to streak, never enough to bury
-   printed-legend ink. Every composite surface above inherits this swap. */
-@media (max-width: 720px) {
+   printed-legend ink. Every composite surface above inherits this swap.
+
+   Triggered by EITHER a narrow OR a short viewport so a phone gets the soft
+   metal in both orientations — a landscape phone is wide (width > 720px) but
+   short (height < ~520px), which width-only matching missed, letting the
+   full-strength texture darken the buttons on rotate. */
+@media (max-width: 720px), (max-height: 520px) {
   :root {
     --chrome-texture: var(--metal-texture-soft);
   }

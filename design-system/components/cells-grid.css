@@ -27,41 +27,24 @@
    into invisibility, wrap the grid in .grid-wrap and let it scroll
    horizontally. The label column is position:sticky so it stays visible
    as the user pans across the steps. */
-/* ── Faceplate — the grid is not flat cells on black; it's the LED window
-   of a real device. Brushed-metal plate, four corner screws, and ONE
-   hand-placed glint (the flash-photo highlight; see ::after). On phones the
-   plate is dropped — the scroll shell + edge fade stay clean. */
+/* ── Faceplate — a flat panel window framing the LED grid. The brushed-metal
+   plate (texture + corner screws + glint) read too heavy, especially on
+   wide/landscape phones; a solid recessed panel keeps the "LED window"
+   framing without the photographic metal. Just a flat web color (--panel),
+   a hairline border and a soft drop shadow so it still sits as a recessed
+   surface. On phones the plate is dropped entirely — the scroll shell +
+   edge fade stay clean. */
 .grid-wrap {
   width: 100%;
   position: relative;
   padding: 14px;
   border-radius: var(--r-lg);
-  border: 1px solid #1a1d26;
-  background:
-    radial-gradient(circle 3.5px at 10px 10px,                             #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
-    radial-gradient(circle 3.5px at calc(100% - 10px) 10px,                #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
-    radial-gradient(circle 3.5px at 10px calc(100% - 10px),                #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
-    radial-gradient(circle 3.5px at calc(100% - 10px) calc(100% - 10px),   #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
-    var(--brushed-texture) 0 0 / 480px 480px,
-    linear-gradient(180deg, #1b1f2a 0%, #0e1117 55%, #181c26 100%);
-  background-blend-mode: normal, normal, normal, normal, soft-light, normal;
+  border: 1px solid var(--border);
+  background: var(--panel);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.06),
-    inset 0 -1px 0 rgba(0,0,0,.65),
-    0 8px 22px rgba(0,0,0,.5);
-}
-.grid-wrap::after {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 17%;
-  width: 130px;
-  height: 26px;
-  transform: rotate(-5deg);
-  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,255,255,.5), rgba(180,210,255,.12) 55%, transparent 70%);
-  filter: blur(1px);
-  mix-blend-mode: screen;
-  pointer-events: none;
+    inset 0 1px 0 rgba(255,255,255,.04),
+    inset 0 -1px 0 rgba(0,0,0,.55),
+    0 6px 18px rgba(0,0,0,.4);
 }
 @media (max-width: 720px) {
   .grid-wrap {
@@ -106,7 +89,6 @@
   }
   /* The track dot keeps a hair of margin from the label text. */
   .grid-wrap .grid .label .track-dot { margin-right: 3px; }
-  .grid-wrap::after { display: none; }
   .grid-wrap .grid .step-num {
     font-size: 9px;
     letter-spacing: 0;
