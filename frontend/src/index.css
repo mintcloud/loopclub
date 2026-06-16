@@ -264,25 +264,36 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 /* ───── "Connect first" nudge (shipping sequence Part 1).
- * Reuses the playback-banner shell; a soft green wash sets it apart from the
- * graphite playback banner and the blue/teal jam banner. Shown on the live
- * grid to a not-yet-connected visitor. ───── */
+ * Built on the playback-banner shell but stripped back: no headline, no button
+ * (the header's own connect pill is the single connect affordance), no brushed
+ * faceplate. Just the liveness line + one sentence of copy. A near-transparent
+ * panel with a thin green rim — the same soft-green identity as the live dot,
+ * so the nudge sits lightly over the grid instead of competing with it. ───── */
 .connect-banner {
-  background:
-    var(--brushed-texture, none) 0 0 / 480px 480px,
-    linear-gradient(180deg, rgba(60, 200, 140, .14) 0%, rgba(13, 15, 21, .96) 100%);
-  box-shadow: 0 0 0 1px rgba(60, 200, 140, .28), 0 0 14px rgba(60, 200, 140, .12);
+  background: linear-gradient(180deg, rgba(60, 200, 140, .12) 0%, rgba(60, 200, 140, .02) 100%);
+  border: 1px solid rgba(60, 200, 140, .35);
+  box-shadow: 0 0 16px rgba(60, 200, 140, .10);
 }
-/* Liveness pill — a green dot + count of cells live on chain (or, once the
- * cold-start bot ships, the bot itself). */
+/* Liveness pill — a green dot + the live-status line (count of cells on chain,
+ * the bot once it ships, or the quiet-grid connect prompt). Theo's pick of
+ * font; nudged up a touch from 10px now that it carries the CTA. */
 .connect-live {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   font-family: var(--font-tech);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: var(--ls-tech);
+  color: var(--text);
+}
+/* Single line of explanatory copy — now the banner's main body text, so it's
+ * sized up from the old 12px muted .pb-sub and reads at full contrast. */
+.connect-sub {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.5;
   color: var(--text);
 }
 .connect-live-dot {

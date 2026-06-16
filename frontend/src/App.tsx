@@ -883,7 +883,7 @@ export function App() {
     ? 'loopbot is jamming the grid live right now'
     : liveCellCount > 0
       ? `${liveCellCount} cell${liveCellCount === 1 ? '' : 's'} jamming on the grid right now`
-      : 'the grid is quiet — be the first to lay down a beat'
+      : 'the grid is quiet — connect your wallet to lay down a beat'
 
   const basePriceStr = fmtUsdm(basePrice)
 
@@ -978,18 +978,10 @@ export function App() {
               ✕
             </button>
           </div>
-          <div className="pb-cta">
-            <div className="pb-cta-copy">
-              <strong className="pb-headline">✦ Connect to jam on the live grid</strong>
-              <span className="pb-sub">
-                Auditioning is free — tap any cell to hear it. Connect your wallet to rent cells, lay
-                down a beat, and press it on chain as your own NFT.
-              </span>
-            </div>
-            <button className="btn-chrome pb-press" onClick={login}>
-              Connect wallet
-            </button>
-          </div>
+          <p className="connect-sub">
+            Auditioning is free — tap any cell to hear it. Connect your wallet to rent cells, lay
+            down a beat, and press it on chain as your own NFT.
+          </p>
         </div>
       )}
 
