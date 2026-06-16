@@ -173,9 +173,11 @@
    safety net for the rare 4th chip (claim royalties). */
 .card-actions { display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
 /* Card actions — chrome chips, smaller siblings of the deck pads.
-   Play / Stop / Claim / Share all use the silver chrome surface; the
-   "See Edition NFT" link gets the gold variant (.nft-link) so the
-   user-owned token reads as a different metal at a glance. */
+   Play / Stop / Claim / Share all use the silver CHIP chrome surface
+   (--chrome-surface-chip: the soft, centred marble — see chrome.css. The
+   full --chrome-surface-button went near-black at this pill size and read as
+   the old flat button); the "See Edition NFT" link gets the gold chip
+   (.nft-link) so the user-owned token reads as a different metal at a glance. */
 .card-actions button, .card-actions a {
   /* Gilroy caps, not Michroma — these chips must clear one line per card
      (play / see edition NFT / share) and the tech face is too wide here. */
@@ -184,8 +186,8 @@
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 0.3rem 0.4rem;
-  background: var(--chrome-surface-button);
+  padding: 0.32rem 0.44rem;
+  background: var(--chrome-surface-chip);
   background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
   border-radius: var(--r-sm);
@@ -217,7 +219,7 @@
   transform: none;
 }
 .card-actions a.nft-link {
-  background: var(--gold-surface-button);
+  background: var(--gold-surface-chip);
   border-color: var(--gold-border);
   color: #1f1500;
   box-shadow:
