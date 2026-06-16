@@ -24,6 +24,12 @@
 @font-face { font-family: 'Gilroy'; src: url('../fonts/Gilroy-Medium.ttf')      format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Gilroy'; src: url('../fonts/Gilroy-SemiBold.ttf')        format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Gilroy'; src: url('../fonts/Gilroy-SemiBoldItalic.ttf')  format('truetype'); font-weight: 600; font-style: italic; font-display: swap; }
+/* No true ExtraBold (700) normal cut ships with Gilroy — the only 700 file is the
+   italic. Map 700 normal to Heavy so font-weight:700 (chip labels, .ds-h1/h2, share
+   actions) resolves to Gilroy on every browser. Without this, WebKit/Safari finds no
+   exact 700 normal face and falls straight through to Helvetica — the chips were
+   silently rendering in the system grotesque, not Gilroy. */
+@font-face { font-family: 'Gilroy'; src: url('../fonts/Gilroy-Heavy.ttf')           format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Gilroy'; src: url('../fonts/Gilroy-ExtraBoldItalic.ttf') format('truetype'); font-weight: 700; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Gilroy'; src: url('../fonts/Gilroy-Heavy.ttf')        format('truetype'); font-weight: 800; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Gilroy'; src: url('../fonts/Gilroy-HeavyItalic.ttf')  format('truetype'); font-weight: 800; font-style: italic; font-display: swap; }
