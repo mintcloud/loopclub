@@ -94,6 +94,24 @@
     #ffffff 0%, #f4f6fa 24%, #d4dae5 50%, #aab2c0 70%, #cdd3de 86%, #ffffff 100%);
   --chrome-surface-legible: var(--chrome-texture) 0 0 / 200px 200px, var(--chrome-fill-legible);
 
+  /* Chip chrome — for the small card-action pills (play / stop / share /
+     claim). A button-sized pill is too small to average out the full-strength
+     marble: positioned at 0 0 it samples one fixed corner of the tile, and on
+     these chips that corner is a deep trough, so soft-light drops the whole pill
+     to near-black — it reads as the old flat ghost button, NOT polished metal.
+     Same failure the phone buttons hit, same fix: always the low-amplitude
+     -soft texture (never the viewport-swapped --chrome-texture), centred and on
+     a slightly tighter tile so every chip lands on an even patch, over a
+     brighter midline-safe gradient. Result: a bright marble pill at any size. */
+  --chrome-fill-chip: linear-gradient(178deg,
+    #ffffff 0%, #eef1f6 22%, #cfd5e0 52%, #9aa2b2 74%, #c4cad6 92%, #eef1f6 100%);
+  --chrome-surface-chip: var(--metal-texture-soft) center / 120px 120px, var(--chrome-fill-chip);
+  /* Gold sibling — same soft, centred marble so the "see edition NFT" pill is a
+     bright warm metal next to the silver chips, not a dark gold smear. */
+  --gold-fill-chip: linear-gradient(178deg,
+    #fff7d6 0%, #ffe9a4 22%, #f3cf6c 52%, #c79a3a 74%, #e8c870 92%, #fff1c4 100%);
+  --gold-surface-chip: var(--metal-texture-soft) center / 120px 120px, var(--gold-fill-chip);
+
   /* Rainbow refraction — the prismatic rim of the wordmark.
      Use only as a stroke/border-image, never as a fill. */
   --rainbow-rim: linear-gradient(95deg,
