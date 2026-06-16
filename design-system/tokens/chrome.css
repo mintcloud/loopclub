@@ -9,10 +9,11 @@
      A perfectly even vector gradient is the tell of machine-made chrome; every
      chrome surface layers one of these over its gradient so the metal picks up
      the uneven, photographic streaking of the wordmark. */
-  --metal-texture:      url('../assets/textures/liquid-metal.png');
-  --metal-texture-soft: url('../assets/textures/liquid-metal-soft.png');
-  --brushed-texture:    url('../assets/textures/brushed-metal.png');
-  --grain-texture:      url('../assets/textures/grain.png');
+  --metal-texture:        url('../assets/textures/liquid-metal.png');
+  --metal-texture-soft:   url('../assets/textures/liquid-metal-soft.png');
+  --brushed-texture:      url('../assets/textures/brushed-metal.png');
+  --brushed-texture-soft: url('../assets/textures/brushed-metal-soft.png');
+  --grain-texture:        url('../assets/textures/grain.png');
 
   /* The marble scales with the screen. At desktop sizes a 180px tile puts
      whole reflection bands across a button; on a 390px phone the same tile
@@ -136,5 +137,9 @@
 @media (max-width: 720px), (max-height: 520px) {
   :root {
     --chrome-texture: var(--metal-texture-soft);
+    /* The grid faceplate swaps to the soft brushed streaks on the same
+       trigger as the buttons, so the deck reads as one material — lighter on
+       phones (either orientation), full-strength on desktop. */
+    --brushed-texture: var(--brushed-texture-soft);
   }
 }

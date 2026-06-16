@@ -27,39 +27,63 @@
    into invisibility, wrap the grid in .grid-wrap and let it scroll
    horizontally. The label column is position:sticky so it stays visible
    as the user pans across the steps. */
-/* ── Faceplate — a flat panel window framing the LED grid. The brushed-metal
-   plate (texture + corner screws + glint) read too heavy, especially on
-   wide/landscape phones; a solid recessed panel keeps the "LED window"
-   framing without the photographic metal. Just a flat web color (--panel),
-   a hairline border and a soft drop shadow so it still sits as a recessed
-   surface. On phones the plate is dropped entirely — the scroll shell +
-   edge fade stay clean. */
+/* ── Faceplate — the grid is not flat cells on black; it's the LED window of a
+   real device: a brushed-metal plate, four corner screws, and ONE hand-placed
+   glint (the flash-photo highlight; see ::after). Everything here is keyed to
+   the ELEMENT, not the screen, so it renders the same at every size and in
+   either orientation — which is what makes mobile match desktop:
+     • the brushed tile is a fixed 480px square (not a vw/vh size), so streak
+       density never changes with the viewport;
+     • the four screws anchor with calc() to the plate's own corners;
+     • the lighter touch on phones is one swap — chrome.css points
+       --brushed-texture at the soft variant on the same phone-size trigger as
+       the buttons, so the whole deck reads as one material.
+   The plate, screws and glint are KEPT on phones (the mobile rule below only
+   adds horizontal scroll); the deck no longer collapses to a black void. */
 .grid-wrap {
   width: 100%;
   position: relative;
   padding: 14px;
   border-radius: var(--r-lg);
-  border: 1px solid var(--border);
-  background: var(--panel);
+  border: 1px solid #1a1d26;
+  background:
+    radial-gradient(circle 3.5px at 10px 10px,                             #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
+    radial-gradient(circle 3.5px at calc(100% - 10px) 10px,                #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
+    radial-gradient(circle 3.5px at 10px calc(100% - 10px),                #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
+    radial-gradient(circle 3.5px at calc(100% - 10px) calc(100% - 10px),   #e8ebf2 0%, #8e95a2 45%, #232833 72%, transparent 75%),
+    var(--brushed-texture) 0 0 / 480px 480px,
+    linear-gradient(180deg, #1b1f2a 0%, #0e1117 55%, #181c26 100%);
+  background-blend-mode: normal, normal, normal, normal, soft-light, normal;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.04),
-    inset 0 -1px 0 rgba(0,0,0,.55),
-    0 6px 18px rgba(0,0,0,.4);
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.65),
+    0 8px 22px rgba(0,0,0,.5);
+}
+.grid-wrap::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 17%;
+  width: 130px;
+  height: 26px;
+  transform: rotate(-5deg);
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,255,255,.5), rgba(180,210,255,.12) 55%, transparent 70%);
+  filter: blur(1px);
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 @media (max-width: 720px) {
   .grid-wrap {
-    padding: 0;
-    border: none;
-    background: none;
-    box-shadow: none;
+    /* Keep the brushed plate, screws, glint and border from the base rule so
+       the deck frames the LED window on phones exactly as on desktop. Only add
+       horizontal scroll so 16 cells stay tappable: the background is fixed to
+       the padding box, so the plate stays put while the grid pans inside it.
+       A tighter pad than desktop (10px) buys the cells a little more width. */
+    padding: 10px;
     overflow-x: auto;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
-    /* Right-edge fade hints there's more grid to scroll to. */
-    mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
-    padding-right: 8px;
   }
   .grid-wrap .grid {
     /* 56 label + 16*28 cells + 17*3 gaps = 555px */
@@ -71,7 +95,10 @@
     position: sticky;
     left: 0;
     z-index: 3;
-    background: var(--bg);
+    /* Opaque so cells panning underneath don't bleed through the label text.
+       Matched to the plate's dark base (not page-black) so the sticky gutter
+       reads as part of the brushed deck rather than a black notch cut into it. */
+    background: #11141d;
     /* Left-align + overflow:hidden so labels longer than the sticky column
        (COWBELL, OPEN-HAT) clip cleanly to the right rather than spilling
        past the grid's left edge under the sticky column. */

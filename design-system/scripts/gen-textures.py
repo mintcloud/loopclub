@@ -13,6 +13,7 @@ Outputs into assets/textures/ (all 8-bit grayscale, tileable):
   liquid-metal.png       512px  mercury reflection bands — blend over chrome fills
   liquid-metal-soft.png  512px  same bands at ~40% amplitude — phone-size chrome
   brushed-metal.png      512px  horizontal brushed streaks — the grid faceplate
+  brushed-metal-soft.png 512px  same streaks at ~40% amplitude — phone faceplate
   grain.png              160px  film grain — full-stage overlay at ~5% opacity
 """
 
@@ -101,9 +102,14 @@ def liquid_metal(size=512, seed=909, amplitude=150, name='liquid-metal.png'):
     write_png_gray(os.path.join(OUT_DIR, name), size, px)
 
 
-def brushed_metal(size=512, seed=303):
+def brushed_metal(size=512, seed=303, amplitude=110, name='brushed-metal.png'):
     """Anisotropic streaks — slow variation along x, fast across y, reads as
-    horizontally brushed graphite for the deck faceplate."""
+    horizontally brushed graphite for the deck faceplate.
+
+    amplitude sets the swing around mid-gray (the soft-light identity), so it is
+    the strength of the brushing. The soft variant keeps the same streaks at
+    ~40% so the faceplate frames the LED window on phone-size viewports without
+    the troughs going contrasty enough to fight the cells."""
     lattices = [
         make_lattice(4, 96, seed),
         make_lattice(8, 192, seed + 1),
@@ -115,8 +121,8 @@ def brushed_metal(size=512, seed=303):
         for x in range(size):
             u = x / size
             n = fbm(u, v, lattices)
-            px.append(max(0, min(255, int(128 + (n - 0.5) * 110))))
-    write_png_gray(os.path.join(OUT_DIR, 'brushed-metal.png'), size, px)
+            px.append(max(0, min(255, int(128 + (n - 0.5) * amplitude))))
+    write_png_gray(os.path.join(OUT_DIR, name), size, px)
 
 
 def grain(size=160, seed=707):
@@ -130,4 +136,5 @@ if __name__ == '__main__':
     liquid_metal()
     liquid_metal(amplitude=60, name='liquid-metal-soft.png')
     brushed_metal()
+    brushed_metal(amplitude=44, name='brushed-metal-soft.png')
     grain()
