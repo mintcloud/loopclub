@@ -32,6 +32,10 @@ import { startAudio, stopAudio, setLiveState, setSnapshot, onStep, previewCell }
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
 
+// sessionStorage slot for the dismissed "connect first" nudge (shipping
+// sequence Part 1). Per-tab-session so the nudge reappears on a fresh visit.
+const CONNECT_NUDGE_DISMISSED = 'loopclub.connectnudge.dismissed.v1'
+
 // A single call inside a batched smart-wallet UserOperation.
 type Call = { to: `0x${string}`; data: `0x${string}` }
 
@@ -84,6 +88,29 @@ export function App() {
   // Rent duration for a jam commit. Matches the main flow's per-cell default
   // (16) and cap (MAX_TOGGLE_LOOPS = 32); same numeric control as the row tools.
   const [jamDuration, setJamDuration] = useState<number>(DEFAULT_TOGGLE_LOOPS)
+  // "Connect first" nudge (shipping sequence Part 1). A dismissible banner shown
+  // to a not-yet-connected visitor on the live grid, prompting a wallet connect
+  // — the cheapest action that unlocks pressing/recording. Dismissal is held in
+  // sessionStorage so it stays gone for the tab session but reappears on a fresh
+  // visit (the nudge is the cold-start growth lever — we don't want it killed
+  // forever by one stray click).
+  const [connectNudgeDismissed, setConnectNudgeDismissed] = useState<boolean>(
+    () => {
+      try {
+        return sessionStorage.getItem(CONNECT_NUDGE_DISMISSED) === '1'
+      } catch {
+        return false
+      }
+    },
+  )
+  const dismissConnectNudge = useCallback(() => {
+    setConnectNudgeDismissed(true)
+    try {
+      sessionStorage.setItem(CONNECT_NUDGE_DISMISSED, '1')
+    } catch {
+      /* private mode / storage disabled — dismissal just won't persist */
+    }
+  }, [])
   const [shareSeriesId, setShareSeriesId] = useState<bigint | null>(null)
   const [libraryRefresh, setLibraryRefresh] = useState(0)
   const [pressingSeriesId, setPressingSeriesId] = useState<bigint | null>(null)
@@ -843,6 +870,21 @@ export function App() {
   const displayPattern = jam ? jam.pattern : playback ? playback.pattern : grid.pattern
   const displaySynthData = jam ? jam.synthData : playback ? playback.synthData : grid.synthData
 
+  // "Connect first" nudge — shown to a not-yet-connected visitor on the LIVE
+  // grid (never over a playback or jam, which carry their own connect CTA).
+  const showConnectNudge = ready && !authenticated && !playback && !jam && !connectNudgeDismissed
+  // Liveness line for that nudge. Once the cold-start bot ships (Part 2) and
+  // VITE_LOOPCLUB_BOT_LIVE=true, name the bot; until then report the real count
+  // of cells lit on chain right now so the claim is always true. Both states
+  // glow green; a truly empty grid drops to an amber "be the first" prompt.
+  const liveCellCount = litCells({ pattern: grid.pattern, synthData: grid.synthData }).length
+  const gridIsLive = config.botLive || liveCellCount > 0
+  const connectNudgeNote = config.botLive
+    ? 'loopbot is jamming the grid live right now'
+    : liveCellCount > 0
+      ? `${liveCellCount} cell${liveCellCount === 1 ? '' : 's'} jamming on the grid right now`
+      : 'the grid is quiet — be the first to lay down a beat'
+
   const basePriceStr = fmtUsdm(basePrice)
 
   return (
@@ -919,6 +961,37 @@ export function App() {
           )}
         </div>
       </header>
+
+      {showConnectNudge && (
+        <div className="playback-banner connect-banner">
+          <div className="pb-status">
+            <span className={`connect-live${gridIsLive ? '' : ' quiet'}`}>
+              <span className="connect-live-dot" />
+              {connectNudgeNote}
+            </span>
+            <button
+              className="connect-dismiss"
+              onClick={dismissConnectNudge}
+              aria-label="Dismiss"
+              title="Dismiss this prompt"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="pb-cta">
+            <div className="pb-cta-copy">
+              <strong className="pb-headline">✦ Connect to jam on the live grid</strong>
+              <span className="pb-sub">
+                Auditioning is free — tap any cell to hear it. Connect your wallet to rent cells, lay
+                down a beat, and press it on chain as your own NFT.
+              </span>
+            </div>
+            <button className="btn-chrome pb-press" onClick={login}>
+              Connect wallet
+            </button>
+          </div>
+        </div>
+      )}
 
       {playback && (
         <div className="playback-banner">

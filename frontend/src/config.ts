@@ -43,6 +43,12 @@ export const config = {
   // SESSION_KEYS_SUPPORTED is false this is always false, whatever the env says.
   enableSessionKeys:
     SESSION_KEYS_SUPPORTED && import.meta.env.VITE_ENABLE_SESSION_KEYS === 'true',
+  // Cold-start loopbot liveness flag (shipping sequence Part 2). When the
+  // presence-gated bot is running, set VITE_LOOPCLUB_BOT_LIVE=true and the
+  // connect nudge tells a cold visitor the bot is jamming the grid live right
+  // now. Default off: until the bot ships the nudge reports REAL on-chain grid
+  // activity instead, so we never claim a bot that isn't there.
+  botLive: import.meta.env.VITE_LOOPCLUB_BOT_LIVE === 'true',
 }
 
 // Multicall3 — same deterministic CREATE2 address on MegaETH mainnet as every

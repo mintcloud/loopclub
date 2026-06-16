@@ -263,6 +263,62 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   background: linear-gradient(90deg, rgba(92, 182, 255, .18), rgba(100, 220, 200, .16));
 }
 
+/* ───── "Connect first" nudge (shipping sequence Part 1).
+ * Reuses the playback-banner shell; a soft green wash sets it apart from the
+ * graphite playback banner and the blue/teal jam banner. Shown on the live
+ * grid to a not-yet-connected visitor. ───── */
+.connect-banner {
+  background:
+    var(--brushed-texture, none) 0 0 / 480px 480px,
+    linear-gradient(180deg, rgba(60, 200, 140, .14) 0%, rgba(13, 15, 21, .96) 100%);
+  box-shadow: 0 0 0 1px rgba(60, 200, 140, .28), 0 0 14px rgba(60, 200, 140, .12);
+}
+/* Liveness pill — a green dot + count of cells live on chain (or, once the
+ * cold-start bot ships, the bot itself). */
+.connect-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-tech);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
+  color: var(--text);
+}
+.connect-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3ce08c;
+  box-shadow: 0 0 7px rgba(60, 224, 140, .85);
+  animation: connectLivePulse 1.6s ease-in-out infinite;
+}
+/* Empty grid → amber, no pulse: an honest "quiet" state, not a fake heartbeat. */
+.connect-live.quiet { color: var(--muted); }
+.connect-live.quiet .connect-live-dot {
+  background: var(--owned, #ffc24b);
+  box-shadow: 0 0 6px rgba(255, 194, 75, .6);
+  animation: none;
+}
+@keyframes connectLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.8); }
+}
+/* Quiet dismiss ✕ — a nudge, not a wall; never competes with the connect CTA. */
+.connect-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  cursor: pointer;
+  border-radius: var(--r-sm, 4px);
+  transition: color 0.1s ease, background 0.1s ease;
+  flex-shrink: 0;
+}
+.connect-dismiss:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+
 /* "Jam with Claude" header affordance — a quiet pill next to the wordmark, the
  * blue/teal jam tint so it reads as the same feature as the jam banner. */
 .jam-claude-btn {
