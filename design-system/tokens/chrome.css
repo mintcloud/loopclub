@@ -72,6 +72,28 @@
   --chrome-border: #0e1018;
   --chrome-shadow: 0 4px 12px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.7);
 
+  /* ── Brushed-metal plate — the SAME material as the grid faceplate, packaged
+     for reuse on smaller panels (library cards). Element-keyed (fixed tile, no
+     vw/vh) so it renders identically at every size. A dark base so card text
+     and the LED mini-grid stay legible; the brushed streak rides on top at
+     soft-light. No corner screws here — a grid full of cards each wearing four
+     screws reads as clutter; the screws stay reserved for the one big deck. */
+  --brushed-tile: 480px;
+  --brushed-plate:
+    var(--brushed-texture) 0 0 / var(--brushed-tile) var(--brushed-tile),
+    linear-gradient(180deg, #1b1f2a 0%, #0e1117 55%, #181c26 100%);
+  --brushed-plate-blend: soft-light, normal;
+  --brushed-plate-border: #1a1d26;
+
+  /* Readable metal lettering — for section headings clipped to glyphs. The
+     full --chrome-fill drops to near-black (#0e1018) right across the letter
+     midline, which swallows small text on the dark stage. This gradient stays
+     in the bright silver band (never darker than ~#aab2c0) so the metal reads
+     as letters, not a smudge. Pair with a heavier weight + dark drop-shadow. */
+  --chrome-fill-legible: linear-gradient(178deg,
+    #ffffff 0%, #f4f6fa 24%, #d4dae5 50%, #aab2c0 70%, #cdd3de 86%, #ffffff 100%);
+  --chrome-surface-legible: var(--chrome-texture) 0 0 / 200px 200px, var(--chrome-fill-legible);
+
   /* Rainbow refraction — the prismatic rim of the wordmark.
      Use only as a stroke/border-image, never as a fill. */
   --rainbow-rim: linear-gradient(95deg,

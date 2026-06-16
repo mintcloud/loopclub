@@ -11,17 +11,26 @@
 }
 .library-header { display: flex; justify-content: space-between; align-items: center; }
 /* Section header — liquid metal mapped onto the lettering itself
-   (chrome surface clipped to the glyphs), not a flat text label. */
+   (chrome surface clipped to the glyphs), not a flat text label.
+   Legibility fix: the old recipe clipped the full --chrome-surface (whose
+   gradient drops to near-black at the midline) onto 15px/weight-400 glyphs,
+   so the word "LIBRARY" read as a dark smudge on the dark stage. Now:
+     • a brighter, midline-safe gradient (--chrome-surface-legible) that never
+       goes darker than a mid silver, so every letter keeps contrast;
+     • heavier weight + a hair more size so the strokes carry the metal;
+     • a crisp dark drop-shadow to carve the silver letters off the bg. */
 .library-header h2 {
   margin: 0; font-family: var(--font-tech);
-  font-size: 15px; font-weight: 400;
+  font-size: 17px; font-weight: 600;
   letter-spacing: var(--ls-tech); text-transform: uppercase;
-  background: var(--chrome-surface);
+  background: var(--chrome-surface-legible);
   background-blend-mode: var(--chrome-blend);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
+  filter:
+    drop-shadow(0 1px 0 rgba(0,0,0,.85))
+    drop-shadow(0 0 6px rgba(0,0,0,.5));
 }
 /* Library tabs — chrome pads, same metal recipe as the deck buttons.
    Active tab flips to the pressed-chrome reflection (dim graphite) with
@@ -107,16 +116,49 @@
   .tabs { gap: 0.25rem; flex-wrap: wrap; }
   .tab { font-size: 9px; padding: 0.35rem 0.6rem; }
 }
+/* Loop cards — brushed-metal plates, the same material as the grid faceplate,
+   so the library reads as part of the same instrument rather than flat web
+   panels in the old --panel violet-navy. The brushed streak is element-keyed
+   (fixed tile) so cards look identical at every size; the dark base keeps the
+   mini-grid LEDs and card text legible. Inset bevel + drop shadow seat each
+   card as a real recessed panel; role borders/glows ride on top unchanged. */
 .loop-card {
-  background: var(--panel); border: 1px solid var(--border);
+  background: var(--brushed-plate);
+  background-blend-mode: var(--brushed-plate-blend);
+  border: 1px solid var(--brushed-plate-border);
   border-radius: var(--r-lg); padding: 0.7rem;
   display: flex; flex-direction: column; gap: 0.55rem;
   font-family: var(--font-body);
-  transition: border-color 0.1s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    0 6px 16px rgba(0,0,0,.45);
+  transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
-.loop-card.role-contrib { border-color: var(--contrib); }
-.loop-card.role-owned   { border-color: var(--owned); box-shadow: var(--shadow-glow-owned); }
-.loop-card.playing      { border-color: rgba(255,255,255,.75); box-shadow: var(--rainbow-glow); }
+.loop-card.role-contrib {
+  border-color: var(--contrib);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    0 6px 16px rgba(0,0,0,.45),
+    0 0 10px rgba(92,255,198,.18);
+}
+.loop-card.role-owned   {
+  border-color: var(--owned);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    0 6px 16px rgba(0,0,0,.45),
+    var(--shadow-glow-owned);
+}
+.loop-card.playing      {
+  border-color: rgba(255,255,255,.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    0 6px 16px rgba(0,0,0,.45),
+    var(--rainbow-glow);
+}
 .loop-card-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; gap: 0.5rem; }
 .loop-card-head > span { white-space: nowrap; }
 .loop-card-head .owner { color: var(--muted); font-size: 11px; font-family: var(--font-mono); }
