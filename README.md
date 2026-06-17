@@ -8,7 +8,7 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
 
 <p align="center">
   <a href="https://www.loom.com/share/493022691bbf4a509634df6d58a6ad22?t=6">
-    <img src="https://cdn.loom.com/sessions/thumbnails/493022691bbf4a509634df6d58a6ad22-with-play.gif" alt="▶ Watch the loopclub demo walkthrough on Loom" width="60%">
+    <img src="https://cdn.loom.com/sessions/thumbnails/493022691bbf4a509634df6d58a6ad22-34cddfb59b583a61-full-play.jpg" alt="▶ Watch the loopclub demo walkthrough on Loom" width="60%">
   </a>
   <br>
   <strong><a href="https://www.loom.com/share/493022691bbf4a509634df6d58a6ad22?t=6">▶ Watch the demo walkthrough</a></strong>
