@@ -33,6 +33,15 @@ export const config = {
   // Only used when mossSponsor is true — without it, sponsorship can't fire and
   // MOSS falls back to user-paid gas. Leave blank while users pay their own gas.
   mossSponsorUrl: (import.meta.env.VITE_MOSS_SPONSOR_URL as string | undefined) || undefined,
+  // MOSS "fast mode" — native session-key permissions (grantPermissions + a
+  // silent callContract). User approves ONE scoped, expiring grant, then every
+  // cell toggle signs silently until it expires — the MOSS-native equivalent of
+  // Privy's session keys. This is INDEPENDENT of the Privy SESSION_KEYS_SUPPORTED
+  // gate above: MOSS permissions don't touch ZeroDev, so none of the
+  // TimestampPolicy / AA23 breakage that benched Privy fast mode applies here.
+  // Off by default — flip VITE_MOSS_FAST_MODE=true once verified on a preview.
+  // Only meaningful when VITE_WALLET_PROVIDER=moss (the Privy adapter ignores it).
+  mossFastMode: import.meta.env.VITE_MOSS_FAST_MODE === 'true',
   privyAppId: import.meta.env.VITE_PRIVY_APP_ID as string,
   chainId: Number(import.meta.env.VITE_CHAIN_ID),
   rpcUrl: import.meta.env.VITE_RPC_URL as string,
