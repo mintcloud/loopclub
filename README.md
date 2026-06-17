@@ -6,8 +6,13 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
   <img src="docs/assets/hero.gif" alt="loopclub — a shared on-chain drum machine where every cell is a live blockchain write" width="100%">
 </p>
 
-> **▶ Demo video:** _coming soon — placeholder._
-> <!-- Replace this block with the hosted demo embed/link once recorded. -->
+<p align="center">
+  <a href="https://www.loom.com/share/493022691bbf4a509634df6d58a6ad22?t=6">
+    <img src="https://cdn.loom.com/sessions/thumbnails/493022691bbf4a509634df6d58a6ad22-with-play.gif" alt="▶ Watch the loopclub demo walkthrough on Loom" width="60%">
+  </a>
+  <br>
+  <strong><a href="https://www.loom.com/share/493022691bbf4a509634df6d58a6ad22?t=6">▶ Watch the demo walkthrough</a></strong>
+</p>
 
 **Live:** MegaETH mainnet (chain 4326). `Loopclub` `0x1030…3631` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
 
