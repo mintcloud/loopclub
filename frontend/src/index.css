@@ -459,7 +459,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 560px) {
   .pb-status { flex-direction: column; align-items: stretch; }
   .pb-cta { flex-direction: column; align-items: stretch; }
-  .pb-press { width: 100%; }
+  /* Full-width, but the DS sets white-space: nowrap which lets a long label
+     (✦ Press Edition #N · price USDm) spill past the button on narrow phones.
+     Scale the label down with the viewport and allow it to wrap as a final
+     safety net so it can never overflow. */
+  .pb-press {
+    width: 100%;
+    white-space: normal;
+    font-size: clamp(11px, 3.4vw, 13px);
+    line-height: 1.3;
+  }
 }
 
 /* ───── Mobile layout — phone-sized viewport (≤720px).
