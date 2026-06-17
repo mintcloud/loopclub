@@ -36,9 +36,11 @@ export type Wallet = {
   // `publicClient.waitForTransactionReceipt(hash)`, so the hash is all the app
   // needs back — the receipt is re-read from the chain, provider-agnostically.
   sendCalls: (calls: Call[]) => Promise<Hex>
-  // "Fast mode" (ZeroDev session keys). Real on the Privy backend; a permanently
-  // -disabled stub on MOSS, whose native equivalent is `grantPermissions`
-  // (see wallet/moss.tsx for the migration note). When disabled the ⚡ control
-  // doesn't render, so the app behaves as if fast mode never existed.
+  // "Fast mode" — one approval, then toggles sign without a per-tx prompt.
+  // Privy implements it with a ZeroDev session key (useSessionKey.ts); MOSS with
+  // its native grantPermissions + silent callContract (useMossSession.ts). Both
+  // satisfy this one interface, so App.tsx's fast path is backend-agnostic. When
+  // a backend reports `disabled` the ⚡ control doesn't render and the app
+  // behaves as if fast mode never existed.
   session: SessionKey
 }
