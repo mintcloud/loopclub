@@ -2,7 +2,26 @@
 
 One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finished pattern is recorded as a **Series** of NFT editions priced on a bonding curve, and every edition pressed pays the loop's co-creators — the cell owners snapshotted when it was recorded.
 
+<p align="center">
+  <img src="docs/assets/hero.gif" alt="loopclub — a shared on-chain drum machine where every cell is a live blockchain write" width="100%">
+</p>
+
+> **▶ Demo video:** _coming soon — placeholder._
+> <!-- Replace this block with the hosted demo embed/link once recorded. -->
+
 **Live:** MegaETH mainnet (chain 4326). `Loopclub` `0x1030…3631` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
+
+---
+
+## Why MegaETH
+
+loopclub is a *collaborative, realtime* instrument: a single global grid that everyone plays at once, where each cell you light up is a real on-chain state change — not a cached UI flourish synced later. That design choice is the whole product, and it dictated the chain.
+
+Realtime collaboration is **write-heavy**. Every toggle, renewal, record, and press is a transaction. On a typical L1/L2 — multi-second blocks, gas measured in cents-to-dollars — the experience falls apart two ways: the grid feels laggy (you click, then wait for a block to see your cell light up), and per-click cost makes spontaneous play economically absurd. A drum machine where each hi-hat costs a confirmation dialog and a dime is not a drum machine.
+
+MegaETH is the unlock. Its low-latency blocks and high throughput mean a cell lights up for everyone watching almost as fast as a local app would repaint, and **sub-cent gas** means a full session of toggling costs a rounding error (rent is priced so full-grid spam runs ~$1/min, paid in USDm so it's stable in dollars). Combined with smart-wallet session UX — one approval at session start, zero modals per toggle — playing loopclub feels like a normal web instrument that just happens to be entirely on-chain, co-created live with strangers.
+
+**The short version:** loopclub is the kind of consumer product that can only exist on a chain fast and cheap enough to put realtime collaboration directly on-chain. That's why it's on MegaETH, and not anywhere else.
 
 ---
 
