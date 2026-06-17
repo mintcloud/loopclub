@@ -182,11 +182,16 @@
   /* Gilroy caps, not Michroma — these chips must clear one line per card
      (play / see edition NFT / share) and the tech face is too wide here. */
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 0.32rem 0.44rem;
+  /* All-caps Gilroy rides high: glyphs fill baseline→cap-height and leave the
+     descender slot empty, so caps sit above the box's geometric centre. Bias
+     ~1px of the vertical padding from bottom to top (over the chip's 0.44rem
+     horizontal / 0.64rem total vertical) to drop the legend onto the optical
+     midline. */
+  padding: 0.36rem 0.44rem 0.28rem;
   background: var(--chrome-surface-chip);
   background-blend-mode: var(--chrome-blend);
   border: 1px solid var(--chrome-border);
