@@ -21,7 +21,6 @@ import { loopclubAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
-import type { SessionKey } from './useSessionKey'
 import { useWallet, type Call } from './wallet'
 import { fromLink, litCells, synthPitches, LinkError } from 'loopclub-loopgen'
 import type { ClickPhase } from './useClickTier'
@@ -441,15 +440,18 @@ export function App() {
       }),
     })
 
-    // Fast path: when fast mode is armed and the toggle is a single call
-    // (allowance already maxed, no approve to batch), sign it locally with the
-    // session key — no Privy round-trip. When an approval has to ride along
-    // (calls.length === 2) we fall back to the Privy client, which sets the
-    // max-uint256 allowance; every later toggle then takes the fast path.
+    // Fast path: session key armed → sign locally (no wallet round-trip).
+    // Auto-arm: first single-call toggle with an idle session arms it
+    // transparently — user approves once, all subsequent toggles are instant.
+    // Approval batches (calls.length === 2) always use the wallet path; the
+    // next bare toggle (allowance already set) will hit auto-arm.
     const fast = session.armed && calls.length === 1
-    const submit: Promise<`0x${string}`> = fast
-      ? session.send(calls[0])
-      : wallet.sendCalls(calls)
+    const autoArm = !fast && session.status === 'idle' && calls.length === 1
+    const submit: Promise<`0x${string}`> = autoArm
+      ? session.arm().then(() => session.send(calls[0])).catch(() => wallet.sendCalls(calls))
+      : fast
+        ? session.send(calls[0])
+        : wallet.sendCalls(calls)
     submit
       .then(async (txHash) => {
         try {
@@ -921,7 +923,6 @@ export function App() {
               </button>
             )}
           </div>
-          {authenticated && <FastMode session={session} ready={!!smartAddress} />}
           {!ready ? null : !authenticated ? (
             <button className="btn-chrome connect-btn" onClick={login}>
               Connect
@@ -1228,63 +1229,6 @@ function SyncBadge({ blockNumber }: { blockNumber: number }) {
   )
 }
 
-// "Fast mode" control — arms / shows / disarms the session key (Step 4). Hidden
-// entirely when the feature flag is off. The address guard in sessionKey.ts
-// means the worst a misconfigured session can do is fall back to Privy.
-function FastMode({ session, ready }: { session: SessionKey; ready: boolean }) {
-  const [, tick] = useState(0)
-  useEffect(() => {
-    if (session.status !== 'armed') return
-    const id = setInterval(() => tick((n) => n + 1), 30_000)
-    return () => clearInterval(id)
-  }, [session.status])
-
-  if (session.status === 'disabled' || session.status === 'restoring' || !ready) return null
-
-  if (session.status === 'armed' && session.expiresAt) {
-    const mins = Math.max(0, Math.round((session.expiresAt - Date.now()) / 60_000))
-    return (
-      <span className="fastmode-badge" title="Cell toggles are signed locally — no wallet round-trip">
-        <span className="fastmode-bolt">⚡</span>
-        fast · {mins}m
-        <button className="fastmode-off" onClick={session.disarm} title="Turn off fast mode">
-          ✕
-        </button>
-      </span>
-    )
-  }
-
-  if (session.status === 'arming') {
-    return (
-      <button className="fastmode-btn" disabled>
-        ⚡ arming…
-      </button>
-    )
-  }
-
-  if (session.status === 'mismatch') {
-    return (
-      <span className="fastmode-badge unavailable" title={session.errorMsg ?? ''}>
-        ⚡ unavailable
-      </span>
-    )
-  }
-
-  // idle | error
-  return (
-    <button
-      className="fastmode-btn"
-      onClick={session.arm}
-      title={
-        session.status === 'error'
-          ? session.errorMsg ?? 'Retry enabling fast mode'
-          : 'Sign once — then cell toggles are instant, with no wallet popups'
-      }
-    >
-      ⚡ {session.status === 'error' ? 'retry fast mode' : 'enable fast mode'}
-    </button>
-  )
-}
 
 function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => void }) {
   const url = `${window.location.origin}${window.location.pathname}?loop=${seriesId.toString()}`
