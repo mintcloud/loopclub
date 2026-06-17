@@ -24,15 +24,33 @@ import { config } from '../config'
 import type { SessionKey } from '../useSessionKey'
 import type { Call, Wallet } from './types'
 
-const mossConfig: Config = {
-  network: config.mossNetwork,
-  logging: 'error',
-  // Gasless UX. MOSS sponsors gas app-side when a sponsor backend is configured
-  // for the app; until then leave it to MOSS's default and let the wallet cover
-  // gas. Flip VITE_MOSS_SPONSOR=true once the app's paymaster is set up MegaETH-
-  // side, mirroring the gasless one-tap flow the ZeroDev paymaster gave us.
-  ...(config.mossSponsor ? { sponsorMode: 'app-only', sponsorToken: 'usdm' } : {}),
-}
+// Gas payment model.
+//
+// DEFAULT (VITE_MOSS_SPONSOR unset/false) — users pay their own gas. We pin
+// `sponsorMode: 'explicit'` and never mark any call `sponsor: true`, so nothing
+// is ever sponsored — deterministic user-pays, independent of MOSS's server-
+// side default (which is 'app-only'). Users pay in ETH or an enabled stablecoin
+// (USDm/USDT0) from their MOSS balance.
+//
+// SPONSORED (VITE_MOSS_SPONSOR=true) — gasless one-tap, mirroring the old
+// ZeroDev paymaster. Uses 'app-only', which sponsors every app-initiated
+// contract call (all loopclub sends) while leaving the wallet's own UI
+// swaps/transfers user-paid. NOTE: sponsorship only actually fires when a
+// sponsor backend is wired via VITE_MOSS_SPONSOR_URL — the endpoint MOSS calls
+// to approve/fund each op. Without it, MOSS has nothing to sponsor with and
+// falls back to user-paid even when this is true.
+const mossConfig: Config = config.mossSponsor
+  ? {
+      network: config.mossNetwork,
+      logging: 'error',
+      sponsorMode: 'app-only',
+      ...(config.mossSponsorUrl ? { sponsorUrl: config.mossSponsorUrl } : {}),
+    }
+  : {
+      network: config.mossNetwork,
+      logging: 'error',
+      sponsorMode: 'explicit', // nothing opts in → user pays their own gas
+    }
 
 export function MossWalletProvider({ children }: PropsWithChildren) {
   return <MegaProvider config={mossConfig}>{children}</MegaProvider>
@@ -74,13 +92,11 @@ export function useMossWallet(): Wallet {
     async sendCalls(calls: Call[]): Promise<Hex> {
       // App calldata is already ABI-encoded, so pass it raw via `data`. MOSS
       // accepts an array and batches it atomically — same semantics as the
-      // Privy smart wallet's `{ calls }`.
+      // Privy smart wallet's `{ calls }`. Sponsorship is decided by the config's
+      // sponsorMode ('app-only' sponsors these app calls; 'explicit' = user
+      // pays), so no per-call `sponsor` flag is needed here.
       const result = await callContract.mutateAsync(
-        calls.map((c) => ({
-          address: c.to,
-          data: c.data,
-          ...(config.mossSponsor ? { sponsor: true } : {}),
-        })),
+        calls.map((c) => ({ address: c.to, data: c.data })),
       )
       if (result.status !== 'approved') {
         throw new Error(

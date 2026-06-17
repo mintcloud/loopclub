@@ -26,10 +26,13 @@ export const config = {
   walletProvider: (import.meta.env.VITE_WALLET_PROVIDER as 'privy' | 'moss' | undefined) ?? 'privy',
   // MOSS network. loopclub lives on MegaETH mainnet (chain 4326) → 'mainnet'.
   mossNetwork: (import.meta.env.VITE_MOSS_NETWORK as 'mainnet' | 'testnet' | undefined) ?? 'mainnet',
-  // When true, ask MOSS to sponsor gas (paymaster) on every call — the gasless
-  // one-tap UX the ZeroDev paymaster used to provide. Requires the app's MOSS
-  // sponsor backend to be configured; leave false until then.
+  // Gas: false (default) → users pay their own gas; true → app sponsors it
+  // (gasless one-tap, like the old ZeroDev paymaster). See src/wallet/moss.tsx.
   mossSponsor: import.meta.env.VITE_MOSS_SPONSOR === 'true',
+  // Sponsor backend endpoint MOSS calls to approve/fund each sponsored op.
+  // Only used when mossSponsor is true — without it, sponsorship can't fire and
+  // MOSS falls back to user-paid gas. Leave blank while users pay their own gas.
+  mossSponsorUrl: (import.meta.env.VITE_MOSS_SPONSOR_URL as string | undefined) || undefined,
   privyAppId: import.meta.env.VITE_PRIVY_APP_ID as string,
   chainId: Number(import.meta.env.VITE_CHAIN_ID),
   rpcUrl: import.meta.env.VITE_RPC_URL as string,
