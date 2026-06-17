@@ -1,6 +1,4 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
-import { useSmartWallets } from '@privy-io/react-auth/smart-wallets'
 import { encodeFunctionData, formatUnits, maxUint256, decodeEventLog } from 'viem'
 import { Grid, type CellStatus } from './Grid'
 import { CellPopover } from './CellPopover'
@@ -11,7 +9,6 @@ import { Library, type LoopRecord } from './Library'
 import { useMyCells } from './useMyCells'
 import {
   config,
-  megaethMainnet,
   LOOP_DURATION_SECONDS,
   STEPS,
   SYNTH_CELL_START,
@@ -24,7 +21,8 @@ import { loopclubAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
-import { useSessionKey, type SessionKey } from './useSessionKey'
+import type { SessionKey } from './useSessionKey'
+import { useWallet, type Call } from './wallet'
 import { fromLink, litCells, synthPitches, LinkError } from 'loopclub-loopgen'
 import type { ClickPhase } from './useClickTier'
 import { startAudio, stopAudio, setLiveState, setSnapshot, onStep, previewCell } from './audio'
@@ -36,12 +34,12 @@ const WALLET_POLL_MS = 5000
 // sequence Part 1). Per-tab-session so the nudge reappears on a fresh visit.
 const CONNECT_NUDGE_DISMISSED = 'loopclub.connectnudge.dismissed.v1'
 
-// A single call inside a batched smart-wallet UserOperation.
-type Call = { to: `0x${string}`; data: `0x${string}` }
-
 export function App() {
-  const { ready, authenticated, user, login, logout } = usePrivy()
-  const { client: smartWalletClient } = useSmartWallets()
+  // The wallet backend (Privy smart wallet or MOSS) is chosen at build time by
+  // VITE_WALLET_PROVIDER — App only ever talks to this provider-agnostic hook.
+  // `Call` (a single batched call) is re-exported from ./wallet.
+  const wallet = useWallet()
+  const { ready, authenticated, login, logout } = wallet
 
   const grid = useLiveGrid()
 
@@ -128,11 +126,11 @@ export function App() {
   // re-toggles at pitch 0 (MIDI 0 = C-1, basically silent on laptop speakers).
   const [lastSynthPitch, setLastSynthPitch] = useState<number>(SYNTH_PITCH_DEFAULT)
 
-  const smartAddress = (smartWalletClient?.account?.address ?? null) as `0x${string}` | null
+  const smartAddress = wallet.address
 
   // Step 4 — "fast mode": once armed, cell toggles are signed by an in-browser
   // session key and skip the Privy round-trip. record/press stay on Privy.
-  const session = useSessionKey(smartAddress)
+  const session = wallet.session
 
   // A short per-wallet memory of the cells you've rented — backs the renew strip.
   const { history, remember } = useMyCells(smartAddress)
@@ -404,7 +402,7 @@ export function App() {
   const withApproval = (price: bigint, action: Call): Call[] => withApprovalCalls(price, [action])
 
   const onToggle = (cellId: number, durationLoops: number, pitchIdx: number) => {
-    if (!smartWalletClient || !smartAddress) return
+    if (!smartAddress) return
 
     // Renting a cell pulls USDm via toggle() → safeTransferFrom, so it needs the
     // same one-time approval the press/record flows do — without it the call
@@ -451,7 +449,7 @@ export function App() {
     const fast = session.armed && calls.length === 1
     const submit: Promise<`0x${string}`> = fast
       ? session.send(calls[0])
-      : smartWalletClient.sendTransaction({ calls }, { uiOptions: { showWalletUIs: false } })
+      : wallet.sendCalls(calls)
     submit
       .then(async (txHash) => {
         try {
@@ -483,7 +481,7 @@ export function App() {
     verb: string,
     pitchMap?: Map<number, number>,
   ) => {
-    if (!smartWalletClient || !smartAddress || cellIds.length === 0) return
+    if (!smartAddress || cellIds.length === 0) return
 
     const cost = rentPerLoop * BigInt(duration) * BigInt(cellIds.length)
     if (balanceLoaded && usdmBalance < cost) {
@@ -512,10 +510,7 @@ export function App() {
     }))
 
     try {
-      const txHash = await smartWalletClient.sendTransaction(
-        { calls: withApprovalCalls(cost, actions) },
-        { uiOptions: { showWalletUIs: false } },
-      )
+      const txHash = await wallet.sendCalls(withApprovalCalls(cost, actions))
       await publicClient
         .waitForTransactionReceipt({ hash: txHash as `0x${string}` })
         .catch(() => {})
@@ -545,7 +540,7 @@ export function App() {
 
   // Press copy #1 of a brand-new loop — calls record().
   const onRecord = async () => {
-    if (!smartWalletClient) return
+    if (!smartAddress) return
     if (grid.pattern === 0n) {
       flash('Grid is empty — toggle some cells first', true)
       return
@@ -560,10 +555,7 @@ export function App() {
         to: config.loopclubAddress,
         data: encodeFunctionData({ abi: loopclubAbi, functionName: 'record', args: [] }),
       })
-      const txHash = await smartWalletClient.sendTransaction(
-        { calls },
-        { uiOptions: { showWalletUIs: false } },
-      )
+      const txHash = await wallet.sendCalls(calls)
 
       let newSeriesId: bigint | null = null
       try {
@@ -646,7 +638,7 @@ export function App() {
 
   // Press copy #N of an existing loop — calls press(seriesId).
   const onPressSeries = async (record: LoopRecord) => {
-    if (!smartWalletClient) return
+    if (!smartAddress) return
     if (balanceLoaded && usdmBalance < record.nextPressPrice) {
       flash(
         `Need ${formatUnits(record.nextPressPrice, 18)} USDm to press (have ${formatUnits(usdmBalance, 18).slice(0, 6)})`,
@@ -665,10 +657,7 @@ export function App() {
           args: [record.seriesId],
         }),
       })
-      await smartWalletClient.sendTransaction(
-        { calls },
-        { uiOptions: { showWalletUIs: false } },
-      )
+      await wallet.sendCalls(calls)
       flash(`Pressed copy #${record.nextEdition} of loop #${record.seriesId}`)
       if (playbackRef.current?.seriesId === record.seriesId) {
         void refreshPlayback(record.seriesId)
@@ -684,11 +673,11 @@ export function App() {
 
   // Claim accrued resale royalties for a series the user co-created (held cells in).
   const onClaimRoyalty = async (record: LoopRecord) => {
-    if (!smartWalletClient) return
+    if (!smartAddress) return
     try {
       setClaimingSeriesId(record.seriesId)
       setBusy(`Claiming royalties for loop #${record.seriesId}…`)
-      await smartWalletClient.sendTransaction(
+      await wallet.sendCalls([
         {
           to: config.loopclubAddress,
           data: encodeFunctionData({
@@ -696,10 +685,8 @@ export function App() {
             functionName: 'claimRoyalty',
             args: [record.seriesId],
           }),
-          chain: megaethMainnet,
         },
-        { uiOptions: { showWalletUIs: false } },
-      )
+      ])
       flash(`Claimed royalties for loop #${record.seriesId}`)
       setLibraryRefresh((n) => n + 1)
       refreshWallet()
@@ -842,7 +829,7 @@ export function App() {
     setOpenCell({ id, rect })
   }
 
-  const userEmail = user?.email?.address ?? user?.google?.email ?? null
+  const userEmail = wallet.email
   // Recording presses the LIVE grid — suspended while previewing a jam too.
   const canRecord =
     authenticated && smartAddress && grid.pattern !== 0n && !playback && !jam
