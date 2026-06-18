@@ -113,7 +113,7 @@ mkdir -p ~/.config/systemd/user ~/.config/loopclub
 cp deploy/loopclub-seeder.service ~/.config/systemd/user/
 cp deploy/seeder.env.example      ~/.config/loopclub/seeder.env
 chmod 600 ~/.config/loopclub/seeder.env   # then edit in the real key
-loginctl enable-linger theo
+loginctl enable-linger <user>
 systemctl --user daemon-reload
 systemctl --user enable --now loopclub-seeder
 journalctl --user -u loopclub-seeder -f
@@ -121,4 +121,4 @@ journalctl --user -u loopclub-seeder -f
 
 Then add the one presence ingress line from
 `deploy/cloudflared-ingress.example.yml` to `~/.cloudflared/config.yml` and set
-`VITE_PRESENCE_URL=https://presence.tg-itsavibe.com` in Vercel.
+`VITE_PRESENCE_URL=https://presence.<your-tunnel-domain>` in Vercel.

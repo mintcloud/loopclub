@@ -284,7 +284,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   box-shadow: 0 0 16px rgba(60, 200, 140, .10);
 }
 /* Liveness pill — a green dot + the live-status line (count of cells on chain,
- * the bot once it ships, or the quiet-grid connect prompt). Theo's pick of
+ * the bot once it ships, or the quiet-grid connect prompt). Deliberate pick of
  * font; nudged up a touch from 10px now that it carries the CTA. */
 .connect-live {
   display: inline-flex;

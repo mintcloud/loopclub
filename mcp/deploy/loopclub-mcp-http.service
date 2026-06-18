@@ -1,6 +1,6 @@
 # loopclub-mcp remote (Streamable HTTP) — systemd USER service.
 #
-# Matches the existing tg-itsavibe.com service pattern on the VPS (nvm node,
+# Matches the existing <your-tunnel-domain> service pattern on the VPS (nvm node,
 # user units, linger enabled). No Docker, no sudo for the service itself.
 #
 #   cp deploy/loopclub-mcp-http.service ~/.config/systemd/user/
@@ -8,7 +8,7 @@
 #   systemctl --user enable --now loopclub-mcp-http
 #   systemctl --user status loopclub-mcp-http
 #
-# (Linger is already on for theo, so the service survives logout / reboot.)
+# (Linger is already on for <user>, so the service survives logout / reboot.)
 
 [Unit]
 Description=loopclub MCP (remote Streamable HTTP)
@@ -16,9 +16,9 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/theo/projects/loopclub/mcp
-Environment="PATH=/home/theo/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/theo/.nvm/versions/node/v22.22.0/bin/node dist/http.js
+WorkingDirectory=/home/<user>/projects/loopclub/mcp
+Environment="PATH=/home/<user>/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/<user>/.nvm/versions/node/v22.22.0/bin/node dist/http.js
 Restart=always
 RestartSec=5
 
@@ -26,9 +26,9 @@ RestartSec=5
 # Port 3008 — next free slot after the existing 3001–3007 services.
 Environment=PORT=3008
 Environment=MCP_BIND_HOST=127.0.0.1
-# Accept the tunnel hostname (mcp.tg-itsavibe.com) plus the branded host if/when
+# Accept the tunnel hostname (mcp.<your-tunnel-domain>) plus the branded host if/when
 # loopclub.xyz DNS moves to Cloudflare, plus localhost for health checks.
-Environment=MCP_ALLOWED_HOSTS=mcp.tg-itsavibe.com,mcp.loopclub.xyz,localhost,127.0.0.1
+Environment=MCP_ALLOWED_HOSTS=mcp.<your-tunnel-domain>,mcp.loopclub.xyz,localhost,127.0.0.1
 Environment=MCP_ALLOWED_ORIGINS=https://app.loopclub.xyz,https://loopclub.xyz
 Environment=LOOPCLUB_ORIGIN=https://app.loopclub.xyz
 # Optional tuning (defaults shown):

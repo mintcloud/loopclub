@@ -2,7 +2,7 @@
 //
 // loopclub historically talked straight to Privy's smart wallet
 // (`useSmartWallets().client.sendTransaction({ calls })`). MegaETH then shipped
-// MOSS — its own embedded wallet built for MegaETH apps — and Theo wants the
+// MOSS — its own embedded wallet built for MegaETH apps — and we want the
 // app to work with it. Rather than fork the UI per wallet, App.tsx now depends
 // only on this interface; `./index` binds it to one backend at build time via
 // `VITE_WALLET_PROVIDER` (privy | moss). Adding a third wallet later is one new

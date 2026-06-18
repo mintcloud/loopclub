@@ -1,6 +1,6 @@
 # loopclub v1 — locked spec + next steps
 
-*2026-05-08 · for Theo · updated 2026-05-15*
+*2026-05-08 · for the team · updated 2026-05-15*
 
 > **⚠️ Updated 2026-05-15 — v1 shipped, then the mint model was reworked.** This doc originally
 > specified a one-shot flat-price mint (`mintPrice`, 80/10/10 holders/recorder/treasury). The
@@ -204,7 +204,7 @@ Cost is real but tiny. Worth it. You called it correctly.
 ### Treasury
 
 - `address treasury` with `setTreasury` owner-gated
-- Initially Theo's hot wallet, rotated to multisig later
+- Initially the team's hot wallet, rotated to multisig later
 
 ### Out of scope for v1
 

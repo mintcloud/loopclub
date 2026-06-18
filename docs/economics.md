@@ -1,6 +1,6 @@
 # loopclub economics v1
 
-*2026-05-08 · for Theo · updated 2026-05-15*
+*2026-05-08 · for the team · updated 2026-05-15*
 
 > **⚠️ Updated 2026-05-15.** This is the original design memo. The shipped v1 diverged from
 > several of its recommendations — most notably it uses a **bonding-curve editions** model
