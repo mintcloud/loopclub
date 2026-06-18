@@ -3,14 +3,12 @@
 One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finished pattern is recorded as a **Series** of NFT editions priced on a bonding curve, and every edition pressed pays the loop's co-creators — the cell owners snapshotted when it was recorded.
 
 <p align="center">
-  <img src="docs/assets/hero.gif" alt="loopclub — a shared on-chain drum machine where every cell is a live blockchain write" width="100%">
+  <img src="docs/assets/hero.gif" alt="loopclub — a shared on-chain drum machine where every cell is a live blockchain write" width="60%">
 </p>
 
+https://github.com/user-attachments/assets/df6ea36e-e707-4e1e-873e-de0baeae0212
+
 <p align="center">
-  <a href="https://www.loom.com/share/493022691bbf4a509634df6d58a6ad22?t=6">
-    <img src="https://cdn.loom.com/sessions/thumbnails/493022691bbf4a509634df6d58a6ad22-34cddfb59b583a61-full-play.jpg" alt="▶ Watch the loopclub demo walkthrough on Loom" width="60%">
-  </a>
-  <br>
   <strong><a href="https://www.loom.com/share/493022691bbf4a509634df6d58a6ad22?t=6">▶ Watch the demo walkthrough</a></strong>
 </p>
 
