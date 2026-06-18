@@ -4,7 +4,9 @@
 # contract into the seeder so the bot never runs dry.
 #
 #   mkdir -p ~/.config/systemd/user ~/.config/loopclub
-#   cp deploy/loopclub-funder.service ~/.config/systemd/user/
+#   # Substitute the /home/<user>/ placeholder on copy — a verbatim cp leaves a
+#   # literal <user> in the path and the unit fails to exec (203/EXEC).
+#   sed "s|/home/<user>/|$HOME/|g" deploy/loopclub-funder.service > ~/.config/systemd/user/loopclub-funder.service
 #   cp deploy/loopclub-funder.timer   ~/.config/systemd/user/
 #   cp deploy/funder.env.example      ~/.config/loopclub/funder.env
 #   chmod 600 ~/.config/loopclub/funder.env    # then edit in the OWNER key + seeder address

@@ -156,16 +156,25 @@ npm run fund          # or `npm run fund:dev` to run from source via tsx
 Automate it with the timer (no-op when the balance is fine, so frequent runs
 are harmless):
 
+The deploy files carry a `/home/<user>/` placeholder (the repo holds no real
+username), so substitute your home dir **on copy** — copying them verbatim
+leaves a literal `<user>` in the path and the unit fails with `203/EXEC`. The
+`.timer` has no paths, so it copies as-is:
+
 ```bash
-cp deploy/loopclub-funder.service ~/.config/systemd/user/
-cp deploy/loopclub-funder.timer   ~/.config/systemd/user/
-cp deploy/funder.env.example      ~/.config/loopclub/funder.env
+sed "s|/home/<user>/|$HOME/|g" deploy/loopclub-funder.service > ~/.config/systemd/user/loopclub-funder.service
+cp deploy/loopclub-funder.timer ~/.config/systemd/user/
+cp deploy/funder.env.example    ~/.config/loopclub/funder.env
 chmod 600 ~/.config/loopclub/funder.env   # then edit in the OWNER key + seeder address
 systemctl --user daemon-reload
 systemctl --user enable --now loopclub-funder.timer   # default: every 6h
 systemctl --user start loopclub-funder.service        # fire once now
 journalctl --user -u loopclub-funder.service -f
 ```
+
+> The unit's `node` path also pins a version (`v22.22.0`). If `node -v` differs
+> on your box, fix the `ExecStart` / `PATH` version too (or point them at
+> `$(which node)`).
 
 > The funder tops up **USDm** only. The seeder also needs a little native ETH
 > for gas on each `toggle()`; that is not swept from the contract (the contract
