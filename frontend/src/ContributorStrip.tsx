@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { CellState } from './useLiveGrid'
-import { ownerColor, sameAddr, shortAddr } from './owner'
+import { labelFor, ownerColor, sameAddr } from './owner'
 
 interface Props {
   cells: CellState[]
@@ -39,7 +39,7 @@ export function ContributorStrip({ cells, currentLoop, myAddress }: Props) {
                 className="contrib-dot"
                 style={{ background: mine ? 'var(--accent)' : ownerColor(addr) }}
               />
-              {mine ? 'you' : shortAddr(addr)}
+              {mine ? 'you' : labelFor(addr)}
               <span className="contrib-count">{count}</span>
             </span>
           )
