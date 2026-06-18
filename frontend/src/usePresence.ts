@@ -7,6 +7,15 @@ import { config } from './config'
 // sessions seen in the last 30 s as "active visitors" and only jams the grid
 // while at least one real person is here.
 //
+// Autofade on blur: we only beat while the tab is actually visible. When the
+// visitor switches tabs / minimises / locks the screen we stop beating, so the
+// seeder stops seeing this session and robodj fades out on its own ~30 s later
+// (the seeder's TTL). When they come back we beat immediately and resume the
+// interval, so the grid lights up again within a few seconds. We key off
+// `visibilitychange` rather than window blur because blur also fires for wallet
+// pop-ups (Privy / MetaMask) and other in-page modals — we don't want robodj to
+// fade just because the visitor is mid-transaction with the page still in view.
+//
 // Fully fire-and-forget: no cookie, no PII, no UX surface. If VITE_PRESENCE_URL
 // is unset (bot not deployed) or a beat fails, nothing breaks — the worst case
 // is the bot thinks the room is empty and stays silent.
@@ -45,8 +54,26 @@ export function usePresence(): void {
       }).catch(() => {})
     }
 
-    beat() // announce arrival immediately so the bot lights up within ~3 s
-    const timer = setInterval(beat, BEAT_INTERVAL_MS)
-    return () => clearInterval(timer)
+    let timer: ReturnType<typeof setInterval> | null = null
+    const start = () => {
+      if (timer) return
+      beat() // announce immediately so the grid lights up within a few seconds
+      timer = setInterval(beat, BEAT_INTERVAL_MS)
+    }
+    const stop = () => {
+      if (!timer) return
+      clearInterval(timer)
+      timer = null
+    }
+
+    // Only beat while the page is in the foreground; stop on hide so robodj
+    // fades on its own once the visitor leaves, resume on return.
+    const onVisibility = () => (document.hidden ? stop() : start())
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      stop()
+    }
   }, [])
 }
