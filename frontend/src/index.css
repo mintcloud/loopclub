@@ -90,6 +90,57 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--danger);
 }
 
+/* ───── Empty-wallet "Fund" CTA + bridge block ─────
+   When a wallet has no ETH/USDm the header swaps its discreet ▾ for this loud
+   accent button, and the FundModal leads with the official MegaETH bridge. */
+.fund-btn {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0 0.85rem;
+  animation: fund-pulse 2.2s ease-in-out infinite;
+}
+@keyframes fund-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 101, 33, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 101, 33, 0.18); }
+}
+.fund-balances {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.2rem 0 0.7rem;
+}
+.fund-bal {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px);
+  background: var(--panel-2);
+  color: var(--text);
+}
+.fund-bridge {
+  margin: 0.9rem 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px);
+  background: var(--panel-2);
+}
+.fund-bridge h4 { margin: 0 0 0.3rem; font-size: 13px; }
+.fund-bridge-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.fund-bridge-links a { text-decoration: none; }
+.fund-docs-link {
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px dotted var(--border);
+}
+.fund-docs-link:hover { color: var(--text); }
+.fund-deposit-h { margin: 0.9rem 0 0.3rem; font-size: 13px; }
+
 /* ───── Withdraw modal — select-asset → recipient → amount, then send.
    .modal label/input/select base styles already apply; these add the
    field rhythm, the amount+Max row, and inline status colors. ───── */

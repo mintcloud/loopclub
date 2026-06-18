@@ -48,6 +48,10 @@ export function App() {
   usePresence()
 
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
+  // Native ETH balance — needed for gas (users pay their own unless sponsored).
+  // A brand-new MOSS wallet has 0 of both this and USDm; that empty state drives
+  // the prominent "Fund" button + bridge links in the header/FundModal below.
+  const [ethBalance, setEthBalance] = useState<bigint>(0n)
   // usdmBalance starts at 0n and only becomes real after the first chain read
   // resolves — which can take tens of seconds behind a slow/rate-limited RPC.
   // `balanceLoaded` gates the pre-flight "not enough balance" guards so they
@@ -156,7 +160,7 @@ export function App() {
       setRentPerLoop(rent as bigint)
 
       if (smartAddress) {
-        const [bal, allow] = await Promise.all([
+        const [bal, allow, eth] = await Promise.all([
           publicClient.readContract({
             address: config.paymentTokenAddress,
             abi: usdmAbi,
@@ -169,9 +173,11 @@ export function App() {
             functionName: 'allowance',
             args: [smartAddress, config.loopclubAddress],
           }),
+          publicClient.getBalance({ address: smartAddress }),
         ])
         setUsdmBalance(bal as bigint)
         setAllowance(allow as bigint)
+        setEthBalance(eth)
         setBalanceLoaded(true)
       }
     } catch (e) {
@@ -951,6 +957,14 @@ export function App() {
 
   const basePriceStr = fmtUsdm(basePrice)
 
+  // A wallet that can't actually do anything yet: it has loaded its balances and
+  // is short on USDm (can't rent/press) or native ETH (can't pay gas). Brand-new
+  // MOSS wallets land here with zero of both — they need to bridge funds in
+  // before the app is usable, so the header swaps its discreet ▾ for a loud
+  // "Fund" button and the FundModal surfaces the official MegaETH bridge links.
+  const needsFunding =
+    !!smartAddress && balanceLoaded && (usdmBalance === 0n || ethBalance === 0n)
+
   return (
     <div className="app">
       <MobileHint />
@@ -1011,15 +1025,30 @@ export function App() {
                   {smartAddress ? `${formatUnits(usdmBalance, 18).slice(0, 6)} USDm` : '…'}
                 </span>
               </span>
-              <button
-                className="btn wallet-btn"
-                onClick={() => setShowFund(true)}
-                title="Wallet — fund or disconnect"
-                aria-label="My wallet — fund or disconnect"
-                disabled={!smartAddress}
-              >
-                ▾
-              </button>
+              {needsFunding ? (
+                // Empty wallet → loud accent CTA in place of the chevron. This is
+                // the only way a brand-new user gets assets onto MegaETH, so it
+                // can't hide behind a glyph. The modal it opens carries the bridge.
+                <button
+                  className="btn-chrome fund-btn"
+                  onClick={() => setShowFund(true)}
+                  title="Add ETH & USDm to your wallet to start jamming"
+                  aria-label="Fund my wallet — bridge assets onto MegaETH"
+                  disabled={!smartAddress}
+                >
+                  Fund
+                </button>
+              ) : (
+                <button
+                  className="btn wallet-btn"
+                  onClick={() => setShowFund(true)}
+                  title="Wallet — fund or disconnect"
+                  aria-label="My wallet — fund or disconnect"
+                  disabled={!smartAddress}
+                >
+                  ▾
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -1251,6 +1280,7 @@ export function App() {
         <FundModal
           address={smartAddress}
           usdmBalance={usdmBalance}
+          ethBalance={ethBalance}
           onClose={() => setShowFund(false)}
           onWithdraw={() => {
             setShowFund(false)
@@ -1350,17 +1380,30 @@ function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => vo
   )
 }
 
+// Official MegaETH funding rails (docs.megaeth.com/user-guide/bridge). Rabbithole
+// is MegaETH's own portal: its bridge converts USDC→USDm 1:1 and routes ETH and
+// other assets via LI.FI; the /fund route is the fiat on-ramp. We link the
+// official destinations rather than embedding a bridge widget so a new user
+// always lands on canonical MegaETH infra.
+const MEGAETH_BRIDGE_URL = 'https://rabbithole.megaeth.com/bridge'
+const MEGAETH_ONRAMP_URL = 'https://rabbithole.megaeth.com/fund'
+const MEGAETH_BRIDGE_DOCS_URL = 'https://docs.megaeth.com/user-guide/bridge'
+
 // Wallet modal — fund the smart wallet and (per the new account-group) sign out.
-// Opened from the header ▾ wallet button.
+// Opened from the header ▾ / "Fund" button. For a brand-new wallet with no ETH or
+// USDm, the bridge block is the path onto MegaETH; the deposit address below
+// stays useful for anyone topping up from an address they already control.
 function FundModal({
   address,
   usdmBalance,
+  ethBalance,
   onClose,
   onWithdraw,
   onDisconnect,
 }: {
   address: `0x${string}`
   usdmBalance: bigint
+  ethBalance: bigint
   onClose: () => void
   onWithdraw: () => void
   onDisconnect: () => void
@@ -1375,13 +1418,47 @@ function FundModal({
       // ignore
     }
   }
+  // No USDm to act with, or no ETH to pay gas → lead with the bridge. Either
+  // empty balance means the wallet can't yet rent, press, or even submit a tx.
+  const empty = usdmBalance === 0n || ethBalance === 0n
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Fund my wallet</h3>
         <p className="muted">
-          Send USDm on MegaETH Mainnet to your smart-wallet address below — it bankrolls cell rent and
-          presses. You currently hold {formatUnits(usdmBalance, 18).slice(0, 6)} USDm.
+          {empty
+            ? 'Your wallet is empty. Bridge assets onto MegaETH Mainnet to start jamming — you need USDm to rent cells and press loops, plus a little ETH for gas.'
+            : 'Top up your smart wallet on MegaETH Mainnet — USDm bankrolls cell rent and presses, ETH covers gas.'}
+        </p>
+        <div className="fund-balances">
+          <span className="fund-bal">{formatUnits(usdmBalance, 18).slice(0, 6)} USDm</span>
+          <span className="fund-bal">{formatUnits(ethBalance, 18).slice(0, 8)} ETH</span>
+        </div>
+
+        {/* Bridge in — the official MegaETH rails. Only path for a wallet that
+            holds nothing on any chain reachable from this address. */}
+        <div className="fund-bridge">
+          <h4>Bridge onto MegaETH</h4>
+          <p className="muted">
+            Use Rabbithole, MegaETH's official portal. The bridge converts USDC→USDm 1:1 and routes
+            ETH (and other tokens) via LI.FI; the fund route adds a card / fiat on-ramp.
+          </p>
+          <div className="fund-bridge-links">
+            <a className="btn-chrome" href={MEGAETH_BRIDGE_URL} target="_blank" rel="noopener noreferrer">
+              Bridge assets ↗
+            </a>
+            <a className="btn" href={MEGAETH_ONRAMP_URL} target="_blank" rel="noopener noreferrer">
+              Buy with card ↗
+            </a>
+            <a className="fund-docs-link" href={MEGAETH_BRIDGE_DOCS_URL} target="_blank" rel="noopener noreferrer">
+              MegaETH docs ↗
+            </a>
+          </div>
+        </div>
+
+        <h4 className="fund-deposit-h">Or deposit to this address</h4>
+        <p className="muted">
+          Already hold ETH or USDm on MegaETH? Send it straight to your smart-wallet address:
         </p>
         <div className="share-url">
           <input readOnly value={address} onFocus={(e) => e.currentTarget.select()} />
