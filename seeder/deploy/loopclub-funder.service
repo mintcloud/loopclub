@@ -22,10 +22,10 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/theo/projects/loopclub/seeder
-Environment="PATH=/home/theo/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/theo/.nvm/versions/node/v22.22.0/bin/node dist/fund.js
-# Secrets + config live here, NOT inline in the unit. chmod 600, owned by theo.
+WorkingDirectory=/home/<user>/projects/loopclub/seeder
+Environment="PATH=/home/<user>/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/<user>/.nvm/versions/node/v22.22.0/bin/node dist/fund.js
+# Secrets + config live here, NOT inline in the unit. chmod 600.
 EnvironmentFile=%h/.config/loopclub/funder.env
 
 # Hardening — same fence as the seeder. The funder only needs to write its
