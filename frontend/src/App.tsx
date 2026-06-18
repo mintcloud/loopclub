@@ -1230,6 +1230,7 @@ export function App() {
 
       {showWithdraw && smartAddress && (
         <WithdrawModal
+          address={smartAddress}
           usdmBalance={usdmBalance}
           sendCalls={wallet.sendCalls}
           onClose={() => setShowWithdraw(false)}
@@ -1416,20 +1417,30 @@ function FundModal({
 // provider's `sendCalls` (the same batched-call primitive every rent/press
 // uses), so it works on whichever backend the build is bound to (Privy/MOSS).
 //
-// Only USDm is offered: it's the single ERC-20 the app deals in, and `sendCalls`
-// submits contract calls (no native-value field), so ETH — which is only here
-// to pay gas anyway — isn't withdrawable through this path. The asset is a
-// select so more ERC-20s can be added later without reshaping the UI.
-const WITHDRAW_ASSETS = [
-  { symbol: 'USDm', address: config.paymentTokenAddress, decimals: 18 },
-] as const
+// Two assets: USDm (an ERC-20 `transfer`) and native ETH (a plain value send).
+// Both go through the same `sendCalls` — ETH as a one-call batch carrying
+// `value` (wei) with empty calldata. The asset is a select so more ERC-20s can
+// be added later without reshaping the UI.
+type WithdrawAsset = {
+  symbol: string
+  kind: 'erc20' | 'native'
+  decimals: number
+  // ERC-20 token contract; absent for native ETH.
+  address?: `0x${string}`
+}
+const WITHDRAW_ASSETS: WithdrawAsset[] = [
+  { symbol: 'USDm', kind: 'erc20', decimals: 18, address: config.paymentTokenAddress },
+  { symbol: 'ETH', kind: 'native', decimals: 18 },
+]
 
 function WithdrawModal({
+  address,
   usdmBalance,
   sendCalls,
   onClose,
   onDone,
 }: {
+  address: `0x${string}`
   usdmBalance: bigint
   sendCalls: (calls: Call[]) => Promise<`0x${string}`>
   onClose: () => void
@@ -1438,13 +1449,25 @@ function WithdrawModal({
   const [assetSymbol, setAssetSymbol] = useState<string>(WITHDRAW_ASSETS[0].symbol)
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
+  const [ethBalance, setEthBalance] = useState<bigint | null>(null)
   const [status, setStatus] = useState<
     { kind: 'idle' } | { kind: 'pending'; msg: string } | { kind: 'ok'; hash: `0x${string}` } | { kind: 'err'; msg: string }
   >({ kind: 'idle' })
 
+  // USDm comes from the balance the app already polls; the native ETH balance
+  // isn't tracked elsewhere, so read it here (and refresh after a withdrawal).
+  const loadEth = useCallback(() => {
+    publicClient
+      .getBalance({ address })
+      .then(setEthBalance)
+      .catch(() => setEthBalance(null))
+  }, [address])
+  useEffect(() => {
+    loadEth()
+  }, [loadEth])
+
   const asset = WITHDRAW_ASSETS.find((a) => a.symbol === assetSymbol) ?? WITHDRAW_ASSETS[0]
-  // USDm is the only asset today; its balance is the one the app already polls.
-  const balance = usdmBalance
+  const balance = asset.kind === 'native' ? (ethBalance ?? 0n) : usdmBalance
   const balanceStr = formatUnits(balance, asset.decimals).slice(0, 8)
 
   // Recipient sanity check without pulling in another dep: 0x + 40 hex chars.
@@ -1483,16 +1506,25 @@ function WithdrawModal({
     }
     try {
       setStatus({ kind: 'pending', msg: 'Confirm in your wallet…' })
-      const data = encodeFunctionData({
-        abi: usdmAbi,
-        functionName: 'transfer',
-        args: [toTrimmed as `0x${string}`, parsedAmount],
-      })
-      const hash = await sendCalls([{ to: asset.address, data }])
+      // Native ETH → a value send to the recipient with empty calldata.
+      // ERC-20 → a `transfer(to, amount)` call to the token contract.
+      const call: Call =
+        asset.kind === 'native'
+          ? { to: toTrimmed as `0x${string}`, data: '0x', value: parsedAmount }
+          : {
+              to: asset.address as `0x${string}`,
+              data: encodeFunctionData({
+                abi: usdmAbi,
+                functionName: 'transfer',
+                args: [toTrimmed as `0x${string}`, parsedAmount],
+              }),
+            }
+      const hash = await sendCalls([call])
       setStatus({ kind: 'pending', msg: 'Submitted — confirming on chain…' })
       await publicClient.waitForTransactionReceipt({ hash })
       setStatus({ kind: 'ok', hash })
       setAmount('')
+      if (asset.kind === 'native') loadEth()
       onDone()
     } catch (e) {
       const msg =
@@ -1516,8 +1548,12 @@ function WithdrawModal({
           <select
             className="withdraw-select"
             value={assetSymbol}
-            onChange={(e) => setAssetSymbol(e.target.value)}
-            disabled={pending || WITHDRAW_ASSETS.length === 1}
+            onChange={(e) => {
+              setAssetSymbol(e.target.value)
+              setAmount('')
+              setStatus({ kind: 'idle' })
+            }}
+            disabled={pending}
           >
             {WITHDRAW_ASSETS.map((a) => (
               <option key={a.symbol} value={a.symbol}>
@@ -1527,7 +1563,8 @@ function WithdrawModal({
           </select>
         </label>
         <p className="muted withdraw-balance">
-          Balance: {balanceStr} {asset.symbol}
+          Balance: {asset.kind === 'native' && ethBalance === null ? '…' : balanceStr} {asset.symbol}
+          {asset.kind === 'native' && ' · leave a little for gas'}
         </p>
 
         <label className="withdraw-field">

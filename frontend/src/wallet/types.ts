@@ -14,7 +14,14 @@ import type { SessionKey } from '../useSessionKey'
 // A single call inside a batched transaction (one UserOperation). Mirrors the
 // shape the app has always built with `encodeFunctionData` — raw calldata to a
 // target. Both backends accept an array and submit it as one atomic batch.
-export type Call = { to: Hex; data: Hex }
+// `value` (wei) is optional and defaults to 0 — every loopclub contract call
+// (rent/press/approve) moves no native ETH. It's set only by the "Withdraw"
+// flow's native-ETH path, which submits `{ to: recipient, data: '0x', value }`
+// — a plain ETH transfer expressed as a one-call batch. Keeping it on Call (not
+// a separate method) means both backends withdraw ETH through the same
+// `sendCalls` they already use, and the amount is always exact wei — no
+// human-readable-unit ambiguity that could mis-size a transfer.
+export type Call = { to: Hex; data: Hex; value?: bigint }
 
 export type Wallet = {
   // Provider has finished its initial load (Privy `ready` / MOSS `initialised`).
