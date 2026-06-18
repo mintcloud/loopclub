@@ -21,7 +21,6 @@ import { loopclubAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
-import type { SessionKey } from './useSessionKey'
 import { useWallet, type Call } from './wallet'
 import { fromLink, litCells, synthPitches, LinkError } from 'loopclub-loopgen'
 import type { ClickPhase } from './useClickTier'
@@ -460,10 +459,16 @@ export function App() {
       calls: calls.length,
       path: autoArm ? 'auto-arm→send' : fast ? 'fast-send(silent)' : 'wallet.sendCalls(prompt)',
     })
+    // arm() reports whether the grant actually went live. If the user dismissed
+    // the approval (armed === false) fall back to a normal wallet prompt for THIS
+    // toggle — never fire session.send against a grant that was never created.
     const submit: Promise<`0x${string}`> = autoArm
-      ? session.arm().then(() => session.send(calls[0])).catch(() => wallet.sendCalls(calls))
+      ? session
+          .arm()
+          .then((armed) => (armed ? session.send(calls[0]) : wallet.sendCalls(calls)))
+          .catch(() => wallet.sendCalls(calls))
       : fast
-        ? session.send(calls[0])
+        ? session.send(calls[0]).catch(() => wallet.sendCalls(calls))
         : wallet.sendCalls(calls)
     submit
       .then(async (txHash) => {
@@ -548,7 +553,10 @@ export function App() {
     })
     try {
       const txHash = await (autoArm
-        ? session.arm().then(() => session.sendBatch(calls)).catch(() => wallet.sendCalls(calls))
+        ? session
+            .arm()
+            .then((armed) => (armed ? session.sendBatch(calls) : wallet.sendCalls(calls)))
+            .catch(() => wallet.sendCalls(calls))
         : fast
           ? session.sendBatch(calls).catch(() => wallet.sendCalls(calls))
           : wallet.sendCalls(calls))
@@ -596,7 +604,20 @@ export function App() {
         to: config.loopclubAddress,
         data: encodeFunctionData({ abi: loopclubAbi, functionName: 'record', args: [] }),
       })
-      const txHash = await wallet.sendCalls(calls)
+      // Press inherits fast mode: the MOSS grant now covers record() too, so once
+      // armed the press goes silent like a toggle. Same rule as onToggle — only
+      // the bare record() (no USDm approve() prefix) can ride the session key;
+      // when an approve is prepended (calls.length === 2) keep the wallet path.
+      const fast = session.armed && calls.length === 1
+      const autoArm = !fast && session.status === 'idle' && calls.length === 1
+      const txHash = await (autoArm
+        ? session
+            .arm()
+            .then((armed) => (armed ? session.send(calls[0]) : wallet.sendCalls(calls)))
+            .catch(() => wallet.sendCalls(calls))
+        : fast
+          ? session.send(calls[0]).catch(() => wallet.sendCalls(calls))
+          : wallet.sendCalls(calls))
 
       let newSeriesId: bigint | null = null
       try {
@@ -698,7 +719,17 @@ export function App() {
           args: [record.seriesId],
         }),
       })
-      await wallet.sendCalls(calls)
+      // Press inherits fast mode (grant covers press() too) — see onRecord.
+      const fast = session.armed && calls.length === 1
+      const autoArm = !fast && session.status === 'idle' && calls.length === 1
+      await (autoArm
+        ? session
+            .arm()
+            .then((armed) => (armed ? session.send(calls[0]) : wallet.sendCalls(calls)))
+            .catch(() => wallet.sendCalls(calls))
+        : fast
+          ? session.send(calls[0]).catch(() => wallet.sendCalls(calls))
+          : wallet.sendCalls(calls))
       flash(`Pressed copy #${record.nextEdition} of loop #${record.seriesId}`)
       if (playbackRef.current?.seriesId === record.seriesId) {
         void refreshPlayback(record.seriesId)
@@ -962,7 +993,6 @@ export function App() {
               </button>
             )}
           </div>
-          {authenticated && <FastModeProbe session={session} />}
           {!ready ? null : !authenticated ? (
             <button className="btn-chrome connect-btn" onClick={login}>
               Connect
@@ -1261,47 +1291,6 @@ export function App() {
         </div>
       )}
     </div>
-  )
-}
-
-// TEST DIAGNOSTIC (preview only) — a read-only chip exposing the live session
-// status so we can see whether fast mode is actually engaging. The production
-// build has no session UI at all (auto-arm is meant to be invisible); this is
-// only here on the #50 preview to find out WHY every toggle still prompts.
-//   • "fast: off"      → config.mossFastMode is false → VITE_MOSS_FAST_MODE
-//                         didn't bake into this build (the most likely cause).
-//   • "fast: idle"     → enabled, no live grant yet. First single-call toggle
-//                         should flip this to arming→armed. If it stays idle,
-//                         the grant is being rejected or isn't registering.
-//   • "fast: arming"   → grant approval in flight.
-//   • "fast: armed Nm" → grant live; toggles should now be silent. If you still
-//                         get a prompt here, MOSS isn't honouring silent:true.
-//   • "fast: error"    → arm threw; hover for the message.
-function FastModeProbe({ session }: { session: SessionKey }) {
-  const [, tick] = useState(0)
-  useEffect(() => {
-    if (session.status !== 'armed') return
-    const id = setInterval(() => tick((n) => n + 1), 30_000)
-    return () => clearInterval(id)
-  }, [session.status])
-  const mins =
-    session.status === 'armed' && session.expiresAt
-      ? Math.max(0, Math.round((session.expiresAt - Date.now()) / 60_000))
-      : null
-  const label =
-    session.status === 'disabled'
-      ? 'off'
-      : session.status === 'armed'
-        ? `armed ${mins}m`
-        : session.status
-  return (
-    <span
-      className="fastmode-badge"
-      title={session.errorMsg ?? `session status: ${session.status}`}
-      style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.85 }}
-    >
-      ⚡ fast: {label}
-    </span>
   )
 }
 

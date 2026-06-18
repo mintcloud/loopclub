@@ -31,14 +31,21 @@ export type SessionKey = {
   armed: boolean
   expiresAt: number | null
   errorMsg: string | null
-  arm: () => Promise<void>
+  /**
+   * Arm fast mode (one wallet approval). Resolves `true` only if the grant is
+   * actually live afterwards; `false` if the user dismissed it or it failed.
+   * Callers MUST gate a follow-on silent send on this — never send silently off
+   * an arm that didn't take, or a cancelled approval leaves the next click in a
+   * half-armed state that fires without confirmation.
+   */
+  arm: () => Promise<boolean>
   disarm: () => void
-  /** Send a single toggle call via the session key. Throws if not armed. */
+  /** Send a single grant-covered call (toggle/record/press) via the session key. Throws if not armed. */
   send: (call: { to: Hex; data: Hex }) => Promise<Hex>
   /**
-   * Send several toggle calls as ONE atomic batch via the session key — backs
-   * fast-mode row fills / renew / jam commits. Throws if not armed. Only valid
-   * when every call is a toggle() the grant covers (no approval prefix); callers
+   * Send several grant-covered calls as ONE atomic batch via the session key —
+   * backs fast-mode row fills / renew / jam commits. Throws if not armed. Only
+   * valid when every call is one the grant covers (no approval prefix); callers
    * keep the wallet path for batches that need a one-time USDm approval.
    */
   sendBatch: (calls: { to: Hex; data: Hex }[]) => Promise<Hex>
@@ -98,13 +105,13 @@ export function useSessionKey(smartAddress: Hex | null): SessionKey {
     return () => clearTimeout(t)
   }, [status, expiresAt])
 
-  const arm = useCallback(async () => {
-    if (!enabled || !smartAddress) return
+  const arm = useCallback(async (): Promise<boolean> => {
+    if (!enabled || !smartAddress) return false
     const embedded = wallets.find((w) => w.walletClientType === 'privy')
     if (!embedded) {
       setErrorMsg('No Privy embedded wallet found to authorise the session key.')
       setStatus('error')
-      return
+      return false
     }
     try {
       setStatus('arming')
@@ -119,6 +126,7 @@ export function useSessionKey(smartAddress: Hex | null): SessionKey {
       ctxRef.current = ctx
       setExpiresAt(ctx.expiresAt)
       setStatus('armed')
+      return true
     } catch (e) {
       ctxRef.current = null
       if (e instanceof SessionKeyAddressMismatch) {
@@ -129,6 +137,7 @@ export function useSessionKey(smartAddress: Hex | null): SessionKey {
         setStatus('error')
       }
       console.error('[sessionKey] arm failed', e)
+      return false
     }
   }, [enabled, smartAddress, wallets])
 
