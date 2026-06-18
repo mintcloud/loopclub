@@ -48,6 +48,33 @@ export function setLiveState(pattern: bigint, synthData: bigint) {
   liveSynthData = synthData
 }
 
+// ── Built-in demo loop ────────────────────────────────────────────────────
+// A four-on-the-floor warm-up the app plays (and lights the grid with) whenever
+// the LIVE grid is empty — a cold first visit, or the short gap while the
+// presence-gated robodj fades and refills. Guarantees the page is never silent
+// or still on arrival, independent of the bot or the chain. Not an on-chain
+// loop: it's never recorded, never owned, and the instant a real cell lands the
+// live grid takes over. See App.tsx (displayPattern / setLiveState fallback).
+function patternOf(cellIds: number[]): bigint {
+  return cellIds.reduce((p, id) => p | (1n << BigInt(id)), 0n)
+}
+const DEMO_SYNTH_NOTES: { cell: number; midi: number }[] = [
+  { cell: SYNTH_CELL_START + 0, midi: 36 }, // C2
+  { cell: SYNTH_CELL_START + 4, midi: 36 }, // C2
+  { cell: SYNTH_CELL_START + 8, midi: 43 }, // G2
+  { cell: SYNTH_CELL_START + 11, midi: 41 }, // F2
+]
+export const DEMO_PATTERN = patternOf([
+  0, 4, 8, 12, // track 0 · kick — four on the floor
+  2 * STEPS + 4, 2 * STEPS + 12, // track 2 · clap — backbeat (2 & 4)
+  3 * STEPS + 2, 3 * STEPS + 6, 3 * STEPS + 10, 3 * STEPS + 14, // track 3 · hat — offbeats
+  ...DEMO_SYNTH_NOTES.map((n) => n.cell), // track 8 · acid bassline
+])
+export const DEMO_SYNTH_DATA = DEMO_SYNTH_NOTES.reduce(
+  (sd, { cell, midi }) => sd | (BigInt(midi & 0x7f) << BigInt((cell - SYNTH_CELL_START) * 16)),
+  0n,
+)
+
 /// When set, the sequencer plays the snapshot instead of live state.
 /// Pass nulls to clear and resume live playback.
 export function setSnapshot(pattern: bigint | null, synthData: bigint | null) {

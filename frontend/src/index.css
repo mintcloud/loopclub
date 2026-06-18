@@ -339,6 +339,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   pointer-events: none;
 }
 
+/* Demo loop — the built-in warm-up shown while the live grid is empty. Lit
+ * cells are ghosted so they read as "robodj is warming up", not as cells anyone
+ * actually holds; the playhead still sweeps them at full strength so the page
+ * feels alive. The first real cell rented flips the grid back to live. */
+.cell.on.demo {
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+.cell.on.demo.playing {
+  opacity: 0.9;
+  filter: none;
+}
+
 /* Jam banner — same shell as the playback banner, tinted toward the loopclub
  * blue/teal so a Claude-jammed loop reads distinctly from a loop playback. */
 .jam-banner {

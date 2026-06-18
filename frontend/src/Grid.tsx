@@ -42,6 +42,9 @@ interface GridProps {
   // Jam-preview only: proposed cells already held live by someone else. Drawn
   // struck-through/dim so the user sees they can't be rented right now.
   conflictCells?: number[] | null
+  // Built-in demo loop is showing (live grid is empty). Lit cells are ghosted
+  // so they read as "warming up", not as cells anyone actually holds.
+  demo?: boolean
 }
 
 export function Grid({
@@ -57,6 +60,7 @@ export function Grid({
   onRowLabelClick,
   previewCells,
   conflictCells,
+  demo,
 }: GridProps) {
   // Cells that just landed from a CellRented event get a one-shot pop animation.
   const [landed, setLanded] = useState<Set<number>>(() => new Set())
@@ -226,6 +230,7 @@ export function Grid({
           previewSet={previewSet}
           conflictSet={conflictSet}
           onRowLabelClick={onRowLabelClick}
+          demo={demo}
         />
       ))}
     </div>
@@ -249,6 +254,7 @@ interface RowProps {
   previewSet: Set<number>
   conflictSet: Set<number>
   onRowLabelClick?: (track: number, rect: DOMRect) => void
+  demo?: boolean
 }
 
 function Row({
@@ -268,6 +274,7 @@ function Row({
   previewSet,
   conflictSet,
   onRowLabelClick,
+  demo,
 }: RowProps) {
   const liveMode = cells !== undefined
   const fillable = liveMode && onRowLabelClick !== undefined
@@ -318,6 +325,7 @@ function Row({
           cls.push('on')
           if (liveMode) cls.push(mine ? 'mine' : 'other')
           else cls.push(trackName)
+          if (demo) cls.push('demo')
         }
         if (playing) cls.push('playing')
         if (beatStart) cls.push('beat-1')

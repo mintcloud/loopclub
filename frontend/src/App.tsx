@@ -25,7 +25,7 @@ import { useLiveGrid } from './useLiveGrid'
 import { useWallet, type Call } from './wallet'
 import { fromLink, litCells, synthPitches, LinkError } from 'loopclub-loopgen'
 import type { ClickPhase } from './useClickTier'
-import { startAudio, stopAudio, setLiveState, setSnapshot, onStep, previewCell } from './audio'
+import { startAudio, stopAudio, setLiveState, setSnapshot, onStep, previewCell, DEMO_PATTERN, DEMO_SYNTH_DATA } from './audio'
 
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
@@ -211,8 +211,13 @@ export function App() {
 
   // Feed the audio engine the live grid whenever it changes (unless replaying a
   // loop or previewing a jam — both drive the engine via setSnapshot instead).
+  // When the live grid is empty (cold visit, or the gap while robodj fades and
+  // refills) fall back to the built-in demo loop so the page is never silent —
+  // the moment a real cell lands grid.pattern flips non-zero and live takes over.
   useEffect(() => {
-    if (!playback && !jam) setLiveState(grid.pattern, grid.synthData)
+    if (playback || jam) return
+    if (grid.pattern === 0n) setLiveState(DEMO_PATTERN, DEMO_SYNTH_DATA)
+    else setLiveState(grid.pattern, grid.synthData)
   }, [grid.pattern, grid.synthData, playback, jam])
 
   useEffect(() => {
@@ -937,8 +942,12 @@ export function App() {
   const jamFree = jamCells.filter((id) => !jamTakenSet.has(id))
   const jamCost = rentPerLoop * BigInt(jamDuration) * BigInt(jamFree.length)
 
-  const displayPattern = jam ? jam.pattern : playback ? playback.pattern : grid.pattern
-  const displaySynthData = jam ? jam.synthData : playback ? playback.synthData : grid.synthData
+  // Demo loop is showing only on the bare live grid (no jam, no playback, no
+  // real cells). It lights the grid and plays, but isn't owned by anyone and
+  // can't be recorded — every real-grid guard below still keys off grid.pattern.
+  const demoActive = !jam && !playback && grid.pattern === 0n
+  const displayPattern = jam ? jam.pattern : playback ? playback.pattern : demoActive ? DEMO_PATTERN : grid.pattern
+  const displaySynthData = jam ? jam.synthData : playback ? playback.synthData : demoActive ? DEMO_SYNTH_DATA : grid.synthData
 
   // "Connect first" nudge — shown to a not-yet-connected visitor on the LIVE
   // grid (never over a playback or jam, which carry their own connect CTA).
@@ -1175,6 +1184,7 @@ export function App() {
         <Grid
           pattern={displayPattern}
           synthData={displaySynthData}
+          demo={demoActive}
           playingStep={playingStep}
           onCellTier={playback || jam ? undefined : handleCellTier}
           onCellHover={playback || jam ? undefined : handleCellHover}
