@@ -51,7 +51,7 @@ The same server runs over MCP's **Streamable HTTP** transport so claude.ai
 
 > Settings → Connectors → Add custom connector → `https://<host>/mcp`
 
-The deployed host is `mcp.tg-itsavibe.com` (the branded `mcp.loopclub.xyz`
+The deployed host is `mcp.<your-tunnel-domain>` (the branded `mcp.loopclub.xyz`
 needs loopclub.xyz's DNS moved to Cloudflare — see `deploy/`). Exact deploy
 steps for the VPS are in `deploy/` (systemd user unit + Cloudflare tunnel rule).
 

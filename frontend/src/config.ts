@@ -56,7 +56,7 @@ export const config = {
   // Remote loopclub MCP endpoint a claude.ai (Pro/Max/Desktop) user pastes
   // into Settings → Connectors to "Jam with Claude" with zero local install.
   // Branded host is mcp.loopclub.xyz; override on Vercel if the live tunnel
-  // is still on a different host (e.g. mcp.tg-itsavibe.com) while DNS moves.
+  // is still on a different host (e.g. mcp.<your-tunnel-domain>) while DNS moves.
   mcpUrl: (import.meta.env.VITE_LOOPCLUB_MCP_URL as string | undefined) || 'https://mcp.loopclub.xyz/mcp',
   // ZeroDev bundler + paymaster RPC, used by "fast mode" (session keys) to
   // submit toggle UserOps signed by the in-browser session key. Same endpoint

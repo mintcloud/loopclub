@@ -1,6 +1,6 @@
 # loopclub · Kernel vs Stateless + EIP-7702 setup
 
-*2026-05-08 · for Theo*
+*2026-05-08 · for the team*
 
 ---
 

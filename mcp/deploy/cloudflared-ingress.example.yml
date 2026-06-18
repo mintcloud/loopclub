@@ -1,26 +1,26 @@
 # Cloudflare Tunnel ingress for the loopclub MCP.
 #
-# The VPS already runs tunnel "my-vps" (id 736eda62-c751-4cb5-aefe-c3bfe7ba167a)
-# as a system service (User=theo), reading ~/.cloudflared/config.yml and serving
-# *.tg-itsavibe.com. Add ONE hostname line to that existing file — do NOT create
+# The VPS already runs tunnel "my-vps" (id <your-tunnel-id>)
+# as a system service (User=<user>), reading ~/.cloudflared/config.yml and serving
+# *.<your-tunnel-domain>. Add ONE hostname line to that existing file — do NOT create
 # a new tunnel.
 #
-# Why mcp.tg-itsavibe.com and not mcp.loopclub.xyz:
+# Why mcp.<your-tunnel-domain> and not mcp.loopclub.xyz:
 #   loopclub.xyz DNS is on Vercel (ns*.vercel-dns.com), not Cloudflare, so this
-#   tunnel can't bind a loopclub.xyz hostname. mcp.tg-itsavibe.com is already a
+#   tunnel can't bind a loopclub.xyz hostname. mcp.<your-tunnel-domain> is already a
 #   Cloudflare zone on the account → works immediately AND still sits behind the
 #   Cloudflare edge (WAF + rate-limiting apply). To get the branded
 #   mcp.loopclub.xyz you'd have to move loopclub.xyz's nameservers to Cloudflare
 #   (re-creating the Vercel records) — not worth it just for the MCP.
 #
 # Steps:
-#   1. cloudflared tunnel route dns my-vps mcp.tg-itsavibe.com
+#   1. cloudflared tunnel route dns my-vps mcp.<your-tunnel-domain>
 #   2. Add the rule below to ~/.cloudflared/config.yml ABOVE the catch-all 404.
 #   3. sudo systemctl restart cloudflared
 
 # ── add this block to the existing ingress list ──────────────────────────────
   # loopclub MCP — remote Streamable HTTP (stateless pure encoder)
-  - hostname: mcp.tg-itsavibe.com
+  - hostname: mcp.<your-tunnel-domain>
     service: http://localhost:3008
 
   # … keep the existing catch-all LAST:

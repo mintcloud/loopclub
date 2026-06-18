@@ -14,7 +14,9 @@ One global 16×4 grid drum machine on MegaETH. Cells are rented in USDm; a finis
   <strong><a href="https://www.loom.com/share/493022691bbf4a509634df6d58a6ad22?t=6">▶ Watch the demo walkthrough</a></strong>
 </p>
 
-**Live:** MegaETH mainnet (chain 4326). `Loopclub` `0x1030…3631` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
+**Live:** [app.loopclub.xyz](https://app.loopclub.xyz) · [loopclub.xyz](https://loopclub.xyz)
+
+MegaETH mainnet (chain 4326). `Loopclub` `0x1030…3631` · USDm `0xFAfD…79E7`. See [`docs/deployments.md`](docs/deployments.md).
 
 ---
 
@@ -235,4 +237,4 @@ Previous mainnet deploys (one-shot `0x6B92…dab3`, `_popcount`-bug Series build
 
 ## Hot wallet
 
-`0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` — controlled by Theo, used for testnet + mainnet deploy and currently both `owner` and `treasury`. Deployer key stays off-repo. Rotate `owner` + `treasury` to a multisig when revenue justifies the operational overhead.
+`0x6cF2577B57ab7041Ec8815afC768cf73fd9C0Ee3` — controlled by the team, used for testnet + mainnet deploy and currently both `owner` and `treasury`. Deployer key stays off-repo. Rotate `owner` + `treasury` to a multisig when revenue justifies the operational overhead.

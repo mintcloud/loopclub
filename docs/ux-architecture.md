@@ -1,6 +1,6 @@
 # loopclub UX architecture: Privy + 7702 + 7710
 
-*2026-05-08 · for Theo*
+*2026-05-08 · for the team*
 
 ---
 
@@ -169,7 +169,7 @@ The "feels like Web2" MegaETH apps you tried are using exactly this stack — Pr
 
 ## 4 · The skills from `awesome-megaeth-ai` we'll use
 
-Theo: these skills are designed for AI coding assistants like me — they auto-load context when I work on the relevant subsystem. Useful to know they exist, you don't need to read them. We'll use:
+Note: these skills are designed for AI coding assistants like me — they auto-load context when I work on the relevant subsystem. Useful to know they exist, you don't need to read them. We'll use:
 
 | Skill | Why for us |
 |---|---|
@@ -263,7 +263,7 @@ To stay vibe-codable and avoid overengineering:
 
 Just confirmation you want me to proceed with the architecture as designed. Specifically:
 
-1. **Privy account.** I'll register the Privy app with `theo.gonella@gmail.com` as the owner unless you want a different email. Privy is free up to 1k MAUs.
+1. **Privy account.** I'll register the Privy app with `<owner-email>` as the owner unless you want a different email. Privy is free up to 1k MAUs.
 2. **Hetzner VPS access** (only if MegaETH has no public bundler — step 6a fallback). I'll need either ssh access (existing keys probably work since you have me running other things on it) or you can run a 1-line install command yourself.
 3. **No other blockers until step 7** — you faucet a hot wallet, share the address, I deploy.
 

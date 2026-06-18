@@ -1,24 +1,24 @@
 # Cloudflare Tunnel ingress for the loopclub seeder's presence endpoint.
 #
-# The VPS already runs tunnel "my-vps" (id 736eda62-c751-4cb5-aefe-c3bfe7ba167a)
-# as a system service (User=theo), reading ~/.cloudflared/config.yml and serving
-# *.tg-itsavibe.com. Add ONE hostname line to that existing file — do NOT create
-# a new tunnel. Same pattern as the MCP ingress (mcp.tg-itsavibe.com → 3008).
+# The VPS already runs tunnel "my-vps" (id <your-tunnel-id>)
+# as a system service (User=<user>), reading ~/.cloudflared/config.yml and serving
+# *.<your-tunnel-domain>. Add ONE hostname line to that existing file — do NOT create
+# a new tunnel. Same pattern as the MCP ingress (mcp.<your-tunnel-domain> → 3008).
 #
-# Why presence.tg-itsavibe.com and not presence.loopclub.xyz:
+# Why presence.<your-tunnel-domain> and not presence.loopclub.xyz:
 #   loopclub.xyz DNS is on Vercel (ns*.vercel-dns.com), not Cloudflare, so this
-#   tunnel can't bind a loopclub.xyz hostname. presence.tg-itsavibe.com is
+#   tunnel can't bind a loopclub.xyz hostname. presence.<your-tunnel-domain> is
 #   already a Cloudflare zone → works immediately AND sits behind the Cloudflare
 #   edge (WAF + rate-limiting). Set VITE_PRESENCE_URL to this hostname.
 #
 # Steps:
-#   1. cloudflared tunnel route dns my-vps presence.tg-itsavibe.com
+#   1. cloudflared tunnel route dns my-vps presence.<your-tunnel-domain>
 #   2. Add the rule below to ~/.cloudflared/config.yml ABOVE the catch-all 404.
 #   3. sudo systemctl restart cloudflared
 
 # ── add this block to the existing ingress list ──────────────────────────────
   # loopclub seeder — presence heartbeat collector (POST /beat)
-  - hostname: presence.tg-itsavibe.com
+  - hostname: presence.<your-tunnel-domain>
     service: http://localhost:3009
 
   # … keep the existing catch-all LAST:
