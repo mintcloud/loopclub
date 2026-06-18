@@ -346,3 +346,20 @@ export async function sendViaSession(
     value: 0n,
   })
 }
+
+// Send several calls (toggles) as ONE atomic UserOp through the session-key
+// Kernel client — the batch twin of sendViaSession, backing fast-mode row fills
+// / renew. ZeroDev bundles the calls into a single UserOperation; we return its
+// settled transaction hash so callers can wait on a normal receipt. Caller must
+// ensure every call is grant-covered (a toggle) — no approval prefix.
+export async function sendViaSessionBatch(
+  ctx: SessionContext,
+  calls: { to: Hex; data: Hex }[],
+): Promise<Hex> {
+  if (calls.length === 1) return sendViaSession(ctx, calls[0])
+  const userOpHash = await ctx.client.sendUserOperation({
+    calls: calls.map((c) => ({ to: c.to, data: c.data, value: 0n })),
+  })
+  const receipt = await ctx.client.waitForUserOperationReceipt({ hash: userOpHash })
+  return receipt.receipt.transactionHash
+}

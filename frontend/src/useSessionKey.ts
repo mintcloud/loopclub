@@ -12,6 +12,7 @@ import {
   restoreSession,
   SessionKeyAddressMismatch,
   sendViaSession,
+  sendViaSessionBatch,
   sessionKeysConfigured,
   type SessionContext,
 } from './sessionKey'
@@ -34,6 +35,13 @@ export type SessionKey = {
   disarm: () => void
   /** Send a single toggle call via the session key. Throws if not armed. */
   send: (call: { to: Hex; data: Hex }) => Promise<Hex>
+  /**
+   * Send several toggle calls as ONE atomic batch via the session key — backs
+   * fast-mode row fills / renew / jam commits. Throws if not armed. Only valid
+   * when every call is a toggle() the grant covers (no approval prefix); callers
+   * keep the wallet path for batches that need a one-time USDm approval.
+   */
+  sendBatch: (calls: { to: Hex; data: Hex }[]) => Promise<Hex>
 }
 
 export function useSessionKey(smartAddress: Hex | null): SessionKey {
@@ -138,6 +146,12 @@ export function useSessionKey(smartAddress: Hex | null): SessionKey {
     return sendViaSession(ctx, call)
   }, [])
 
+  const sendBatch = useCallback(async (calls: { to: Hex; data: Hex }[]) => {
+    const ctx = ctxRef.current
+    if (!ctx) throw new Error('Fast mode is not armed.')
+    return sendViaSessionBatch(ctx, calls)
+  }, [])
+
   return {
     status,
     armed: status === 'armed',
@@ -146,5 +160,6 @@ export function useSessionKey(smartAddress: Hex | null): SessionKey {
     arm,
     disarm,
     send,
+    sendBatch,
   }
 }
