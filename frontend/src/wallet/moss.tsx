@@ -21,7 +21,7 @@ import type { Config } from '@megaeth-labs/wallet-sdk'
 import type { PropsWithChildren } from 'react'
 import type { Hex } from 'viem'
 import { config } from '../config'
-import type { SessionKey } from '../useSessionKey'
+import { useMossSession } from '../useMossSession'
 import type { Call, Wallet } from './types'
 
 // Gas payment model.
@@ -56,39 +56,32 @@ export function MossWalletProvider({ children }: PropsWithChildren) {
   return <MegaProvider config={mossConfig}>{children}</MegaProvider>
 }
 
-// Fast mode (ZeroDev session keys) is a Privy-stack feature. MOSS has a native
-// equivalent — useGrantPermissions / usePermissions — but that's a separate,
-// larger piece of work (see output/MOSS-integration.md). Until then MOSS runs
-// with fast mode permanently off: this stub reports 'disabled', so the ⚡ badge
-// never renders and every toggle goes through the normal signing path.
-const disabledSession: SessionKey = {
-  status: 'disabled',
-  armed: false,
-  expiresAt: null,
-  errorMsg: null,
-  arm: async () => {},
-  disarm: () => {},
-  send: async () => {
-    throw new Error('Fast mode is not available on the MOSS wallet.')
-  },
-}
-
+// Fast mode on MOSS is its NATIVE session-key system — grantPermissions + a
+// silent callContract — wired up in useMossSession.ts behind config.mossFastMode
+// (VITE_MOSS_FAST_MODE). When the flag is off it reports 'disabled' (⚡ badge
+// hidden, every toggle takes the normal signing path); when on, one approval
+// arms a scoped/expiring grant and toggles sign silently until it expires. This
+// is independent of the Privy SESSION_KEYS_SUPPORTED gate — MOSS doesn't use
+// ZeroDev, so the TimestampPolicy/AA23 breakage that benched Privy fast mode
+// doesn't apply.
 export function useMossWallet(): Wallet {
   const status = useStatus()
   const connect = useConnect()
   const disconnect = useDisconnect()
   const callContract = useCallContract()
+  const address = (status.address ?? null) as Hex | null
+  const session = useMossSession(address)
 
   return {
     ready: status.initialised,
     authenticated: status.status === 'connected',
-    address: (status.address ?? null) as Hex | null,
+    address,
     // MOSS doesn't surface an email/identity in its status payload; the chip
     // falls back to the address, which is all the app actually needs.
     email: null,
     login: () => connect.mutate(),
     logout: () => disconnect.mutate(),
-    session: disabledSession,
+    session,
     async sendCalls(calls: Call[]): Promise<Hex> {
       // App calldata is already ABI-encoded, so pass it raw via `data`. MOSS
       // accepts an array and batches it atomically — same semantics as the

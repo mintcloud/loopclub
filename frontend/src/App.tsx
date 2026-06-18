@@ -441,15 +441,28 @@ export function App() {
       }),
     })
 
-    // Fast path: when fast mode is armed and the toggle is a single call
-    // (allowance already maxed, no approve to batch), sign it locally with the
-    // session key — no Privy round-trip. When an approval has to ride along
-    // (calls.length === 2) we fall back to the Privy client, which sets the
-    // max-uint256 allowance; every later toggle then takes the fast path.
+    // Fast path: session key armed → sign locally (no wallet round-trip).
+    // Auto-arm: first single-call toggle with an idle session arms it
+    // transparently — user approves once, all subsequent toggles are instant.
+    // Approval batches (calls.length === 2) always use the wallet path; the
+    // next bare toggle (allowance already set) will hit auto-arm.
     const fast = session.armed && calls.length === 1
-    const submit: Promise<`0x${string}`> = fast
-      ? session.send(calls[0])
-      : wallet.sendCalls(calls)
+    const autoArm = !fast && session.status === 'idle' && calls.length === 1
+    // TEST DIAGNOSTIC (preview only): logs which path each toggle takes so we can
+    // see why fast mode isn't engaging. status==='disabled' → VITE_MOSS_FAST_MODE
+    // not in the build; 'idle' that never reaches 'armed' → arm rejected/grant
+    // not registering; 'armed' but still prompting → silent flag not honoured.
+    console.debug('[fastmode] toggle', {
+      sessionStatus: session.status,
+      armed: session.armed,
+      calls: calls.length,
+      path: autoArm ? 'auto-arm→send' : fast ? 'fast-send(silent)' : 'wallet.sendCalls(prompt)',
+    })
+    const submit: Promise<`0x${string}`> = autoArm
+      ? session.arm().then(() => session.send(calls[0])).catch(() => wallet.sendCalls(calls))
+      : fast
+        ? session.send(calls[0])
+        : wallet.sendCalls(calls)
     submit
       .then(async (txHash) => {
         try {
@@ -509,8 +522,34 @@ export function App() {
       }),
     }))
 
+    const calls = withApprovalCalls(cost, actions)
+    // Fast path — same rule as onToggle, extended to the batch: when fast mode
+    // is armed AND no approval was prepended (calls.length === actions.length,
+    // so every call is a toggle() the MOSS grant covers), sign the whole batch
+    // silently through the session key. If a one-time USDm approve() is prefixed
+    // the grant can't authorise it, so the batch keeps the wallet path — the next
+    // batch (allowance set) goes silent. auto-arm mirrors the single-toggle flow.
+    const fast = session.armed && calls.length === actions.length
+    const autoArm = !fast && session.status === 'idle' && calls.length === actions.length
+    console.debug('[fastmode] batch', {
+      verb,
+      cells: cellIds.length,
+      sessionStatus: session.status,
+      armed: session.armed,
+      calls: calls.length,
+      actions: actions.length,
+      path: autoArm
+        ? 'auto-arm→sendBatch'
+        : fast
+          ? 'fast-sendBatch(silent)'
+          : 'wallet.sendCalls(prompt)',
+    })
     try {
-      const txHash = await wallet.sendCalls(withApprovalCalls(cost, actions))
+      const txHash = await (autoArm
+        ? session.arm().then(() => session.sendBatch(calls)).catch(() => wallet.sendCalls(calls))
+        : fast
+          ? session.sendBatch(calls).catch(() => wallet.sendCalls(calls))
+          : wallet.sendCalls(calls))
       await publicClient
         .waitForTransactionReceipt({ hash: txHash as `0x${string}` })
         .catch(() => {})
@@ -921,7 +960,7 @@ export function App() {
               </button>
             )}
           </div>
-          {authenticated && <FastMode session={session} ready={!!smartAddress} />}
+          {authenticated && <FastModeProbe session={session} />}
           {!ready ? null : !authenticated ? (
             <button className="btn-chrome connect-btn" onClick={login}>
               Connect
@@ -1209,6 +1248,47 @@ export function App() {
   )
 }
 
+// TEST DIAGNOSTIC (preview only) — a read-only chip exposing the live session
+// status so we can see whether fast mode is actually engaging. The production
+// build has no session UI at all (auto-arm is meant to be invisible); this is
+// only here on the #50 preview to find out WHY every toggle still prompts.
+//   • "fast: off"      → config.mossFastMode is false → VITE_MOSS_FAST_MODE
+//                         didn't bake into this build (the most likely cause).
+//   • "fast: idle"     → enabled, no live grant yet. First single-call toggle
+//                         should flip this to arming→armed. If it stays idle,
+//                         the grant is being rejected or isn't registering.
+//   • "fast: arming"   → grant approval in flight.
+//   • "fast: armed Nm" → grant live; toggles should now be silent. If you still
+//                         get a prompt here, MOSS isn't honouring silent:true.
+//   • "fast: error"    → arm threw; hover for the message.
+function FastModeProbe({ session }: { session: SessionKey }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (session.status !== 'armed') return
+    const id = setInterval(() => tick((n) => n + 1), 30_000)
+    return () => clearInterval(id)
+  }, [session.status])
+  const mins =
+    session.status === 'armed' && session.expiresAt
+      ? Math.max(0, Math.round((session.expiresAt - Date.now()) / 60_000))
+      : null
+  const label =
+    session.status === 'disabled'
+      ? 'off'
+      : session.status === 'armed'
+        ? `armed ${mins}m`
+        : session.status
+  return (
+    <span
+      className="fastmode-badge"
+      title={session.errorMsg ?? `session status: ${session.status}`}
+      style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.85 }}
+    >
+      ⚡ fast: {label}
+    </span>
+  )
+}
+
 // Live MegaETH block the grid is synced to — a heartbeat that reframes the grid
 // as shared global state. The dot replays its pulse on every new block.
 function SyncBadge({ blockNumber }: { blockNumber: number }) {
@@ -1228,63 +1308,6 @@ function SyncBadge({ blockNumber }: { blockNumber: number }) {
   )
 }
 
-// "Fast mode" control — arms / shows / disarms the session key (Step 4). Hidden
-// entirely when the feature flag is off. The address guard in sessionKey.ts
-// means the worst a misconfigured session can do is fall back to Privy.
-function FastMode({ session, ready }: { session: SessionKey; ready: boolean }) {
-  const [, tick] = useState(0)
-  useEffect(() => {
-    if (session.status !== 'armed') return
-    const id = setInterval(() => tick((n) => n + 1), 30_000)
-    return () => clearInterval(id)
-  }, [session.status])
-
-  if (session.status === 'disabled' || session.status === 'restoring' || !ready) return null
-
-  if (session.status === 'armed' && session.expiresAt) {
-    const mins = Math.max(0, Math.round((session.expiresAt - Date.now()) / 60_000))
-    return (
-      <span className="fastmode-badge" title="Cell toggles are signed locally — no wallet round-trip">
-        <span className="fastmode-bolt">⚡</span>
-        fast · {mins}m
-        <button className="fastmode-off" onClick={session.disarm} title="Turn off fast mode">
-          ✕
-        </button>
-      </span>
-    )
-  }
-
-  if (session.status === 'arming') {
-    return (
-      <button className="fastmode-btn" disabled>
-        ⚡ arming…
-      </button>
-    )
-  }
-
-  if (session.status === 'mismatch') {
-    return (
-      <span className="fastmode-badge unavailable" title={session.errorMsg ?? ''}>
-        ⚡ unavailable
-      </span>
-    )
-  }
-
-  // idle | error
-  return (
-    <button
-      className="fastmode-btn"
-      onClick={session.arm}
-      title={
-        session.status === 'error'
-          ? session.errorMsg ?? 'Retry enabling fast mode'
-          : 'Sign once — then cell toggles are instant, with no wallet popups'
-      }
-    >
-      ⚡ {session.status === 'error' ? 'retry fast mode' : 'enable fast mode'}
-    </button>
-  )
-}
 
 function ShareModal({ seriesId, onClose }: { seriesId: bigint; onClose: () => void }) {
   const url = `${window.location.origin}${window.location.pathname}?loop=${seriesId.toString()}`
