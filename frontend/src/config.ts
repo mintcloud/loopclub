@@ -63,6 +63,11 @@ export const config = {
   // now. Default off: until the bot ships the nudge reports REAL on-chain grid
   // activity instead, so we never claim a bot that isn't there.
   botLive: import.meta.env.VITE_LOOPCLUB_BOT_LIVE === 'true',
+  // Cold-start loopbot presence endpoint (shipping sequence Part 2). The
+  // usePresence hook POSTs a heartbeat here so the seeder knows a real visitor
+  // is on the site and jams the grid live. Unset → no heartbeat (the hook is a
+  // no-op), which is the correct default until the seeder is deployed.
+  presenceUrl: (import.meta.env.VITE_PRESENCE_URL as string | undefined) || undefined,
 }
 
 // Multicall3 — same deterministic CREATE2 address on MegaETH mainnet as every
