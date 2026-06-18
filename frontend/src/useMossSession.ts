@@ -184,13 +184,16 @@ export function useMossSession(address: Hex | null): SessionKey {
     revoke.mutate(undefined, { onSettled: () => void perms.refetch() })
   }, [enabled, revoke, perms])
 
-  const send = useCallback(
-    async (call: { to: Hex; data: Hex }): Promise<Hex> => {
-      // Same submit + receipt-unwrap path as moss.tsx sendCalls, but silent:
-      // MOSS skips the approval UI because the active grant covers this toggle.
-      const result = await callContract.mutateAsync([
-        { address: call.to, data: call.data, silent: true },
-      ])
+  // Submit one OR many calls in a single silent UserOp. MOSS's callContract
+  // already takes a call array, so a batch (row fill / renew / jam) is the same
+  // path as a single toggle — every call is covered by the active grant, so MOSS
+  // skips the approval UI. This is what lets fast mode's batch rents inherit the
+  // armed permissions instead of re-prompting the wallet.
+  const sendBatch = useCallback(
+    async (calls: { to: Hex; data: Hex }[]): Promise<Hex> => {
+      const result = await callContract.mutateAsync(
+        calls.map((c) => ({ address: c.to, data: c.data, silent: true })),
+      )
       if (result.status !== 'approved') {
         throw new Error(
           result.error ??
@@ -204,6 +207,11 @@ export function useMossSession(address: Hex | null): SessionKey {
     [callContract],
   )
 
+  const send = useCallback(
+    (call: { to: Hex; data: Hex }): Promise<Hex> => sendBatch([call]),
+    [sendBatch],
+  )
+
   return {
     status,
     armed: status === 'armed',
@@ -212,5 +220,6 @@ export function useMossSession(address: Hex | null): SessionKey {
     arm,
     disarm,
     send,
+    sendBatch,
   }
 }

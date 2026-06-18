@@ -522,8 +522,34 @@ export function App() {
       }),
     }))
 
+    const calls = withApprovalCalls(cost, actions)
+    // Fast path — same rule as onToggle, extended to the batch: when fast mode
+    // is armed AND no approval was prepended (calls.length === actions.length,
+    // so every call is a toggle() the MOSS grant covers), sign the whole batch
+    // silently through the session key. If a one-time USDm approve() is prefixed
+    // the grant can't authorise it, so the batch keeps the wallet path — the next
+    // batch (allowance set) goes silent. auto-arm mirrors the single-toggle flow.
+    const fast = session.armed && calls.length === actions.length
+    const autoArm = !fast && session.status === 'idle' && calls.length === actions.length
+    console.debug('[fastmode] batch', {
+      verb,
+      cells: cellIds.length,
+      sessionStatus: session.status,
+      armed: session.armed,
+      calls: calls.length,
+      actions: actions.length,
+      path: autoArm
+        ? 'auto-arm→sendBatch'
+        : fast
+          ? 'fast-sendBatch(silent)'
+          : 'wallet.sendCalls(prompt)',
+    })
     try {
-      const txHash = await wallet.sendCalls(withApprovalCalls(cost, actions))
+      const txHash = await (autoArm
+        ? session.arm().then(() => session.sendBatch(calls)).catch(() => wallet.sendCalls(calls))
+        : fast
+          ? session.sendBatch(calls).catch(() => wallet.sendCalls(calls))
+          : wallet.sendCalls(calls))
       await publicClient
         .waitForTransactionReceipt({ hash: txHash as `0x${string}` })
         .catch(() => {})
