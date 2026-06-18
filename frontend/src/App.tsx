@@ -938,15 +938,16 @@ export function App() {
   // grid (never over a playback or jam, which carry their own connect CTA).
   const showConnectNudge = ready && !authenticated && !playback && !jam && !connectNudgeDismissed
   // Liveness line for that nudge. Once the cold-start bot ships (Part 2) and
-  // VITE_LOOPCLUB_BOT_LIVE=true, name the bot; until then report the real count
-  // of cells lit on chain right now so the claim is always true. Both states
-  // glow green; a truly empty grid drops to an amber "be the first" prompt.
+  // VITE_LOOPCLUB_BOT_LIVE=true, name the bot (robodj); until then report the
+  // real count of cells lit on chain right now so the claim is always true. Both
+  // states glow green and invite the visitor to connect and join the jam; a
+  // truly empty grid drops to an amber "be the first" prompt.
   const liveCellCount = litCells({ pattern: grid.pattern, synthData: grid.synthData }).length
   const gridIsLive = config.botLive || liveCellCount > 0
   const connectNudgeNote = config.botLive
-    ? 'loopbot is jamming the grid live right now'
+    ? 'robodj is jamming the grid live right now, connect your wallet and join the jam'
     : liveCellCount > 0
-      ? `${liveCellCount} cell${liveCellCount === 1 ? '' : 's'} jamming on the grid right now`
+      ? `${liveCellCount} cell${liveCellCount === 1 ? '' : 's'} jamming on the grid right now, connect your wallet and join the jam`
       : 'the grid is quiet — connect your wallet to lay down a beat'
 
   const basePriceStr = fmtUsdm(basePrice)
