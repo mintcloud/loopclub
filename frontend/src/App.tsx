@@ -610,7 +610,7 @@ export function App() {
       return
     }
     try {
-      setBusy('Pressing copy #1…')
+      setBusy('Pressing Edition 001…')
       const calls = withApproval(basePrice, {
         to: config.loopclubAddress,
         data: encodeFunctionData({ abi: loopclubAbi, functionName: 'record', args: [] }),
@@ -721,7 +721,7 @@ export function App() {
     }
     try {
       setPressingSeriesId(record.seriesId)
-      setBusy(`Pressing copy #${record.nextEdition}…`)
+      setBusy(`Pressing Edition ${fmtEdition(record.nextEdition)}…`)
       const calls = withApproval(record.nextPressPrice, {
         to: config.loopclubAddress,
         data: encodeFunctionData({
@@ -741,7 +741,7 @@ export function App() {
         : fast
           ? session.send(calls[0]).catch(() => wallet.sendCalls(calls))
           : wallet.sendCalls(calls))
-      flash(`Pressed copy #${record.nextEdition} of loop #${record.seriesId}`)
+      flash(`Pressed Edition ${fmtEdition(record.nextEdition)} of Loop #${record.seriesId}`)
       if (playbackRef.current?.seriesId === record.seriesId) {
         void refreshPlayback(record.seriesId)
       }
@@ -759,7 +759,7 @@ export function App() {
     if (!smartAddress) return
     try {
       setClaimingSeriesId(record.seriesId)
-      setBusy(`Claiming royalties for loop #${record.seriesId}…`)
+      setBusy(`Claiming royalties for Loop #${record.seriesId}…`)
       await wallet.sendCalls([
         {
           to: config.loopclubAddress,
@@ -770,7 +770,7 @@ export function App() {
           }),
         },
       ])
-      flash(`Claimed royalties for loop #${record.seriesId}`)
+      flash(`Claimed royalties for Loop #${record.seriesId}`)
       setLibraryRefresh((n) => n + 1)
       refreshWallet()
     } catch (e: unknown) {
@@ -1004,11 +1004,11 @@ export function App() {
                     ? 'Exit playback to record the live grid'
                     : grid.pattern === 0n
                       ? 'Toggle some cells first'
-                      : `Press Edition #1 — ${basePriceStr} USDm`
+                      : `Press Edition 001 — ${basePriceStr} USDm`
                 }
               >
                 <span className="deck-label">
-                  {busy === 'Pressing copy #1…' ? 'Pressing…' : '✦ Press Edition #1'}
+                  {busy === 'Pressing Edition 001…' ? 'Pressing…' : '✦ Press Edition 001'}
                 </span>
               </button>
             )}
@@ -1082,19 +1082,24 @@ export function App() {
         <div className="playback-banner">
           <div className="pb-status">
             <span>
-              ▶ Playing loop <strong>#{playback.seriesId.toString()}</strong> ·{' '}
+              ▶ Playing Loop <strong>#{playback.seriesId.toString()}</strong> ·{' '}
               {playback.holders.length} contributor{playback.holders.length === 1 ? '' : 's'} ·{' '}
               {playback.nextEdition - 1} edition{playback.nextEdition - 1 === 1 ? '' : 's'} pressed
             </span>
-            <button onClick={exitPlayback}>◼ back to live jam</button>
+            <button className="btn-chrome pb-back" onClick={exitPlayback}>◼ back to live jam</button>
           </div>
+          {/* Same format as the first-load connect nudge: liveness pill + one
+              full-contrast sentence, so the two banners read as one family. */}
           <div className="pb-cta">
             <div className="pb-cta-copy">
-              <strong className="pb-headline">✦ Want to make this loop yours?</strong>
-              <span className="pb-sub">
-                Press Edition #{playback.nextEdition} and mint your own NFT of this loop. Grab it while
-                it's hot — each new edition costs more than the last.
+              <span className="connect-live hot">
+                <span className="connect-live-dot" />
+                Grab this loop before it gets hot
               </span>
+              <p className="connect-sub">
+                Press Edition {fmtEdition(playback.nextEdition)} and mint your own NFT of this loop.
+                Grab it while it's hot — each new edition costs more than the last.
+              </p>
             </div>
             {!authenticated ? (
               <button className="btn-chrome pb-press" onClick={login}>
@@ -1114,7 +1119,7 @@ export function App() {
               >
                 {pressingSeriesId === playback.seriesId
                   ? 'Pressing…'
-                  : `✦ Press Edition #${playback.nextEdition}${
+                  : `✦ Press Edition ${fmtEdition(playback.nextEdition)}${
                       playback.nextPressPrice > 0n ? ` · ${fmtUsdm(playback.nextPressPrice)} USDm` : ''
                     }`}
               </button>
@@ -1131,7 +1136,7 @@ export function App() {
               <strong>{jamFree.length}</strong> of {jamCells.length} cell
               {jamCells.length === 1 ? '' : 's'} free right now
             </span>
-            <button onClick={exitJam}>◼ back to live jam</button>
+            <button className="btn-chrome pb-back" onClick={exitJam}>◼ back to live jam</button>
           </div>
           <div className="pb-cta">
             <div className="pb-cta-copy">
@@ -1851,13 +1856,13 @@ function PressConfirmModal({
     <div className="modal-bg" onClick={onCancel}>
       <div className="modal press-confirm" onClick={(e) => e.stopPropagation()}>
         <h3>
-          Press Edition #{edition}
+          Press Edition {fmtEdition(edition)}
           {priceStr && <> — {priceStr} USDm</>}
         </h3>
-        <p>You'll mint Edition #{edition} of this loop as an NFT, owned by your smart wallet.</p>
+        <p>You'll mint Edition {fmtEdition(edition)} of this loop as an NFT, owned by your smart wallet.</p>
         <p>
-          Each press of a loop costs more than the last — that's the bonding curve. Edition #
-          {edition + 1} will cost more than this one, and so on. Pressing earlier means a cheaper entry on
+          Each press of a loop costs more than the last — that's the bonding curve. Edition{' '}
+          {fmtEdition(edition + 1)} will cost more than this one, and so on. Pressing earlier means a cheaper entry on
           the curve.
         </p>
         <p>
@@ -1867,12 +1872,18 @@ function PressConfirmModal({
         <div className="row">
           <button className="btn" onClick={onCancel}>Cancel</button>
           <button className="btn-chrome" onClick={onConfirm}>
-            ✦ Press Edition #{edition}
+            ✦ Press Edition {fmtEdition(edition)}
           </button>
         </div>
       </div>
     </div>
   )
+}
+
+// Edition numbers read as zero-padded "00N" across the product (Edition 002),
+// so a loop's press history lines up like a catalogue of numbered prints.
+function fmtEdition(n: number | bigint): string {
+  return String(n).padStart(3, '0')
 }
 
 // Format a USDm wei amount as a compact decimal string (no trailing zeros).
