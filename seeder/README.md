@@ -122,3 +122,51 @@ journalctl --user -u loopclub-seeder -f
 Then add the one presence ingress line from
 `deploy/cloudflared-ingress.example.yml` to `~/.cloudflared/config.yml` and set
 `VITE_PRESENCE_URL=https://presence.<your-tunnel-domain>` in Vercel.
+
+## Keeping the wallet funded (the funder)
+
+The bot pays rent on every `toggle()`, so the seeder wallet slowly drains. The
+Loopclub contract, meanwhile, *accumulates* the unattributed slice of all rent
+(the rent paid into `toggle()` is never auto-routed, plus split rounding dust),
+withdrawable by the owner via `sweepUnattributed(to, amount)`. `src/fund.ts`
+closes that loop: when the seeder balance dips below a low watermark it sweeps
+just enough contract USDm into the seeder to reach a target. Run it on a timer
+and the seeder never runs dry.
+
+It is a **separate one-shot process** from the bot and signs with the **owner**
+key (the only key allowed to sweep) — never the seeder key. The seeder's own
+public address is the top-up destination, passed as `SEEDER_ADDRESS` (no seeder
+private key needed by the funder).
+
+**Safety.** Not all of the contract's USDm is sweepable — pending secondary
+royalties (`depositRoyalty` minus `claimRoyalty`) are earmarked for holders. The
+funder replays `RoyaltyDeposited` / `RoyaltyClaimed` events incrementally (the
+cursor + totals are cached in `funder-state.json`) and never sweeps into that
+reserve, plus an optional `FUND_RESERVE_BUFFER_USDM` cushion. It also verifies
+the signing key is the on-chain `owner()` before doing anything.
+
+```bash
+# Dry-run first: compute the decision, send nothing.
+OWNER_PRIVATE_KEY=0x<owner-32-bytes> \
+SEEDER_ADDRESS=0x<seeder-public-address> \
+FUND_LOW_USDM=10 FUND_TARGET_USDM=50 DRY_RUN=true \
+npm run fund          # or `npm run fund:dev` to run from source via tsx
+```
+
+Automate it with the timer (no-op when the balance is fine, so frequent runs
+are harmless):
+
+```bash
+cp deploy/loopclub-funder.service ~/.config/systemd/user/
+cp deploy/loopclub-funder.timer   ~/.config/systemd/user/
+cp deploy/funder.env.example      ~/.config/loopclub/funder.env
+chmod 600 ~/.config/loopclub/funder.env   # then edit in the OWNER key + seeder address
+systemctl --user daemon-reload
+systemctl --user enable --now loopclub-funder.timer   # default: every 6h
+systemctl --user start loopclub-funder.service        # fire once now
+journalctl --user -u loopclub-funder.service -f
+```
+
+> The funder tops up **USDm** only. The seeder also needs a little native ETH
+> for gas on each `toggle()`; that is not swept from the contract (the contract
+> holds no ETH) — keep a small ETH float on the seeder separately.

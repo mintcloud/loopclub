@@ -1,0 +1,42 @@
+# loopclub funder — one-shot USDm top-up for the seeder wallet. systemd USER
+# service, triggered by loopclub-funder.timer (NOT enabled directly). Reads the
+# seeder balance and, when low, sweeps accumulated rent out of the Loopclub
+# contract into the seeder so the bot never runs dry.
+#
+#   mkdir -p ~/.config/systemd/user ~/.config/loopclub
+#   cp deploy/loopclub-funder.service ~/.config/systemd/user/
+#   cp deploy/loopclub-funder.timer   ~/.config/systemd/user/
+#   cp deploy/funder.env.example      ~/.config/loopclub/funder.env
+#   chmod 600 ~/.config/loopclub/funder.env    # then edit in the OWNER key + seeder address
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now loopclub-funder.timer   # arm the schedule
+#   systemctl --user start loopclub-funder.service        # run once now (or: DRY_RUN first)
+#   journalctl --user -u loopclub-funder.service -f       # logs
+#
+# Build the seeder package first (shared with the bot): npm ci && npm run build.
+
+[Unit]
+Description=loopclub funder — top up the seeder wallet from contract rent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/theo/projects/loopclub/seeder
+Environment="PATH=/home/theo/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/theo/.nvm/versions/node/v22.22.0/bin/node dist/fund.js
+# Secrets + config live here, NOT inline in the unit. chmod 600, owned by theo.
+EnvironmentFile=%h/.config/loopclub/funder.env
+
+# Hardening — same fence as the seeder. The funder only needs to write its
+# royalty-scan state cache under ~/.config/loopclub.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.config/loopclub
+PrivateTmp=true
+MemoryMax=256M
+TasksMax=64
+
+# Note: no [Install] section — this unit is launched by the .timer, not enabled
+# on its own. Run `systemctl --user start loopclub-funder.service` to fire once.
