@@ -20,10 +20,12 @@ const SESSION_KEYS_SUPPORTED = false
 
 export const config = {
   // Which wallet backend the app binds to (see src/wallet/index.ts):
-  //   'privy' — the original Privy smart wallet + ZeroDev stack (default)
-  //   'moss'  — MegaETH's MOSS embedded wallet (@megaeth-labs/wallet-sdk-react)
+  //   'privy' — the original Privy smart wallet + ZeroDev stack
+  //   'moss'  — MegaETH's MOSS embedded wallet (@megaeth-labs/wallet-sdk-react) (default)
   // Build-time only — switching wallets means redeploying with a new value.
-  walletProvider: (import.meta.env.VITE_WALLET_PROVIDER as 'privy' | 'moss' | undefined) ?? 'privy',
+  // Default flipped to 'moss' 2026-06-18: MOSS is now the shipped backend.
+  // Override with VITE_WALLET_PROVIDER=privy to fall back to the Privy stack.
+  walletProvider: (import.meta.env.VITE_WALLET_PROVIDER as 'privy' | 'moss' | undefined) ?? 'moss',
   // MOSS network. loopclub lives on MegaETH mainnet (chain 4326) → 'mainnet'.
   mossNetwork: (import.meta.env.VITE_MOSS_NETWORK as 'mainnet' | 'testnet' | undefined) ?? 'mainnet',
   // Gas: false (default) → users pay their own gas; true → app sponsors it
@@ -39,9 +41,9 @@ export const config = {
   // Privy's session keys. This is INDEPENDENT of the Privy SESSION_KEYS_SUPPORTED
   // gate above: MOSS permissions don't touch ZeroDev, so none of the
   // TimestampPolicy / AA23 breakage that benched Privy fast mode applies here.
-  // Off by default — flip VITE_MOSS_FAST_MODE=true once verified on a preview.
-  // Only meaningful when VITE_WALLET_PROVIDER=moss (the Privy adapter ignores it).
-  mossFastMode: import.meta.env.VITE_MOSS_FAST_MODE === 'true',
+  // On by default 2026-06-18 (verified working). Set VITE_MOSS_FAST_MODE=false
+  // to disable; only meaningful when VITE_WALLET_PROVIDER=moss (Privy ignores it).
+  mossFastMode: import.meta.env.VITE_MOSS_FAST_MODE !== 'false',
   privyAppId: import.meta.env.VITE_PRIVY_APP_ID as string,
   chainId: Number(import.meta.env.VITE_CHAIN_ID),
   rpcUrl: import.meta.env.VITE_RPC_URL as string,
