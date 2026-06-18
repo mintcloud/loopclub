@@ -1,0 +1,23 @@
+# Fires loopclub-funder.service on a schedule so the seeder is topped up
+# automatically once its balance dips below the low watermark. The funder is a
+# cheap no-op when the balance is fine, so running it often is harmless — every
+# 6 hours is a comfortable default. Tune OnCalendar to taste.
+#
+#   systemctl --user enable --now loopclub-funder.timer
+#   systemctl --user list-timers loopclub-funder.timer   # confirm next run
+
+[Unit]
+Description=Periodic loopclub seeder top-up
+
+[Timer]
+# Every 6 hours, plus once shortly after boot. Persistent=true makes a missed
+# run (machine asleep) fire on the next wake.
+OnBootSec=10min
+OnUnitActiveSec=6h
+Persistent=true
+# Spread the wake so it doesn't land exactly on the hour with everything else.
+RandomizedDelaySec=5min
+Unit=loopclub-funder.service
+
+[Install]
+WantedBy=timers.target

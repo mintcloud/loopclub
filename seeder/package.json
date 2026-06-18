@@ -16,7 +16,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "fund": "node dist/fund.js",
+    "fund:dev": "tsx src/fund.ts"
   },
   "dependencies": {
     "loopclub-loopgen": "file:../loopgen",
