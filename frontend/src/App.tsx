@@ -21,6 +21,7 @@ import { loopclubAbi, usdmAbi } from './abi'
 import { publicClient, usingWebSocket } from './viemClient'
 import logoUrl from '../../design-system/assets/loopclub-logo.png'
 import { useLiveGrid } from './useLiveGrid'
+import type { SessionKey } from './useSessionKey'
 import { useWallet, type Call } from './wallet'
 import { fromLink, litCells, synthPitches, LinkError } from 'loopclub-loopgen'
 import type { ClickPhase } from './useClickTier'
@@ -447,6 +448,16 @@ export function App() {
     // next bare toggle (allowance already set) will hit auto-arm.
     const fast = session.armed && calls.length === 1
     const autoArm = !fast && session.status === 'idle' && calls.length === 1
+    // TEST DIAGNOSTIC (preview only): logs which path each toggle takes so we can
+    // see why fast mode isn't engaging. status==='disabled' → VITE_MOSS_FAST_MODE
+    // not in the build; 'idle' that never reaches 'armed' → arm rejected/grant
+    // not registering; 'armed' but still prompting → silent flag not honoured.
+    console.debug('[fastmode] toggle', {
+      sessionStatus: session.status,
+      armed: session.armed,
+      calls: calls.length,
+      path: autoArm ? 'auto-arm→send' : fast ? 'fast-send(silent)' : 'wallet.sendCalls(prompt)',
+    })
     const submit: Promise<`0x${string}`> = autoArm
       ? session.arm().then(() => session.send(calls[0])).catch(() => wallet.sendCalls(calls))
       : fast
@@ -923,6 +934,7 @@ export function App() {
               </button>
             )}
           </div>
+          {authenticated && <FastModeProbe session={session} />}
           {!ready ? null : !authenticated ? (
             <button className="btn-chrome connect-btn" onClick={login}>
               Connect
@@ -1207,6 +1219,47 @@ export function App() {
         </div>
       )}
     </div>
+  )
+}
+
+// TEST DIAGNOSTIC (preview only) — a read-only chip exposing the live session
+// status so we can see whether fast mode is actually engaging. The production
+// build has no session UI at all (auto-arm is meant to be invisible); this is
+// only here on the #50 preview to find out WHY every toggle still prompts.
+//   • "fast: off"      → config.mossFastMode is false → VITE_MOSS_FAST_MODE
+//                         didn't bake into this build (the most likely cause).
+//   • "fast: idle"     → enabled, no live grant yet. First single-call toggle
+//                         should flip this to arming→armed. If it stays idle,
+//                         the grant is being rejected or isn't registering.
+//   • "fast: arming"   → grant approval in flight.
+//   • "fast: armed Nm" → grant live; toggles should now be silent. If you still
+//                         get a prompt here, MOSS isn't honouring silent:true.
+//   • "fast: error"    → arm threw; hover for the message.
+function FastModeProbe({ session }: { session: SessionKey }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (session.status !== 'armed') return
+    const id = setInterval(() => tick((n) => n + 1), 30_000)
+    return () => clearInterval(id)
+  }, [session.status])
+  const mins =
+    session.status === 'armed' && session.expiresAt
+      ? Math.max(0, Math.round((session.expiresAt - Date.now()) / 60_000))
+      : null
+  const label =
+    session.status === 'disabled'
+      ? 'off'
+      : session.status === 'armed'
+        ? `armed ${mins}m`
+        : session.status
+  return (
+    <span
+      className="fastmode-badge"
+      title={session.errorMsg ?? `session status: ${session.status}`}
+      style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.85 }}
+    >
+      ⚡ fast: {label}
+    </span>
   )
 }
 
