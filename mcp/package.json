@@ -2,7 +2,7 @@
   "name": "loopclub-mcp",
   "version": "0.1.0",
   "description": "Jam with Claude — an MCP server that turns a described beat into a loopclub link, ready to audition and rent on-chain. A pure encoder over loopgen; holds no keys, signs nothing.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "loopclub-mcp": "dist/index.js",
