@@ -9,7 +9,7 @@ import {
   type CellTier,
 } from './config'
 import type { CellState, RentEvent } from './useLiveGrid'
-import { ownerColor, sameAddr, shortAddr } from './owner'
+import { labelFor, ownerColor, sameAddr } from './owner'
 import { type ClickPhase, useClickTier } from './useClickTier'
 
 export type CellStatus = 'free' | 'mine' | 'occupied'
@@ -341,7 +341,7 @@ function Row({
         if (liveMode) {
           if (status === 'occupied' && owner) {
             const n = Math.max(0, Math.round(loopsLeft))
-            title = `rented by ${shortAddr(owner)} · ${n} loop${n === 1 ? '' : 's'} left · click = try`
+            title = `rented by ${labelFor(owner)} · ${n} loop${n === 1 ? '' : 's'} left · click = try`
           } else if (status === 'mine') {
             const n = Math.max(0, Math.round(loopsLeft))
             title = `your cell · ${n} loop${n === 1 ? '' : 's'} left${pending ? ' · confirming…' : ''} · 1c try · 2c +16 · 3c +32`

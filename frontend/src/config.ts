@@ -74,6 +74,13 @@ export const config = {
   // now. Default off: until the bot ships the nudge reports REAL on-chain grid
   // activity instead, so we never claim a bot that isn't there.
   botLive: import.meta.env.VITE_LOOPCLUB_BOT_LIVE === 'true',
+  // The seeder bot's wallet. Cells it rents are labelled "robodj" in the UI
+  // (see owner.ts → labelFor) instead of a raw 0x… address, so a cold visitor
+  // recognises the house DJ. Defaults to the live seeder wallet; override with
+  // VITE_LOOPCLUB_BOT_ADDRESS if the bot wallet ever rotates.
+  botAddress:
+    (import.meta.env.VITE_LOOPCLUB_BOT_ADDRESS as string | undefined) ||
+    '0x75845a61630904733f999DD03e1D5E020B5Ff63a',
   // Cold-start loopbot presence endpoint (shipping sequence Part 2). The
   // usePresence hook POSTs a heartbeat here so the seeder knows a real visitor
   // is on the site and jams the grid live. Unset → no heartbeat (the hook is a

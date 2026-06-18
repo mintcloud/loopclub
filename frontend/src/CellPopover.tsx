@@ -13,7 +13,7 @@ import {
   midiToLabel,
   type CellTier,
 } from './config'
-import { ownerColor, shortAddr } from './owner'
+import { labelFor, ownerColor } from './owner'
 import { type ClickPhase, useClickTier } from './useClickTier'
 
 interface Props {
@@ -169,7 +169,7 @@ export function CellPopover({
           <div className="popover-claimed">
             <span className="claimed-owner">
               <span className="claimed-dot" style={{ background: ownerColor(occupied.who) }} />
-              rented by {shortAddr(occupied.who)}
+              rented by {labelFor(occupied.who)}
             </span>
             <span className="muted">
               Frees up in {Math.max(0, occupied.loopsLeft)} loop
