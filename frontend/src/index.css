@@ -102,28 +102,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   50% { opacity: 0.35; }
 }
 
-/* ───── Fast mode — app-only states the design system doesn't carry.
-   (.fastmode-btn / .fastmode-badge chrome look come from the system.) ───── */
-.fastmode-off {
-  padding: 0 0.32rem;
-  font-size: 10px;
-  line-height: 1.5;
-  border-radius: 999px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-.fastmode-off:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-.fastmode-badge.unavailable {
-  border-color: var(--border);
-  color: var(--muted);
-  background: var(--panel);
-  box-shadow: none;
-}
-
 /* ───── Step axis label (above the grid) ───── */
 .step-axis-label {
   font-size: 10px;

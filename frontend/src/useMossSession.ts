@@ -36,10 +36,15 @@ import type { Hex } from 'viem'
 import { config } from './config'
 import type { SessionKey, SessionStatus } from './useSessionKey'
 
-// The only function the grant authorises, on the only contract it authorises —
+// The functions the grant authorises, on the only contract it authorises —
 // mirrors the Privy session key's scope (sessionKey.ts TOGGLE_SELECTOR). MOSS
-// matches the calldata selector against this human-readable signature wallet-side.
+// matches the calldata selector against these human-readable signatures wallet-side.
+// toggle() is renting a cell; record()/press() are pressing an edition — both are
+// part of "playing loopclub", so once the user arms fast mode the press buttons
+// inherit the same grant instead of forcing a fresh signature per press.
 const TOGGLE_SIGNATURE = 'toggle(uint8,uint16,uint16)'
+const RECORD_SIGNATURE = 'record()'
+const PRESS_SIGNATURE = 'press(uint256)'
 
 // 4-byte selector of TOGGLE_SIGNATURE. We grant with the human-readable
 // signature, but the hosted wallet may normalise it to the selector when it
@@ -114,15 +119,19 @@ export function useMossSession(address: Hex | null): SessionKey {
             ? 'armed'
             : 'idle'
 
-  const arm = useCallback(async () => {
-    if (!enabled) return
+  const arm = useCallback(async (): Promise<boolean> => {
+    if (!enabled) return false
     setLocal({ status: 'arming', errorMsg: null })
     try {
       const res = await grant.mutateAsync({
         permissions: {
           expiry: Math.floor(Date.now() / 1000) + MOSS_SESSION_TTL_SEC,
           permissions: {
-            calls: [{ to: config.loopclubAddress, signature: TOGGLE_SIGNATURE }],
+            calls: [
+              { to: config.loopclubAddress, signature: TOGGLE_SIGNATURE },
+              { to: config.loopclubAddress, signature: RECORD_SIGNATURE },
+              { to: config.loopclubAddress, signature: PRESS_SIGNATURE },
+            ],
             spend: [{ limit: MOSS_SESSION_SPEND_LIMIT, period: 'day' }],
           },
         },
@@ -131,9 +140,11 @@ export function useMossSession(address: Hex | null): SessionKey {
         ...(config.mossSponsor ? { sponsor: true } : {}),
       })
       if (res.status !== 'approved') {
-        // User dismissed the approval — not an error, just stay idle.
+        // User dismissed the approval — not an error, just stay idle. Report
+        // false so the caller does NOT fire a silent send against a grant that
+        // was never created (the cancel-then-retry-goes-through footgun).
         setLocal({ status: 'idle', errorMsg: null })
-        return
+        return false
       }
       // The hosted wallet indexes the grant asynchronously, so a single refetch
       // can land before getPermissions reflects it — leaving us stuck 'idle' with
@@ -167,14 +178,16 @@ export function useMossSession(address: Hex | null): SessionKey {
           status: 'error',
           errorMsg: 'Fast mode grant approved but the wallet never reported it — every toggle will keep prompting.',
         })
-        return
+        return false
       }
       setLocal({ status: 'idle', errorMsg: null })
+      return true
     } catch (e) {
       setLocal({
         status: 'error',
         errorMsg: e instanceof Error ? e.message : 'Could not turn on fast mode.',
       })
+      return false
     }
   }, [enabled, grant, perms])
 
