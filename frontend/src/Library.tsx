@@ -324,7 +324,7 @@ export function Library({
             return (
               <div key={r.seriesId.toString()} className={cardClass}>
                 <div className="loop-card-head">
-                  <span className="token-id">loop #{r.seriesId.toString()}</span>
+                  <span className="token-id">Loop #{r.seriesId.toString()}</span>
                   <span className="muted">
                     {editionsMinted}× pressed · {r.holders.length} contrib
                   </span>
@@ -337,11 +337,11 @@ export function Library({
                       className="role-badge owned"
                       title={
                         myEditions.length === 1
-                          ? `You hold edition #${topEdition.edition}${
+                          ? `You hold Edition ${fmtEdition(topEdition.edition)}${
                               topEdition.edition === 1 ? ' — the original press' : ''
                             } of this loop`
                           : `You hold ${myEditions.length} editions of this loop: ${myEditions
-                              .map((e) => `#${e.edition}`)
+                              .map((e) => fmtEdition(e.edition))
                               .join(', ')}`
                       }
                     >
@@ -373,7 +373,7 @@ export function Library({
                       <button
                         onClick={() => onClaimRoyalty(r)}
                         disabled={isClaiming}
-                        title={`Claim your royalty share of loop #${r.seriesId.toString()}`}
+                        title={`Claim your royalty share of Loop #${r.seriesId.toString()}`}
                       >
                         {isClaiming ? 'claiming…' : `♪ claim ${formatPrice(roy.claimable)}`}
                       </button>
@@ -384,7 +384,7 @@ export function Library({
                         href={`${config.explorerUrl}/token/${config.loopclubAddress}/instance/${topEdition.tokenId.toString()}`}
                         target="_blank"
                         rel="noreferrer"
-                        title={`View your Edition #${topEdition.edition} NFT on Blockscout`}
+                        title={`View your Edition ${fmtEdition(topEdition.edition)} NFT on Blockscout`}
                       >
                         ↗ see edition NFT
                       </a>
@@ -399,6 +399,12 @@ export function Library({
       )}
     </div>
   )
+}
+
+// Edition numbers read as zero-padded "00N" across the product (Edition 002).
+// Kept local rather than imported from App.tsx to avoid a circular import.
+function fmtEdition(n: number): string {
+  return String(n).padStart(3, '0')
 }
 
 function formatPrice(wei: bigint): string {
@@ -442,7 +448,7 @@ function SharePopover({
   onClose: () => void
 }) {
   const url = shareLink(record.seriesId)
-  const tweet = `loop #${record.seriesId.toString()} on loopclub — ${record.holders.length} contributor${record.holders.length === 1 ? '' : 's'}, ${editionsMinted} edition${editionsMinted === 1 ? '' : 's'} pressed. press your own:`
+  const tweet = `Loop #${record.seriesId.toString()} on loopclub — ${record.holders.length} contributor${record.holders.length === 1 ? '' : 's'}, ${editionsMinted} edition${editionsMinted === 1 ? '' : 's'} pressed. press your own:`
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(url)}`
   const [copied, setCopied] = useState(false)
   const copy = async () => {
@@ -459,7 +465,7 @@ function SharePopover({
       <div className="modal share-modal" onClick={(e) => e.stopPropagation()}>
         <div className="share-head">
           <h3>
-            <span className="token-id">loop #{record.seriesId.toString()}</span>
+            <span className="token-id">Loop #{record.seriesId.toString()}</span>
           </h3>
           <button className="popover-x" onClick={onClose} aria-label="close">
             ✕

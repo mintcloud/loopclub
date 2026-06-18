@@ -62,7 +62,24 @@
 .pb-cta-copy { display: flex; flex-direction: column; gap: 0.22rem; }
 .pb-headline { font-size: 13px; }
 .pb-sub      { color: var(--muted); line-height: 1.45; }
-.pb-press    { white-space: nowrap; flex-shrink: 0; font-size: 13px; padding: 0.6rem 1rem; }
+/* Banner CTA button — sized to the header deck pads (Stop / Connect) so the
+   "Connect to press" / "Press Edition" button reads as the same control family
+   as the top bar: same height, same chrome legend size. */
+.pb-press {
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: var(--deck-pad-h);
+  padding: 0 var(--space-5);
+  font-size: 10px;
+}
+/* "Back to live jam" — same chrome family as the deck pads, kept compact since
+   it's secondary navigation, not the primary CTA. Pair with .btn-chrome. */
+.pb-back {
+  height: 30px;
+  padding: 0 var(--space-3);
+  font-size: 10px;
+  align-self: flex-start;
+}
 
 /* ── Modal. */
 .modal-bg {

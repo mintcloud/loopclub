@@ -386,6 +386,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   box-shadow: 0 0 7px rgba(60, 224, 140, .85);
   animation: connectLivePulse 1.6s ease-in-out infinite;
 }
+/* "Grab this loop before it gets hot" → red dot, still pulsing: the playback
+   CTA reuses the connect-nudge pill format, swapping the green liveness dot for
+   a hot-red one so the bonding-curve urgency reads at a glance. */
+.connect-live.hot .connect-live-dot {
+  background: #ff6b4a;
+  box-shadow: 0 0 7px rgba(255, 107, 74, .85);
+}
 /* Empty grid → amber, no pulse: an honest "quiet" state, not a fake heartbeat. */
 .connect-live.quiet { color: var(--muted); }
 .connect-live.quiet .connect-live-dot {
