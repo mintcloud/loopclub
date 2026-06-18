@@ -1,0 +1,52 @@
+# loopclub seeder — presence-gated cold-start loopbot. systemd USER service.
+#
+# Matches the existing tg-itsavibe.com service pattern on the VPS (nvm node,
+# user units, linger enabled). No Docker, no sudo. Bundles the presence
+# collector (HTTP /beat) and the jam control loop in one process.
+#
+#   mkdir -p ~/.config/systemd/user ~/.config/loopclub
+#   cp deploy/loopclub-seeder.service ~/.config/systemd/user/
+#   cp deploy/seeder.env.example      ~/.config/loopclub/seeder.env
+#   chmod 600 ~/.config/loopclub/seeder.env    # then edit in the real key
+#   loginctl enable-linger theo                # survive logout / reboot
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now loopclub-seeder
+#   journalctl --user -u loopclub-seeder -f    # logs
+#
+# Liveness: the bot self-restarts on a wedged control tick (see notify.ts —
+# internal watchdog exits non-zero, Restart=always brings it back). We use
+# Type=simple rather than Type=notify because the native sd-notify addon fails
+# to build on node 22 and node's dgram can't speak systemd's AF_UNIX datagram
+# protocol; the internal watchdog gives the same auto-restart-on-hang guarantee.
+
+[Unit]
+Description=loopclub seeder — presence-gated cold-start loopbot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/theo/projects/loopclub/seeder
+Environment="PATH=/home/theo/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/theo/.nvm/versions/node/v22.22.0/bin/node dist/index.js
+# Secrets + config live here, NOT inline in the unit. chmod 600, owned by theo.
+EnvironmentFile=%h/.config/loopclub/seeder.env
+Restart=always
+RestartSec=5
+
+# Hardening — the noisy-neighbour blast-radius fence. User-unit resource control
+# works on Ubuntu 24.04 with default cgroup delegation; if a controller isn't
+# delegated, systemd ignores the directive (non-fatal).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.config/loopclub
+PrivateTmp=true
+MemoryMax=256M
+TasksMax=64
+CPUQuota=50%
+
+[Install]
+WantedBy=default.target

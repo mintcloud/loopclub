@@ -1,0 +1,30 @@
+{
+  "name": "loopclub-seeder",
+  "version": "0.1.0",
+  "description": "loopclub cold-start loopbot — a presence-gated on-chain seeder. Jams the live grid only while a real visitor is on the site and the human area is empty, then fades out when the room empties. Bundles the presence collector and the jam controller in one Node service.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "loopclub-seeder": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "loopclub-loopgen": "file:../loopgen",
+    "viem": "^2.47.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

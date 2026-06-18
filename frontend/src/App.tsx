@@ -7,6 +7,7 @@ import { ContributorStrip } from './ContributorStrip'
 import { RenewStrip } from './RenewStrip'
 import { Library, type LoopRecord } from './Library'
 import { useMyCells } from './useMyCells'
+import { usePresence } from './usePresence'
 import {
   config,
   LOOP_DURATION_SECONDS,
@@ -41,6 +42,10 @@ export function App() {
   const { ready, authenticated, login, logout } = wallet
 
   const grid = useLiveGrid()
+
+  // Heartbeat the cold-start loopbot's presence collector (no-op until the
+  // seeder is deployed and VITE_PRESENCE_URL is set). See usePresence.ts.
+  usePresence()
 
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
   // usdmBalance starts at 0n and only becomes real after the first chain read
