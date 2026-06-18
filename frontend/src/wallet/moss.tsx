@@ -88,8 +88,16 @@ export function useMossWallet(): Wallet {
       // Privy smart wallet's `{ calls }`. Sponsorship is decided by the config's
       // sponsorMode ('app-only' sponsors these app calls; 'explicit' = user
       // pays), so no per-call `sponsor` flag is needed here.
+      // `value` (wei) is passed through only when set — the native-ETH withdraw
+      // path submits `{ to: recipient, data: '0x', value }`, which MOSS executes
+      // as a plain ETH transfer (call to an EOA with empty calldata). Every
+      // contract call leaves value undefined, so nothing changes for them.
       const result = await callContract.mutateAsync(
-        calls.map((c) => ({ address: c.to, data: c.data })),
+        calls.map((c) => ({
+          address: c.to,
+          data: c.data,
+          ...(c.value !== undefined ? { value: c.value } : {}),
+        })),
       )
       if (result.status !== 'approved') {
         throw new Error(

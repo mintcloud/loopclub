@@ -239,4 +239,13 @@ export const usdmAbi = [
     inputs: [{ type: 'address' }, { type: 'uint256' }],
     outputs: [{ type: 'bool' }],
   },
+  {
+    // Plain ERC-20 transfer — used by the wallet "Withdraw" flow to move USDm
+    // out of the smart wallet to an address the user names.
+    type: 'function',
+    name: 'transfer',
+    stateMutability: 'nonpayable',
+    inputs: [{ type: 'address' }, { type: 'uint256' }],
+    outputs: [{ type: 'bool' }],
+  },
 ] as const

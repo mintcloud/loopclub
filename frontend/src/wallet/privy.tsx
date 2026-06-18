@@ -56,8 +56,10 @@ export function usePrivyWallet(): Wallet {
       if (!client) throw new Error('Smart wallet not ready yet — try again in a moment.')
       // Always submit through the batch form; a single call is a one-element
       // batch. `showWalletUIs: false` keeps the gasless one-tap UX the app had.
+      // `value` (wei) rides along for the native-ETH withdraw path; it defaults
+      // to 0 for every contract call, so existing behaviour is unchanged.
       return client.sendTransaction(
-        { calls },
+        { calls: calls.map((c) => ({ to: c.to, data: c.data, value: c.value ?? 0n })) },
         { uiOptions: { showWalletUIs: false } },
       ) as Promise<Hex>
     },

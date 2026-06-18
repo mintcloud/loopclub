@@ -59,6 +59,8 @@ export function App() {
   } | null>(null)
   const [openRow, setOpenRow] = useState<{ track: number; rect: DOMRect } | null>(null)
   const [showFund, setShowFund] = useState(false)
+  // Withdraw flow — opened from the wallet popup; moves USDm out to an address.
+  const [showWithdraw, setShowWithdraw] = useState(false)
   // "Jam with Claude" discovery: explains how to connect the loopclub MCP so a
   // loop built in a Claude chat opens straight into this app via a ?jam= link.
   const [showJamHelp, setShowJamHelp] = useState(false)
@@ -1215,10 +1217,24 @@ export function App() {
           address={smartAddress}
           usdmBalance={usdmBalance}
           onClose={() => setShowFund(false)}
+          onWithdraw={() => {
+            setShowFund(false)
+            setShowWithdraw(true)
+          }}
           onDisconnect={() => {
             setShowFund(false)
             logout()
           }}
+        />
+      )}
+
+      {showWithdraw && smartAddress && (
+        <WithdrawModal
+          address={smartAddress}
+          usdmBalance={usdmBalance}
+          sendCalls={wallet.sendCalls}
+          onClose={() => setShowWithdraw(false)}
+          onDone={refreshWallet}
         />
       )}
 
@@ -1346,11 +1362,13 @@ function FundModal({
   address,
   usdmBalance,
   onClose,
+  onWithdraw,
   onDisconnect,
 }: {
   address: `0x${string}`
   usdmBalance: bigint
   onClose: () => void
+  onWithdraw: () => void
   onDisconnect: () => void
 }) {
   const [copied, setCopied] = useState(false)
@@ -1382,7 +1400,227 @@ function FundModal({
           <button className="disconnect" onClick={onDisconnect}>
             Disconnect
           </button>
+          <button className="btn-chrome" onClick={onWithdraw}>
+            Withdraw
+          </button>
           <button onClick={onClose}>close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Withdraw modal — move funds OUT of the smart wallet to any address. Opened
+// from the wallet popup's "Withdraw" button. This replaces the old standalone
+// "Privy USDM Sender" side-app: the same select-asset → enter recipient/amount
+// → send flow, but in-app and wallet-agnostic. The transfer goes through the
+// provider's `sendCalls` (the same batched-call primitive every rent/press
+// uses), so it works on whichever backend the build is bound to (Privy/MOSS).
+//
+// Two assets: USDm (an ERC-20 `transfer`) and native ETH (a plain value send).
+// Both go through the same `sendCalls` — ETH as a one-call batch carrying
+// `value` (wei) with empty calldata. The asset is a select so more ERC-20s can
+// be added later without reshaping the UI.
+type WithdrawAsset = {
+  symbol: string
+  kind: 'erc20' | 'native'
+  decimals: number
+  // ERC-20 token contract; absent for native ETH.
+  address?: `0x${string}`
+}
+const WITHDRAW_ASSETS: WithdrawAsset[] = [
+  { symbol: 'USDm', kind: 'erc20', decimals: 18, address: config.paymentTokenAddress },
+  { symbol: 'ETH', kind: 'native', decimals: 18 },
+]
+
+function WithdrawModal({
+  address,
+  usdmBalance,
+  sendCalls,
+  onClose,
+  onDone,
+}: {
+  address: `0x${string}`
+  usdmBalance: bigint
+  sendCalls: (calls: Call[]) => Promise<`0x${string}`>
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [assetSymbol, setAssetSymbol] = useState<string>(WITHDRAW_ASSETS[0].symbol)
+  const [to, setTo] = useState('')
+  const [amount, setAmount] = useState('')
+  const [ethBalance, setEthBalance] = useState<bigint | null>(null)
+  const [status, setStatus] = useState<
+    { kind: 'idle' } | { kind: 'pending'; msg: string } | { kind: 'ok'; hash: `0x${string}` } | { kind: 'err'; msg: string }
+  >({ kind: 'idle' })
+
+  // USDm comes from the balance the app already polls; the native ETH balance
+  // isn't tracked elsewhere, so read it here (and refresh after a withdrawal).
+  const loadEth = useCallback(() => {
+    publicClient
+      .getBalance({ address })
+      .then(setEthBalance)
+      .catch(() => setEthBalance(null))
+  }, [address])
+  useEffect(() => {
+    loadEth()
+  }, [loadEth])
+
+  const asset = WITHDRAW_ASSETS.find((a) => a.symbol === assetSymbol) ?? WITHDRAW_ASSETS[0]
+  const balance = asset.kind === 'native' ? (ethBalance ?? 0n) : usdmBalance
+  const balanceStr = formatUnits(balance, asset.decimals).slice(0, 8)
+
+  // Recipient sanity check without pulling in another dep: 0x + 40 hex chars.
+  const toTrimmed = to.trim()
+  const toValid = /^0x[0-9a-fA-F]{40}$/.test(toTrimmed)
+  const pending = status.kind === 'pending'
+
+  const parsedAmount = (() => {
+    const t = amount.trim()
+    if (!t) return null
+    if (!/^\d*\.?\d*$/.test(t) || t === '.') return null
+    try {
+      const [whole, frac = ''] = t.split('.')
+      if (frac.length > asset.decimals) return null
+      const scaled = BigInt(whole || '0') * 10n ** BigInt(asset.decimals) + BigInt((frac + '0'.repeat(asset.decimals)).slice(0, asset.decimals) || '0')
+      return scaled
+    } catch {
+      return null
+    }
+  })()
+
+  const amountValid = parsedAmount !== null && parsedAmount > 0n && parsedAmount <= balance
+
+  async function submit() {
+    if (!toValid) {
+      setStatus({ kind: 'err', msg: 'Enter a valid recipient address (0x… 40 hex).' })
+      return
+    }
+    if (parsedAmount === null || parsedAmount <= 0n) {
+      setStatus({ kind: 'err', msg: 'Enter an amount greater than zero.' })
+      return
+    }
+    if (parsedAmount > balance) {
+      setStatus({ kind: 'err', msg: `Amount exceeds your ${asset.symbol} balance.` })
+      return
+    }
+    try {
+      setStatus({ kind: 'pending', msg: 'Confirm in your wallet…' })
+      // Native ETH → a value send to the recipient with empty calldata.
+      // ERC-20 → a `transfer(to, amount)` call to the token contract.
+      const call: Call =
+        asset.kind === 'native'
+          ? { to: toTrimmed as `0x${string}`, data: '0x', value: parsedAmount }
+          : {
+              to: asset.address as `0x${string}`,
+              data: encodeFunctionData({
+                abi: usdmAbi,
+                functionName: 'transfer',
+                args: [toTrimmed as `0x${string}`, parsedAmount],
+              }),
+            }
+      const hash = await sendCalls([call])
+      setStatus({ kind: 'pending', msg: 'Submitted — confirming on chain…' })
+      await publicClient.waitForTransactionReceipt({ hash })
+      setStatus({ kind: 'ok', hash })
+      setAmount('')
+      if (asset.kind === 'native') loadEth()
+      onDone()
+    } catch (e) {
+      const msg =
+        (e as { shortMessage?: string; message?: string })?.shortMessage ||
+        (e as Error)?.message ||
+        'Withdrawal failed.'
+      setStatus({ kind: 'err', msg })
+    }
+  }
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Withdraw</h3>
+        <p className="muted">
+          Move funds out of your loopclub wallet to any address on MegaETH Mainnet.
+        </p>
+
+        <label className="withdraw-field">
+          <span className="withdraw-label">Asset</span>
+          <select
+            className="withdraw-select"
+            value={assetSymbol}
+            onChange={(e) => {
+              setAssetSymbol(e.target.value)
+              setAmount('')
+              setStatus({ kind: 'idle' })
+            }}
+            disabled={pending}
+          >
+            {WITHDRAW_ASSETS.map((a) => (
+              <option key={a.symbol} value={a.symbol}>
+                {a.symbol}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="muted withdraw-balance">
+          Balance: {asset.kind === 'native' && ethBalance === null ? '…' : balanceStr} {asset.symbol}
+          {asset.kind === 'native' && ' · leave a little for gas'}
+        </p>
+
+        <label className="withdraw-field">
+          <span className="withdraw-label">To</span>
+          <input
+            className="withdraw-input mono"
+            placeholder="0x… recipient address"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            disabled={pending}
+            spellCheck={false}
+          />
+        </label>
+
+        <label className="withdraw-field">
+          <span className="withdraw-label">Amount</span>
+          <div className="withdraw-amount-row">
+            <input
+              className="withdraw-input"
+              placeholder="0.0"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              disabled={pending}
+            />
+            <button
+              type="button"
+              className="btn-chrome withdraw-max"
+              onClick={() => setAmount(formatUnits(balance, asset.decimals))}
+              disabled={pending || balance === 0n}
+            >
+              Max
+            </button>
+          </div>
+        </label>
+
+        {status.kind === 'err' && <p className="withdraw-status err">{status.msg}</p>}
+        {status.kind === 'pending' && <p className="withdraw-status muted">{status.msg}</p>}
+        {status.kind === 'ok' && (
+          <p className="withdraw-status ok">
+            Sent ✓{' '}
+            <a href={`${config.explorerUrl}/tx/${status.hash}`} target="_blank" rel="noreferrer">
+              view tx
+            </a>
+          </p>
+        )}
+
+        <div className="row wallet-modal-actions">
+          <button onClick={onClose}>{status.kind === 'ok' ? 'Done' : 'Cancel'}</button>
+          <button
+            className="btn-chrome"
+            onClick={submit}
+            disabled={pending || !toValid || !amountValid}
+          >
+            {pending ? 'Withdrawing…' : `Withdraw ${asset.symbol}`}
+          </button>
         </div>
       </div>
     </div>
