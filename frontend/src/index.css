@@ -90,6 +90,37 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--danger);
 }
 
+/* ───── Withdraw modal — select-asset → recipient → amount, then send.
+   .modal label/input/select base styles already apply; these add the
+   field rhythm, the amount+Max row, and inline status colors. ───── */
+.withdraw-field { margin-top: 0.7rem; }
+.withdraw-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.withdraw-balance {
+  margin-top: 0.3rem;
+  font-size: 11px;
+}
+.withdraw-input { width: 100%; box-sizing: border-box; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.withdraw-amount-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+.withdraw-amount-row .withdraw-input { flex: 1; }
+.withdraw-max { white-space: nowrap; padding: 0 0.7rem; }
+.withdraw-status {
+  margin-top: 0.7rem;
+  font-size: 12px;
+  word-break: break-word;
+}
+.withdraw-status.err { color: var(--danger); }
+.withdraw-status.ok { color: var(--ok, #6ee7a8); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* "Connecting" sync state — the design system always pulses .sync-dot;
    this dims it instead while we have no block yet. */
 .sync-badge.connecting .sync-dot {
