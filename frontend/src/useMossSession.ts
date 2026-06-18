@@ -41,6 +41,13 @@ import type { SessionKey, SessionStatus } from './useSessionKey'
 // matches the calldata selector against this human-readable signature wallet-side.
 const TOGGLE_SIGNATURE = 'toggle(uint8,uint16,uint16)'
 
+// 4-byte selector of TOGGLE_SIGNATURE. We grant with the human-readable
+// signature, but the hosted wallet may normalise it to the selector when it
+// reports the grant back via getPermissions — so coversToggle() has to accept
+// either form, else a live grant reads as "doesn't cover toggle" and the badge
+// never leaves 'idle'.
+const TOGGLE_SELECTOR = '0xd755885d'
+
 // 24h — MOSS's recommended TTL for an active interactive session ("keep expiry
 // short: 24h for active sessions"). Long enough that "one signature lasts" a
 // whole jam, short enough to bound a leaked grant. The badge counts it down.
@@ -60,9 +67,13 @@ function coversToggle(
 ): boolean {
   if (!grant) return false
   const target = loopclub.toLowerCase()
-  return grant.calls.some(
-    (c) => c.to.toLowerCase() === target && /toggle/i.test(c.signature),
-  )
+  return grant.calls.some((c) => {
+    if (c.to.toLowerCase() !== target) return false
+    const sig = (c.signature ?? '').toLowerCase()
+    // Accept the human-readable signature ("toggle(...)") OR the 4-byte selector
+    // the wallet may hand back instead.
+    return sig.includes('toggle') || sig.startsWith(TOGGLE_SELECTOR)
+  })
 }
 
 export function useMossSession(address: Hex | null): SessionKey {
@@ -124,7 +135,40 @@ export function useMossSession(address: Hex | null): SessionKey {
         setLocal({ status: 'idle', errorMsg: null })
         return
       }
-      await perms.refetch() // pull the fresh grant so `expiresAt` flips us to 'armed'
+      // The hosted wallet indexes the grant asynchronously, so a single refetch
+      // can land before getPermissions reflects it — leaving us stuck 'idle' with
+      // no retry, and (because App's auto-arm chains session.send right after
+      // arm) firing the first silent send against a grant that isn't live yet.
+      // Poll until the grant reads back as covering toggle(), bounded so a
+      // genuinely-rejected grant still resolves.
+      let covered = false
+      for (let i = 0; i < 8; i++) {
+        const { data } = await perms.refetch()
+        const g = data?.permissions
+        const live = !!g?.expiry && g.expiry * 1000 > Date.now()
+        // TEST DIAGNOSTIC (preview only): shows exactly what getPermissions
+        // returns so a stuck-'idle' is unambiguous — empty grant (indexing/scope)
+        // vs a grant whose signature coversToggle() rejects (selector mismatch).
+        console.debug('[fastmode] arm poll', i, {
+          hasGrant: !!g,
+          expiry: g?.expiry,
+          live,
+          calls: g?.permissions?.calls,
+          covers: live && coversToggle(g!.permissions, config.loopclubAddress),
+        })
+        if (live && coversToggle(g!.permissions, config.loopclubAddress)) {
+          covered = true
+          break
+        }
+        await new Promise((r) => setTimeout(r, 400))
+      }
+      if (!covered) {
+        setLocal({
+          status: 'error',
+          errorMsg: 'Fast mode grant approved but the wallet never reported it — every toggle will keep prompting.',
+        })
+        return
+      }
       setLocal({ status: 'idle', errorMsg: null })
     } catch (e) {
       setLocal({
