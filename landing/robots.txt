@@ -1,0 +1,26 @@
+# loopclub.xyz — robots
+# All crawlers welcome; AI/answer-engine bots explicitly allowed (GEO/AEO).
+
+User-agent: *
+Allow: /
+
+# AI crawlers & answer engines
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://loopclub.xyz/sitemap.xml

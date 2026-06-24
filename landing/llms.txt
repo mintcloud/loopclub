@@ -1,0 +1,16 @@
+# loopclub
+
+> loopclub is the online platform for writing music with other musicians in real time — an on-chain drum machine built on MegaETH.
+
+loopclub lets musicians, producers, and songwriters write and produce music together online in real time. Start a session in your browser, invite collaborators with a link, and build loops together cell by cell on a shared step sequencer. Every beat you add is provably yours on-chain. There's nothing to download or install, and opening a session to start building is free.
+
+## Key Topics
+- Real-time collaborative music writing online
+- Writing and producing music with other musicians remotely
+- Free, in-browser loop-based beat making
+- Shared step-sequencer sessions you can invite anyone into
+- On-chain ownership of the beats you create (MegaETH)
+
+## Pages
+- [Home](https://loopclub.xyz/): What loopclub is, how it works, and FAQ for writing music with others online.
+- [App](https://app.loopclub.xyz/): Launch loopclub and start or join a collaborative music session.
