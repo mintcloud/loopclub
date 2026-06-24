@@ -414,10 +414,10 @@ a { color:inherit; text-decoration:none; }
 }
 .faq-a p { margin:0; }
 
-/* CTA pinned to the left edge of the content column. The flex row with
-   justify-content:flex-start guarantees left alignment regardless of any
-   inherited text-align, so the button lines up with the copy above it. */
-.about-cta-row { display:flex; justify-content:flex-start; margin-top:40px; }
+/* CTA centered in the content column. The flex row with
+   justify-content:center guarantees horizontal centering regardless of any
+   inherited text-align. */
+.about-cta-row { display:flex; justify-content:center; margin-top:40px; }
 .about-cta { margin-top:0; }
 
 @media (max-width:560px) {
