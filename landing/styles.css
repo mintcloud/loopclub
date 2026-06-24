@@ -313,3 +313,113 @@ a { color:inherit; text-decoration:none; }
 @media (prefers-reduced-motion:reduce) {
   .wordmark, .wordmark--hero::after, .hero-title em { animation:none; }
 }
+
+/* ============================================================
+   About + foldable FAQ — GEO content block.
+   Sits below the full-height hero; uses the existing tokens.
+   ============================================================ */
+.about {
+  position:relative;
+  z-index:3;                 /* above the animated backdrop */
+  width:min(720px, 92vw);
+  margin:0 auto;
+  padding:clamp(48px, 9vh, 96px) 0 64px;
+  text-align:left;
+}
+
+/* Front-loaded answer — the line AI agents quote. */
+.about-lede {
+  font-family:var(--font-mono);
+  font-size:clamp(15px, 1.7vw, 18px);
+  line-height:1.7;
+  color:#c7c7da;
+  margin-bottom:48px;
+  padding-left:16px;
+  border-left:2px solid var(--accent);
+}
+.about-lede strong { color:var(--text); font-weight:700; }
+
+.about-h {
+  font-family:var(--font-tech);
+  font-weight:400;
+  font-size:clamp(15px, 2vw, 20px);
+  letter-spacing:.01em;
+  color:var(--text);
+  margin:40px 0 20px;
+}
+
+/* ---- How it works ---- */
+.about-steps { list-style:none; display:grid; gap:14px; }
+.about-steps li {
+  display:flex; gap:14px; align-items:flex-start;
+  background:var(--bg-elev);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:16px 18px;
+}
+.step-n {
+  flex:none;
+  width:26px; height:26px;
+  display:grid; place-items:center;
+  border-radius:50%;
+  background:rgba(124,92,255,.14);
+  border:1px solid rgba(124,92,255,.45);
+  color:var(--accent);
+  font-family:var(--font-mono); font-weight:700; font-size:12px;
+}
+.step-b { display:block; font-size:13.5px; line-height:1.6; color:var(--muted); }
+.step-b strong { display:block; color:var(--text); font-weight:700; margin-bottom:3px; }
+
+/* ---- Foldable FAQ (native <details>, folded by default) ---- */
+.faq { display:grid; gap:10px; }
+.faq-item {
+  background:var(--bg-elev);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+}
+.faq-item summary {
+  list-style:none;
+  cursor:pointer;
+  padding:15px 44px 15px 18px;
+  position:relative;
+  font-family:var(--font-mono);
+  font-size:13.5px;
+  font-weight:700;
+  color:var(--text);
+  line-height:1.5;
+  transition:color .12s ease;
+}
+.faq-item summary::-webkit-details-marker { display:none; }
+.faq-item summary:hover { color:var(--accent); }
+/* Chevron */
+.faq-item summary::after {
+  content:"";
+  position:absolute;
+  right:18px; top:50%;
+  width:8px; height:8px;
+  margin-top:-6px;
+  border-right:2px solid var(--muted);
+  border-bottom:2px solid var(--muted);
+  transform:rotate(45deg);
+  transition:transform .18s ease, border-color .12s ease;
+}
+.faq-item[open] summary::after { transform:rotate(225deg); margin-top:-2px; }
+.faq-item summary:hover::after { border-color:var(--accent); }
+.faq-a {
+  padding:0 18px 16px;
+  font-size:13px;
+  line-height:1.7;
+  color:var(--muted);
+}
+.faq-a p { margin:0; }
+
+.about-cta { margin-top:40px; }
+
+@media (max-width:560px) {
+  .about { padding-top:40px; }
+  .about-lede { font-size:15px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .faq-item summary::after { transition:none; }
+}
