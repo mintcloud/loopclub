@@ -159,6 +159,28 @@
     0 6px 16px rgba(0,0,0,.45),
     var(--rainbow-glow);
 }
+
+/* ── Phone-only card faceplate swap ──────────────────────────────────────────
+   Same story as the grid faceplate (see cells-grid.css). The brushed-metal plate
+   uses a fixed 480px streak tile; a full-width phone card is small next to that
+   tile, so each card shows an arbitrary crop of streaks — it reads as grey noise,
+   not brushed metal, and fights the flat mobile grid it now sits under. Drop the
+   brushed material on phones for a single flat elevated panel — coherent with the
+   Option-A flat grid stage — while desktop and iPad (≥ ~768px) keep the metal,
+   which renders nicely at card size there.
+
+   Trigger mirrors the grid swap exactly: width ≤ 600px (phone portrait; iPad
+   portrait is 768px so tablets are excluded) OR height ≤ 520px (landscape phone).
+   Only the fill changes — role borders/glows and the seated-panel shadow all ride
+   on top unchanged, so contrib/owned/playing cards keep their coloured edges. */
+@media (max-width: 600px), (max-height: 520px) {
+  .loop-card {
+    background: var(--bg-elev);            /* #07070d — flat, no streak texture */
+    background-blend-mode: normal;
+    border-color: #14171f;                 /* neutral frame; role variants override */
+  }
+}
+
 .loop-card-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; gap: 0.5rem; }
 .loop-card-head > span { white-space: nowrap; }
 .loop-card-head .owner { color: var(--muted); font-size: 11px; font-family: var(--font-mono); }
