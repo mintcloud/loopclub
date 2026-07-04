@@ -1,0 +1,32 @@
+# /home/theo/.config/systemd/user/loopclub-x-bot.service
+# Daily @loopclub X poster. systemd USER service + timer, matches the
+# loopclub-seeder / vault-reader pattern already running on this VPS — no
+# Docker, no sudo, user linger already enabled.
+#
+#   mkdir -p ~/.config/systemd/user ~/.config/loopclub
+#   cp x-bot/deploy/loopclub-x-bot.service ~/.config/systemd/user/
+#   cp x-bot/deploy/loopclub-x-bot.timer   ~/.config/systemd/user/
+#   cp x-bot/deploy/env.example            ~/.config/loopclub/x-bot.env
+#   chmod 600 ~/.config/loopclub/x-bot.env   # then edit in the real keys
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now loopclub-x-bot.timer
+#   journalctl --user -u loopclub-x-bot -f   # logs
+
+[Unit]
+Description=loopclub X growth bot — post next queued item
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/theo/projects/loopclub/x-bot
+Environment="PATH=/home/theo/telegram-agent/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=%h/.config/loopclub/x-bot.env
+ExecStart=/home/theo/telegram-agent/venv/bin/python3 src/post_next.py
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/theo/projects/loopclub/x-bot/content %h/.config/loopclub
+PrivateTmp=true
+MemoryMax=256M

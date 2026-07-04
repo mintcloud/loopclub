@@ -1,0 +1,14 @@
+# /home/theo/.config/systemd/user/loopclub-x-bot.timer
+# Fires loopclub-x-bot.service once a day. Pick a time with real audience
+# overlap — mid-morning US Eastern catches EU afternoon + US morning CT.
+
+[Unit]
+Description=Daily @loopclub X post
+
+[Timer]
+OnCalendar=*-*-* 14:30:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target
