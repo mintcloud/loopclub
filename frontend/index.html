@@ -19,15 +19,21 @@
       content="One global 16×4 grid drum machine on MegaETH. Rent a cell, jam with everyone live, press the loop as an NFT — co-creators get paid on every press."
     />
 
+    <!-- Canonical / URL -->
+    <link rel="canonical" href="https://app.loopclub.xyz/" />
+
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="loopclub" />
+    <meta property="og:url" content="https://app.loopclub.xyz/" />
     <meta property="og:title" content="loopclub — on-chain drum machine" />
     <meta
       property="og:description"
       content="One global 16×4 grid drum machine on MegaETH. Rent a cell, jam live, press the loop as an NFT — co-creators get paid on every press."
     />
-    <meta property="og:image" content="/og-cover.png" />
+    <meta property="og:image" content="https://app.loopclub.xyz/og-cover.png" />
+    <meta property="og:image:secure_url" content="https://app.loopclub.xyz/og-cover.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="loopclub — a 16×4 step grid drum machine" />
@@ -39,13 +45,15 @@
       name="twitter:description"
       content="Rent a cell, jam live, press the loop as an NFT — co-creators get paid on every press."
     />
-    <meta name="twitter:image" content="/og-cover.png" />
+    <meta name="twitter:image" content="https://app.loopclub.xyz/og-cover.png" />
+    <meta name="twitter:image:alt" content="loopclub — a 16×4 step grid drum machine" />
 
-    <!-- NOTE: og:image / twitter:image are relative. Most modern unfurlers (X, Discord,
-         Telegram, Slack, Meta) resolve them against the page URL. If a custom domain is
-         added, switch these to absolute URLs for maximum crawler coverage, and add
-         <meta property="og:url"> + <link rel="canonical">. Per-loop dynamic cards for
-         ?loop=N share links would need a Vercel edge function (@vercel/og) — see docs. -->
+    <!-- NOTE: og:image / twitter:image are ABSOLUTE URLs on purpose. X's Twitterbot does
+         not reliably resolve relative image paths and renders a broken-image placeholder
+         when they are used (that was the original bug). Keep these absolute; if the app
+         domain ever changes, update the app.loopclub.xyz URLs above.
+         Per-loop dynamic cards for ?loop=N share links (rendering the specific loop image)
+         would need a Vercel edge function (@vercel/og) — separate follow-up, see docs. -->
 
     <!-- Umami analytics (self-hosted on VPS, privacy-friendly, no cookies) -->
     <script defer src="https://analytics.tg-itsavibe.com/script.js" data-website-id="d0da1504-91e1-4de0-982e-8b297e0bf253"></script>
