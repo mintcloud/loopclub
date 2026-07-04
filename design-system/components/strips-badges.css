@@ -1,16 +1,26 @@
 /* ============================================================
    loopclub Design System — Strips & badges
-   Sync badge (block-pulse heartbeat)
-   Fast-mode pill (session-key chrome chip)
-   Contributor strip (player colour key)
-   Renew strip (your recent cells + one-click re-rent)
-   Chrome pill (generic chrome chip)
+   THE CHIP VOCABULARY. One quiet material for every status chip:
+   the silkscreen pill (--pill-bg + --pill-border hairline, pill
+   radius, Michroma legend). State colour arrives only as an LED
+   dot or a tinted legend — never as a new surface.
+
+   Sync badge      — block-pulse heartbeat (mint LED)
+   Chrome pill     — legacy class name, now a silkscreen pill
+   Fast-mode       — session-key status (armed = mint bolt)
+   Contributor     — per-wallet colour key (address = Space Mono)
+   Renew strip     — your recent cells (LED-tinted counts)
+
+   Chrome is retired from status duty — a chip you cannot press
+   must not wear the pressable metal. See buttons.css.
    ============================================================ */
 
-/* ── Sync badge — pulses every new block.
-   Flat tech pill, same quiet recipe as the header's "Jam with Claude"
-   affordance: Michroma legend, hairline border, no chrome. The tracker
-   readout face (Major Mono) was unreadable at this size. */
+/* ── The shared recipe. Components below restate it (they are used
+   standalone), but every value traces here:
+     background var(--pill-bg) · border 1px var(--pill-border)
+     radius var(--r-pill) · Michroma var(--fs-tech-small) caps ── */
+
+/* ── Sync badge — pulses every new block. The reference silkscreen pill. */
 .sync-badge {
   display: inline-flex;
   align-items: center;
@@ -20,8 +30,8 @@
   text-transform: uppercase;
   letter-spacing: var(--ls-tech);
   color: var(--text);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid #3a4150;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
   padding: 0.24rem 0.6rem;
   border-radius: var(--r-pill);
   font-variant-numeric: tabular-nums;
@@ -31,8 +41,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--hat);
-  box-shadow: 0 0 6px var(--hat);
+  background: var(--go);
+  box-shadow: 0 0 6px var(--go);
   animation: blockPulse 0.5s ease-out;
 }
 @keyframes blockPulse {
@@ -40,66 +50,69 @@
   100% { transform: scale(1);   opacity: 1; }
 }
 
-/* ── Chrome pill — generic chrome chip used for status (fast mode, etc).
-   Works as <button> or <span>. */
+/* ── "Chrome pill" — legacy name kept for compat; the surface is now the
+   silkscreen pill. Static status chips have no business wearing the
+   pressable metal (that was the old "everything is chrome" drift). */
 .chrome-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--chrome-surface-button);
-  background-blend-mode: var(--chrome-blend);
-  border: 1px solid var(--chrome-border);
-  color: #0a0a12;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  color: var(--text);
   font-family: var(--font-tech);
   font-weight: 400;
   font-size: var(--fs-tech-small);
   text-transform: uppercase;
   letter-spacing: var(--ls-tech);
-  padding: 0.3rem 0.7rem;
+  padding: 0.24rem 0.6rem;
   border-radius: var(--r-pill);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.55),
-    inset 0 -1px 0 rgba(0,0,0,.4),
-    0 2px 5px rgba(0,0,0,.55);
   white-space: nowrap;
   cursor: default;
 }
-/* Tiny ✕ inside an interactive chrome pill (armed fast-mode). */
+/* Tiny ✕ inside an interactive pill (armed fast-mode). */
 .chrome-pill-x {
-  background: transparent; border: none; color: rgba(10,10,18,.6);
+  background: transparent; border: none; color: var(--muted);
   font-size: 11px; line-height: 1; padding: 0 0.2rem; margin-left: 0.15rem;
   cursor: pointer; border-radius: var(--r-pill);
 }
-.chrome-pill-x:hover { color: var(--hot, #ff2d1f); }
+.chrome-pill-x:hover { color: var(--hot); background: transparent; }
 
-/* ── Fast-mode (session keys). Both states share .chrome-pill styling. */
+/* ── Fast-mode (session keys) — silkscreen pill.
+   .fastmode-btn  (arm)   — muted legend, brightens on hover: an offer.
+   .fastmode-badge (armed) — mint bolt + mint hairline: a live state,
+   same "live" lamp as the sync badge. */
 .fastmode-btn,
 .fastmode-badge {
   display: inline-flex; align-items: center; gap: 0.4rem;
-  background: var(--chrome-surface-button);
-  background-blend-mode: var(--chrome-blend);
-  border: 1px solid var(--chrome-border);
-  color: #0a0a12;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  color: var(--muted);
   font-family: var(--font-tech);
   font-weight: 400;
   font-size: var(--fs-tech-small);
   text-transform: uppercase;
   letter-spacing: var(--ls-tech);
-  padding: 0.3rem 0.7rem;
+  padding: 0.24rem 0.6rem;
   border-radius: var(--r-pill);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.55),
-    inset 0 -1px 0 rgba(0,0,0,.4),
-    0 2px 5px rgba(0,0,0,.55);
   cursor: pointer;
+  transition: color 0.1s ease, border-color 0.1s ease;
 }
-.fastmode-btn:hover:not(:disabled) { filter: brightness(1.06); }
-.fastmode-bolt { color: #c0224a; }
+.fastmode-btn:hover:not(:disabled) { color: var(--text); border-color: #7d8696; }
+.fastmode-badge {
+  color: var(--text);
+  border-color: rgba(92, 255, 198, 0.35);
+  cursor: default;
+}
+.fastmode-badge .fastmode-bolt { color: var(--go); text-shadow: 0 0 6px rgba(92, 255, 198, 0.6); }
+.fastmode-bolt { color: var(--muted); }
 @keyframes boltPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
-/* ── Contributor strip — per-wallet colour chips below the grid. */
+/* ── Contributor strip — per-wallet colour chips below the grid.
+   Addresses are true readouts → Space Mono; the wallet's LED dot is the
+   only colour. */
 .contrib-strip {
   display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
   font-family: var(--font-body);
@@ -111,16 +124,19 @@
 .contrib-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .contrib-chip {
   display: inline-flex; align-items: center; gap: 0.35rem;
-  background: var(--panel); border: 1px solid var(--border);
+  background: var(--pill-bg); border: 1px solid var(--pill-border);
   border-radius: var(--r-pill); padding: 0.2rem 0.55rem;
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
+  font-size: 10px;
   white-space: nowrap;
 }
 .contrib-chip.mine { border-color: var(--accent); color: var(--text); }
 .contrib-dot   { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.contrib-count { color: var(--muted); background: var(--panel-2); border-radius: var(--r-sm); padding: 0 0.32rem; font-size: 10px; }
+.contrib-count { color: var(--muted); background: rgba(255, 255, 255, 0.06); border-radius: var(--r-pill); padding: 0 0.34rem; font-size: 10px; }
 
-/* ── Renew strip — your recent cells + one-click re-rent. */
+/* ── Renew strip — your recent cells + one-click re-rent.
+   Counts are LED-tinted legends on the same silkscreen pill:
+   mint = live · gold = expiring (attention) · muted = gone. */
 .renew-strip {
   display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
   font-family: var(--font-body); font-size: 11px;
@@ -131,14 +147,14 @@
 .rc {
   padding: 0.18rem 0.55rem;
   border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: var(--panel);
+  border: 1px solid var(--pill-border);
+  background: var(--pill-bg);
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.02em;
 }
-.rc.live     { color: var(--hat);   border-color: rgba(92, 255, 198, 0.32); }
+.rc.live     { color: var(--go);    border-color: rgba(92, 255, 198, 0.32); }
 .rc.expiring { color: var(--owned); border-color: rgba(255, 194, 75, 0.45); }
 .rc.expired  { color: var(--muted); }
 .rc.taken    { color: var(--muted); opacity: 0.7; }

@@ -32,58 +32,47 @@
     drop-shadow(0 1px 0 rgba(0,0,0,.85))
     drop-shadow(0 0 6px rgba(0,0,0,.5));
 }
-/* Library tabs — chrome pads, same metal recipe as the deck buttons.
-   Active tab flips to the pressed-chrome reflection (dim graphite) with
-   the accent ring around it, mirroring .deck-btn.active. */
+/* Library tabs — silkscreen pills, NOT chrome. Tabs are navigation; chrome
+   is reserved for controls that press the machine (see buttons.css). The
+   active tab is the one engaged surface: pressed graphite wearing the
+   prismatic rim — the same "engaged" grammar as .deck-btn.active, so the
+   whole app has one language for "this is on". */
 .tabs { display: flex; gap: 0.35rem; }
 .tab {
   font-size: 10px;
   letter-spacing: var(--ls-tech);
   text-transform: uppercase;
   font-weight: 400;
-  padding: 0.4rem 0.85rem;
-  background: var(--chrome-surface-button);
-  background-blend-mode: var(--chrome-blend);
-  border: 1px solid var(--chrome-border);
-  border-radius: var(--r-md);
-  color: #0a0a12;
+  padding: 0.34rem 0.8rem;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  border-radius: var(--r-pill);
+  color: var(--muted);
   font-family: var(--font-tech);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.55),
-    inset 0 -1px 0 rgba(0,0,0,.4),
-    0 2px 5px rgba(0,0,0,.55);
   cursor: pointer;
-  transition: filter 0.1s ease, transform 0.06s ease, box-shadow 0.1s ease;
+  transition: color 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
 }
 .tab:hover:not(:disabled):not(.active) {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-}
-.tab:active:not(:disabled):not(.active) {
-  transform: translateY(0);
-  filter: brightness(0.98);
+  color: var(--text);
+  border-color: #7d8696;
 }
 .tab.active {
   background: var(--chrome-surface-pressed);
+  background-blend-mode: var(--chrome-blend);
+  border-color: var(--chrome-border);
   color: #e9e9f2;
-  filter: none;
-  /* engaged = prismatic rim, not the old violet ring */
+  /* engaged = pressed graphite + the prismatic rim */
   box-shadow:
     inset 0 2px 6px rgba(0,0,0,.7),
     inset 0 -1px 0 rgba(255,255,255,.1),
     var(--rainbow-glow);
 }
-/* Same chrome focus recipe as .btn-chrome / .deck-btn — silence the system
-   blue/purple ring and wrap the pad in the off-white halo on keyboard focus.
-   Active tabs keep their accent engagement ring underneath the halo. */
+/* Keyboard focus — the off-white halo from tokens/chrome.css, never the
+   system blue. Active tabs keep the prism rim underneath the halo. */
 .tab:focus { outline: none; }
 .tab:focus-visible {
   outline: none;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.55),
-    inset 0 -1px 0 rgba(0,0,0,.4),
-    0 2px 5px rgba(0,0,0,.55),
-    var(--focus-halo);
+  box-shadow: var(--focus-halo);
 }
 .tab.active:focus-visible {
   outline: none;
@@ -94,7 +83,7 @@
     var(--focus-halo);
 }
 .tab:disabled {
-  filter: saturate(0.35) brightness(0.78);
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
@@ -166,8 +155,8 @@
    tile, so each card shows an arbitrary crop of streaks — it reads as grey noise,
    not brushed metal, and fights the flat mobile grid it now sits under. Drop the
    brushed material on phones for a single flat elevated panel — coherent with the
-   Option-A flat grid stage — while desktop and iPad (≥ ~768px) keep the metal,
-   which renders nicely at card size there.
+   committed flat phone grid stage (cells-grid.css) — while desktop and iPad
+   (≥ ~768px) keep the metal, which renders nicely at card size there.
 
    Trigger mirrors the grid swap exactly: width ≤ 600px (phone portrait; iPad
    portrait is 768px so tablets are excluded) OR height ≤ 520px (landscape phone).
@@ -194,12 +183,12 @@
    line even in the narrowest 3-column desktop card. flex-wrap stays as a
    safety net for the rare 4th chip (claim royalties). */
 .card-actions { display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
-/* Card actions — chrome chips, smaller siblings of the deck pads.
-   Play / Stop / Claim / Share all use the silver CHIP chrome surface
-   (--chrome-surface-chip: the soft, centred marble — see chrome.css. The
-   full --chrome-surface-button went near-black at this pill size and read as
-   the old flat button); the "See Edition NFT" link gets the gold chip
-   (.nft-link) so the user-owned token reads as a different metal at a glance. */
+/* Card actions — quiet silkscreen chips printed on the card plate. A grid of
+   cards each carrying two or three chrome chips was a field of tiny mirrors —
+   chrome everywhere, hierarchy nowhere. Play / Stop / Share now read as
+   labels silkscreened on the brushed plate; the ONE metal allowed on a card
+   is the gold "See Edition NFT" chip (.nft-link below) — the minted token is
+   the jewel, so it alone gets to shine. */
 .card-actions button, .card-actions a {
   /* Gilroy caps, not Michroma — these chips must clear one line per card
      (play / see edition NFT / share) and the tech face is too wide here. */
@@ -208,45 +197,38 @@
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  /* All-caps Gilroy rides high: glyphs fill baseline→cap-height and leave the
-     descender slot empty, so caps sit above the box's geometric centre. Bias
-     ~1px of the vertical padding from bottom to top (over the chip's 0.44rem
-     horizontal / 0.64rem total vertical) to drop the legend onto the optical
-     midline. */
+  /* All-caps Gilroy rides high — bias ~1px of vertical padding from bottom
+     to top to drop the legend onto the optical midline. */
   padding: 0.36rem 0.44rem 0.28rem;
-  background: var(--chrome-surface-chip);
-  background-blend-mode: var(--chrome-blend);
-  border: 1px solid var(--chrome-border);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
   border-radius: var(--r-sm);
-  color: #0a0a12;
+  color: var(--text);
   cursor: pointer;
   display: inline-flex; align-items: center; gap: 0.2rem;
   white-space: nowrap;
   text-decoration: none;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.55),
-    inset 0 -1px 0 rgba(0,0,0,.4),
-    0 2px 5px rgba(0,0,0,.55);
-  transition: filter 0.1s ease, transform 0.06s ease, box-shadow 0.1s ease;
+  transition: color 0.1s ease, border-color 0.1s ease, transform 0.06s ease;
 }
 .card-actions button:hover:not(:disabled),
 .card-actions a:hover {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
+  border-color: #7d8696;
   text-decoration: none;
 }
 .card-actions button:active:not(:disabled),
 .card-actions a:active {
-  transform: translateY(0);
-  filter: brightness(0.98);
+  transform: translateY(1px);
 }
 .card-actions button:disabled {
-  filter: saturate(0.35) brightness(0.78);
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
 .card-actions a.nft-link {
   background: var(--gold-surface-chip);
+  /* The quiet chip base no longer blends (flat pill) — the gold metal must
+     restate soft-light or its marble texture renders opaque and grey. */
+  background-blend-mode: var(--chrome-blend);
   border-color: var(--gold-border);
   color: #1f1500;
   box-shadow:
@@ -269,12 +251,15 @@
    vertically aligned with the ones that carry a tag — mini-grids and action
    buttons then line up across the whole grid. */
 .role-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; min-height: 1.18rem; }
+/* Role badges — the silkscreen pill in miniature (Michroma legend, pill
+   radius), LED-tinted: gold = owned, mint = contributor. Same chip shape as
+   every other status pill in the app — one vocabulary. */
 .role-badge {
-  font-size: 9px; padding: 0.13rem 0.42rem;
-  border-radius: var(--r-xs); letter-spacing: 0.05em;
+  font-size: 8px; padding: 0.16rem 0.5rem;
+  border-radius: var(--r-pill); letter-spacing: 0.1em;
   text-transform: uppercase;
   border: 1px solid transparent; white-space: nowrap;
-  font-family: var(--font-body); font-weight: 700;
+  font-family: var(--font-tech); font-weight: 400;
 }
 .role-badge.owned   { color: var(--owned);   border-color: rgba(255,194,75,.45); background: rgba(255,194,75,.1); }
 .role-badge.contrib { color: var(--contrib); border-color: rgba(92,255,198,.4);  background: rgba(92,255,198,.09); }

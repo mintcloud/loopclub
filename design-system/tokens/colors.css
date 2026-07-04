@@ -31,11 +31,31 @@
   --crash:    #ff5cd6;
   --ride:     #5c9fff;
 
-  /* Role / state */
+  /* ── Semantic status LEDs — the disciplined set. ──
+     A colour is only allowed to mean ONE thing at the UI level:
+       violet --accent  = YOU (your cells, your identity)
+       mint   --go      = live / on-chain / contributor
+       gold   --owned   = ownership · money · expiring (attention, not danger)
+       red    --hot     = urgent one-shot (press now) / --danger (errors)
+       sky    --claude  = Claude (the jam feature)
+     Track LEDs above colour SOUND, never UI state. If a feature needs a new
+     accent, it takes one of these five meanings — it does not invent a hex. */
   --owned:    #ffc24b;
   --contrib:  #5cffc6;
+  --go:       #5cffc6;   /* mint — same lamp as --contrib/--hat: "live on chain" */
+  --claude:   #5cb6ff;   /* sky — same lamp as --synth: Claude's colour */
   --danger:   #ff5c5c;
   --hot:      #ff2d1f;
+  --ok:       #5cffc6;   /* success readouts (withdraw sent, etc.) = the go mint */
+
+  /* ── Silkscreen pill — the ONE quiet chip material. ──
+     Every status chip (sync badge, fast-mode, contributors, renew counts,
+     role badges, the jam affordance) wears this: near-transparent panel,
+     hairline slate border, printed legend. State colour arrives ONLY as an
+     LED dot or tinted legend riding on top. Chrome pills are retired from
+     status duty — chrome is for things you can press. */
+  --pill-bg:     rgba(255, 255, 255, 0.03);
+  --pill-border: #3a4150;
 
   /* MegaETH soft palette — decorative / marketing surfaces only. */
   --moon-white: #ECE8E8;

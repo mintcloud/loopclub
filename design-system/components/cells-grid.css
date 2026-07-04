@@ -144,16 +144,14 @@
    height ≤ 520px (landscape phone, which is wide but short). iPads never hit
    either, so they keep the metal.
 
-   TWO OPTIONS below. OPTION A is active. To switch to OPTION B: comment out the
-   OPTION A `.grid-wrap` block and uncomment the OPTION B one. The `::after`
-   (glint) is killed in both — the glint is the worst offender at phone size. */
+   DECIDED: flat stage. (A "smoked graphite" gradient variant was auditioned
+   and dropped — one flat panel is the committed phone material, matching the
+   flat loop cards in library.css. No parallel branches.) */
 @media (max-width: 600px), (max-height: 520px) {
 
-  /* OPTION A — Flat stage (ACTIVE).
-     Plain, calm, no effects: a single flat elevated panel the same family as
-     the page, a hairline frame and one soft drop shadow to lift it off the
-     background. The LEDs are the only thing with material. This is the
-     "simple, back-to-basics" route. */
+  /* Flat stage — plain, calm, no effects: a single flat elevated panel the
+     same family as the page, a hairline frame and one soft drop shadow to
+     lift it off the background. The LEDs are the only thing with material. */
   .grid-wrap {
     background: var(--bg-elev);              /* #07070d — flat, no texture/screws */
     background-blend-mode: normal;
@@ -163,28 +161,7 @@
       0 6px 18px rgba(0, 0, 0, .45);
   }
 
-  /* OPTION B — Smoked graphite (commented out).
-     Keeps a quiet device feel without the noise: a smooth top-lit graphite
-     gradient and the inset bezel survive, but the brushed streak texture, the
-     four screws and the glint are all gone. Renders clean at any size/DPI
-     because it's pure gradient — no fixed-size raster to crop. To use it,
-     comment OPTION A above and uncomment this block.
-
-  .grid-wrap {
-    background:
-      radial-gradient(120% 80% at 50% -10%, rgba(120, 140, 175, .10), transparent 60%),
-      linear-gradient(180deg, #161922 0%, #0d1016 60%, #12151d 100%);
-    background-blend-mode: screen, normal;
-    border-color: #1a1d26;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, .05),
-      inset 0 -1px 0 rgba(0, 0, 0, .6),
-      0 6px 18px rgba(0, 0, 0, .5);
-  }
-  */
-
-  /* The flash-photo glint is the most out-of-place detail on a small plate —
-     remove it for both options. */
+  /* The flash-photo glint is the most out-of-place detail on a small plate. */
   .grid-wrap::after { display: none; }
 }
 
