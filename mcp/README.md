@@ -49,11 +49,12 @@ apex `loopclub.xyz` is the landing page and ignores the param):
 The same server runs over MCP's **Streamable HTTP** transport so claude.ai
 (Pro/Max) users can add it as a **custom connector** by URL — no local tooling:
 
-> Settings → Connectors → Add custom connector → `https://<host>/mcp`
+> Settings → Connectors → Add custom connector → `https://mcp.tg-itsavibe.com/mcp`
 
-The deployed host is `mcp.<your-tunnel-domain>` (the branded `mcp.loopclub.xyz`
-needs loopclub.xyz's DNS moved to Cloudflare — see `deploy/`). Exact deploy
-steps for the VPS are in `deploy/` (systemd user unit + Cloudflare tunnel rule).
+That is the live host today. The branded `mcp.loopclub.xyz` is **not** wired:
+loopclub.xyz's DNS is on Vercel, and a Cloudflare tunnel hostname needs the zone
+on Cloudflare, so the branded name has to wait for a nameserver move. Exact
+deploy steps for the VPS are in `deploy/` (systemd user unit + tunnel rule).
 
 Run it yourself:
 ```bash
