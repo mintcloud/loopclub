@@ -194,5 +194,50 @@
   </footer>
 
   <script src="backdrop.js"></script>
+
+  <!-- ===== Product Hunt launch strip =====================================
+       Fill in `url` and `postId` on launch day and push; leaving `url` blank
+       renders nothing, so this is safe to keep in main year-round.
+         url    — the post URL from PH's "share" box
+         postId — the numeric post_id= inside PH's embed snippet (Promote → Embed)
+         until  — ISO timestamp after which the strip removes itself. The PH day
+                  closes 11:59pm PT, i.e. 08:59 Madrid the next morning.
+       ==================================================================== -->
+  <script>
+    (function () {
+      var PH = {
+        url:    '',
+        postId: '',
+        until:  ''
+      };
+      if (!PH.url) return;
+      if (PH.until && Date.now() > Date.parse(PH.until)) return;
+      if (localStorage.getItem('loopclub.ph.dismissed.v1') === '1') return;
+
+      var strip = document.createElement('div');
+      strip.className = 'ph-strip';
+      strip.innerHTML =
+        '<span class="ph-strip-dot"></span>' +
+        '<span class="ph-strip-text">loopclub is live on Product Hunt today.</span>' +
+        '<a class="ph-strip-cta" href="' + PH.url + '" target="_blank" rel="noopener" ' +
+          'data-umami-event="ph-upvote-click">' +
+          (PH.postId
+            ? '<img class="ph-strip-badge" alt="loopclub on Product Hunt" width="200" height="43" ' +
+              'src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=' +
+              encodeURIComponent(PH.postId) + '&theme=dark">'
+            : '<span class="btn-chrome btn-chrome--sm">Upvote&nbsp;&uarr;</span>') +
+        '</a>' +
+        '<button class="ph-strip-close" aria-label="Dismiss">&#10005;</button>';
+
+      strip.querySelector('.ph-strip-close').addEventListener('click', function () {
+        localStorage.setItem('loopclub.ph.dismissed.v1', '1');
+        strip.remove();
+        document.body.classList.remove('has-ph-strip');
+      });
+
+      document.body.classList.add('has-ph-strip');
+      document.body.prepend(strip);
+    })();
+  </script>
 </body>
 </html>

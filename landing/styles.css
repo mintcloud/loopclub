@@ -427,3 +427,40 @@ a { color:inherit; text-decoration:none; }
 @media (prefers-reduced-motion:reduce) {
   .faq-item summary::after { transition:none; }
 }
+
+/* ============================================================
+   Product Hunt launch strip — injected by the script at the foot
+   of index.html, and only when a post URL is set there.
+   Fixed, because the hero is a full-viewport canvas: an in-flow
+   strip would shove the backdrop out of alignment.
+   ============================================================ */
+.ph-strip{
+  position:fixed; top:0; left:0; right:0; z-index:50;
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  padding:8px 40px 8px 12px;
+  background:rgba(20,20,42,.92);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  font-size:13px; color:var(--text);
+}
+.ph-strip-dot{
+  width:7px; height:7px; border-radius:50%; flex:0 0 auto;
+  background:#da552f;                 /* Product Hunt orange, not one of our tokens */
+  box-shadow:0 0 8px #da552f;
+}
+.ph-strip-cta{ display:inline-flex; align-items:center; text-decoration:none; }
+.ph-strip-badge{ width:200px; height:43px; display:block; }
+.ph-strip-close{
+  position:absolute; right:10px;
+  background:none; border:none; color:var(--muted);
+  font-size:13px; line-height:1; padding:4px; cursor:pointer;
+}
+.ph-strip-close:hover{ color:var(--text); }
+/* Keep the hero clear of the strip while it's up. */
+body.has-ph-strip .hero{ padding-top:56px; }
+
+@media (max-width:640px){
+  .ph-strip{ gap:8px; font-size:12px; padding:6px 32px 6px 10px; }
+  .ph-strip-text{ display:none; }
+  .ph-strip-badge{ width:170px; height:37px; }
+}

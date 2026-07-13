@@ -623,6 +623,55 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .mobile-hint .mh-x:hover { color: var(--text); border-color: transparent; }
 }
 
+/* ------------------------------------------------------------
+   Product Hunt launch strip (ProductHuntBanner.tsx)
+   Sits above the header on launch day only. Rendered as a normal
+   in-flow block, not fixed — it must not add a second sticky layer
+   over the grid.
+   ------------------------------------------------------------ */
+.ph-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 40px 8px 12px;
+  position: relative;
+  background: linear-gradient(90deg, var(--panel) 0%, var(--panel-2) 100%);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+.ph-strip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #da552f; /* Product Hunt orange — a foreign brand, not a token */
+  box-shadow: 0 0 8px #da552f;
+  flex-shrink: 0;
+}
+.ph-strip-text { letter-spacing: 0.01em; }
+.ph-strip-cta { display: inline-flex; align-items: center; text-decoration: none; }
+.ph-strip-badge { width: 200px; height: 43px; display: block; }
+.ph-strip-close {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+}
+.ph-strip-close:hover { color: var(--text); }
+
+@media (max-width: 640px) {
+  /* On a phone the grid is the whole point — keep the strip to one line. */
+  .ph-strip { gap: 8px; font-size: 12px; padding: 6px 32px 6px 10px; }
+  .ph-strip-text { display: none; }
+  .ph-strip-badge { width: 170px; height: 37px; }
+}
+
 /* ============================================================
    DESIGN-SYSTEM OVERRIDES
    Targeted corrections where the current design-system rule is
