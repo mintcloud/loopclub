@@ -1,0 +1,129 @@
+{
+  "_readme": "Queue for the @loopclub X growth bot. post_next.py posts the first item with status=queued, in order. Add/reorder freely. media.type=grid_image is rendered locally (no external deps); media.type=manual needs a human or a not-yet-built automation (see notes) before it can post with an image — until then it can still post as text-only by setting media to null.",
+  "posts": [
+    {
+      "day": 1,
+      "angle": "recording is curation, not capture",
+      "text": "record() costs 1 USDm and mints you edition #1. every future press of that loop pays the people who owned the cells when you froze it — not you. recording is a 1-dollar bet that strangers' work is worth keeping. the contract pays the workers, not the photographer.",
+      "media": null,
+      "status": "queued"
+    },
+    {
+      "day": 2,
+      "angle": "Open Verse 001 — fill-in-the-blank collaboration",
+      "text": "left 9 cells on the grid. kick, snare, hats. the synth row is empty and has 128 notes to choose from.\n\napp.loopclub.xyz/?jam=AQEFEBAAAEREAAAAAAAAAAAAAAA\n\nwhoever finishes it owns their share of whatever it becomes.",
+      "media": {
+        "type": "grid_image",
+        "path": "content/media/open-verse-001.png",
+        "note": "already rendered — real ASCII grid from the live jam link via the loopclub MCP tool"
+      },
+      "status": "queued"
+    },
+    {
+      "day": 3,
+      "angle": "priced vandalism",
+      "text": "spamming the entire grid costs about $1 a minute. that number is the whole moderation system. no captcha, no report button, no mod queue. we priced vandalism instead of policing it, and at $1/min nobody has found it worth the money.",
+      "media": null,
+      "status": "queued"
+    },
+    {
+      "day": 4,
+      "angle": "the unedited capture (liveness as proof)",
+      "text": "20 seconds of the grid, unedited. everything you hear is a cell someone is paying rent on right now. this is a screen recording, not a render — open the site and it will already sound different.",
+      "media": {
+        "type": "manual",
+        "note": "NEEDS grid_capture.py (Playwright) once system deps are installed — see README 'Blocked: browser capture'. This is the highest-leverage asset (reply-post under MegaETH threads per the strategy doc); prioritize unblocking it."
+      },
+      "status": "queued"
+    },
+    {
+      "day": 5,
+      "angle": "the ninth buyer sets the price",
+      "text": "edition #2 of any loop costs 1.25 USDm. edition #10 costs 21.25. the curve is quadratic and nobody set it per-loop — the price of a loop is just a count of how many people already wanted it.",
+      "media": null,
+      "status": "queued"
+    },
+    {
+      "day": 6,
+      "angle": "grid report 001 (new format)",
+      "text": "grid report, 09:00 UTC. [N] cells alive. [notable renewal/contest detail]. conditions: contestable, as always.",
+      "media": {
+        "type": "manual",
+        "note": "TEMPLATE BOUND TO REALITY — do not post until real numbers are filled in. Needs either (a) grid_capture.py screenshot once unblocked, or (b) a small chain-read script against the Loopclub contract (livePattern()) to pull real cell counts. Do not fabricate numbers — this is the strategy doc's hard rule."
+      },
+      "status": "queued"
+    },
+    {
+      "day": 7,
+      "angle": "first press receipt / Press Pool launch",
+      "text": "pressed edition #2 of the week's best community loop. 1.25 USDm in, 70% straight to the wallets that built it, split by cells owned at record time. we'll do this every week. the treasury is a listener with a budget. tx: [link]",
+      "media": {
+        "type": "manual",
+        "note": "Event-driven — only post once Theo has actually funded and executed the first Press Pool press (needs ~5-10 USDm/week treasury budget per strategy doc). Media = screenshot of the pressed Series + explorer tx."
+      },
+      "status": "queued"
+    },
+    {
+      "day": 8,
+      "angle": "accidental permanent equity",
+      "text": "the split is frozen at the block record() lands in. own 4 of 12 cells at the wrong moment and you own a third of a song forever. people are going to become co-authors by accident. the contract does not care whether you meant it.",
+      "media": null,
+      "status": "queued"
+    },
+    {
+      "day": 9,
+      "angle": "Open Verse 002 — bassline with empty drum rows",
+      "text": "this time the opposite: a 6-note bassline in C minor and eight empty drum rows.\n\napp.loopclub.xyz/?jam=AQAAAAAAAAAAAAAAAAAAAABJSQaAJIMkhieIK4spjic\n\ndrums are the easy part. that's the trap.",
+      "media": {
+        "type": "grid_image",
+        "path": "content/media/open-verse-002.png",
+        "note": "already rendered — real ASCII grid from the live jam link via the loopclub MCP tool"
+      },
+      "status": "queued"
+    },
+    {
+      "day": 10,
+      "angle": "rent is attention",
+      "text": "cells expire in ~2 minutes. the grid has no memory and no archive except record(). the beat playing right now is playing because specific people are choosing, right now, to keep paying for it. stop paying attention and it stops existing.",
+      "media": null,
+      "status": "queued"
+    },
+    {
+      "day": 11,
+      "angle": "the contested coordinate",
+      "text": "cell (13, hat row) changed hands the most this week. it's the offbeat. it's always the offbeat that gets fought over. 0.004 USDm per 4 seconds and people still won't share it.",
+      "media": {
+        "type": "manual",
+        "note": "The specific coordinate/instrument named must be computed from real contract events (most-renewed cell this week), not asserted. Needs a small chain-read script. Skip or regenerate the line once that exists."
+      },
+      "status": "queued"
+    },
+    {
+      "day": 12,
+      "angle": "most photographs are never taken",
+      "text": "most grid states are never recorded. they play for two minutes and expire, and no evidence remains that they happened. record() exists so that occasionally one doesn't. the archive is whatever somebody thought was worth a dollar.",
+      "media": null,
+      "status": "queued"
+    },
+    {
+      "day": 13,
+      "angle": "three continents, one bassline",
+      "text": "this bassline has four authors. they never spoke, never coordinated, and mostly weren't online at the same time — each one just heard what was there and added a note. the split between them is already settled forever.",
+      "media": {
+        "type": "manual",
+        "note": "Only publish once a real multi-wallet synth Series exists (the Open Verse posts are designed to manufacture this). Media = screenshot/render of that Series' synth row via grid_image.py once you have its describe_loop JSON."
+      },
+      "status": "queued"
+    },
+    {
+      "day": 14,
+      "angle": "week one ledger",
+      "text": "week one, from the contract, not from us: [N] series recorded. [M] presses. [X] USDm paid out to co-creators. largest single payout [Y], to a wallet that rented [Z] cells for a few cents. every number is checkable: [contract address].",
+      "media": {
+        "type": "manual",
+        "note": "Needs a chain-read script pulling real weekly aggregates from the Loopclub contract before this can post. Do not fabricate the recap."
+      },
+      "status": "queued"
+    }
+  ]
+}

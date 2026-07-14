@@ -1,0 +1,3 @@
+config/bot.env
+__pycache__/
+*.pyc
