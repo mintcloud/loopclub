@@ -27,6 +27,16 @@ function bool(name: string, dflt: boolean): boolean {
   return v.trim().toLowerCase() === 'true'
 }
 
+/** Which grooves the MCP brain renders. See the `mcpScope` doc below — the default
+ *  is deliberately the narrow one, because it's the one that can be torn down. */
+function mcpScope(): 'requests' | 'all' {
+  const v = (process.env.MCP_SCOPE ?? 'requests').trim().toLowerCase()
+  if (v !== 'requests' && v !== 'all') {
+    throw new Error(`env MCP_SCOPE must be requests | all, got "${v}"`)
+  }
+  return v
+}
+
 function poolMode(): 'genres' | 'setlist' | 'mixed' {
   const v = (process.env.POOL ?? 'mixed').trim().toLowerCase()
   if (v !== 'genres' && v !== 'setlist' && v !== 'mixed') {
@@ -121,13 +131,34 @@ export interface SeederConfig {
   requestTtlMs: number
 
   // ── The brain ──
-  /** When set, EVERY groove — requested or idle-pulse — is rendered by calling
-   *  `build_loop` on this MCP server instead of loopgen in-process, and the bot
-   *  plays what comes back. That makes the MCP call the single chokepoint every
-   *  future spend passes through, so a proxy in front of it can see and price the
-   *  spend before any toggle() is signed. Unset → local render, no network.
-   *  It fails CLOSED: if the call errors, robodj plays nothing (see brain.ts). */
+  /** When set, grooves are rendered by calling `build_loop` on this MCP server
+   *  instead of loopgen in-process, and the bot plays what comes back. That makes
+   *  the MCP call a chokepoint: a proxy in front of it (a gateway, a policy
+   *  engine, an audit log) can see and price the spend before any toggle() is
+   *  signed. Unset → local render, no network. It fails CLOSED: if the call
+   *  errors, the groove is not played (see brain.ts). */
   mcpUrl: string | undefined
+  /** WHICH grooves the brain routes through MCP, and the reason this knob exists.
+   *
+   *  `requests` (default) — only a visitor's request goes through MCP. The idle
+   *  pulse always renders locally. So the gateway governs exactly the surface
+   *  whose arguments come from outside, and **robodj's autonomous cell-filling
+   *  never depends on it**: point MCP_URL at a gateway, tear the gateway down,
+   *  and the pulse keeps playing. Requests simply stop being served — which is
+   *  the correct thing to lose when the policy plane is gone.
+   *
+   *  `all` — the idle pulse goes through MCP too, so 100% of the bot's spend
+   *  crosses the proxy. Purer to measure, and the mode to run while capturing a
+   *  gateway demo. The price is real: robodj's liveness is now coupled to the
+   *  gateway's, and because the brain fails closed, a gateway outage means
+   *  SILENCE. Never leave this on unattended.
+   *
+   *  Note what is NOT a bypass. Routing by *origin* is safe: a stranger cannot
+   *  turn their request into an idle pulse, so no untrusted argument ever reaches
+   *  the local renderer. Falling back to local *on error* would be the bypass —
+   *  an attacker triggers it by knocking the proxy over — and the brain never
+   *  does that, in either scope. */
+  mcpScope: 'requests' | 'all'
   mcpTimeoutMs: number
 
   // ── Safety / testing ──
@@ -189,6 +220,7 @@ export function loadConfig(): SeederConfig {
     requestTtlMs: num('REQUEST_TTL_MS', 120_000),
 
     mcpUrl: process.env.MCP_URL?.trim() || undefined,
+    mcpScope: mcpScope(),
     mcpTimeoutMs: num('MCP_TIMEOUT_MS', 10_000),
 
     forceActive: bool('FORCE_ACTIVE', false),

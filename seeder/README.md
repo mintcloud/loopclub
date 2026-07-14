@@ -170,28 +170,62 @@ budget: it decides how often robodj is *asked*, not how much it can ever spend.
 
 ## The brain — `MCP_URL` and the chokepoint
 
-Unset, `loopgen` renders grooves in-process, as it always has. Set, **every groove
-— a visitor's request and the idle pulse alike — is rendered by calling
-`build_loop` on the MCP server**, and the bot plays the loop that comes back
-(decoded from the returned deep link, so if something in the path rewrote the loop,
-we play the version that was approved rather than the one we asked for).
+Unset, `loopgen` renders grooves in-process, as it always has. Set, a groove is
+rendered by calling **`build_loop` on the MCP server**, and the bot plays the loop
+that comes back — decoded from the returned deep link, so if something in the path
+rewrote the loop, we play the version that was *approved* rather than the one we
+asked for.
 
 Why route an encode call over the network at all? Because it makes the MCP call a
-**chokepoint**: one place every spec robodj will ever play must pass through,
-carrying the argument that decides the money. Put a proxy in front of it — a
-gateway, a policy engine, an audit log — and it can see and price every future
-spend *before* a single `toggle()` is signed. Point `MCP_URL` at the proxy instead
-of the server and robodj's code doesn't change by one line.
+**chokepoint**: one place a spec must pass through, carrying the argument that
+decides the money. Put a proxy in front of it — a gateway, a policy engine, an
+audit log — and it can see and price the spend *before* a single `toggle()` is
+signed. Point `MCP_URL` at the proxy instead of the server and robodj's code
+doesn't change by one line.
 
-Two rules make it real, and both are in `brain.ts`:
+### `MCP_SCOPE` — the knob that makes a gateway safe to tear down
 
-1. **Everything goes through it.** The idle pulse too, not just requests. A
-   chokepoint with a second door is not a chokepoint — it's a suggestion with good
-   PR.
-2. **It fails closed.** If the call errors or times out, robodj plays *nothing*. It
-   does not fall back to the local renderer, because a control you can bypass by
-   knocking the proxy over isn't one. Silence is the right failure direction, and
-   it's the same bias the presence collector already takes.
+Which grooves take that path is the interesting question, and the default answer is
+**`requests`**: a visitor's request is rendered remotely; the idle pulse always
+renders locally.
+
+That asymmetry is deliberate, and it earns its keep twice.
+
+- **It puts the gateway exactly where the untrusted arguments are.** A request is
+  the only thing on this bot whose input came from a stranger. The idle pulse is
+  robodj playing its own authored pool to itself — the same trust boundary as the
+  source file it was compiled from. Governing it proves nothing.
+- **It makes the policy plane disposable.** Tear the gateway down and robodj keeps
+  filling cells; only requests stop being served. A control plane whose outage
+  silences the product is a control plane nobody dares deploy — and one you can't
+  honestly experiment with either.
+
+`MCP_SCOPE=all` restores the purist mode: the idle pulse goes through MCP too, so
+100% of the bot's spend crosses the proxy. It's the right mode for *capturing* a
+gateway demo (every spend is on the gateway's ledger) and the wrong mode to walk
+away from, because it couples robodj's liveness to the gateway's.
+
+### What is, and isn't, a second door
+
+The obvious objection to scoping: *a chokepoint with a bypass is not a chokepoint.*
+Correct — so be precise about which is which.
+
+- **Routing by origin is not a bypass.** A stranger cannot turn their request into
+  an idle pulse. There is no input they control that selects the local path, so no
+  untrusted argument ever reaches the local renderer.
+- **Falling back to local on error would be a bypass** — an attacker triggers it by
+  knocking the proxy over. The brain never does this, in *either* scope. It **fails
+  closed**: if the call errors or times out, the groove it was rendering is not
+  played.
+- **A dropped request is not downgraded, it's discarded.** When the brain can't
+  render a request, `loopbot.play()` drops it and falls through to the bot's own
+  rotation. What plays next is a *different* groove — robodj's own — not the
+  stranger's groove by another route.
+
+Silence is the right failure direction for the thing being governed, and it's the
+same bias the presence collector takes. What must *not* fail is the pulse, and
+under the default scope nothing about the pulse depends on a service outside this
+process.
 
 ## Layout
 
