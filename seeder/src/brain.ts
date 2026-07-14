@@ -4,29 +4,49 @@
 //
 //   MCP_URL unset  → local. loopgen renders the groove in-process, as it always
 //                    has. Nothing crosses the network.
-//   MCP_URL set    → every groove is rendered by calling `build_loop` on the MCP
+//   MCP_URL set    → the groove is rendered by calling `build_loop` on the MCP
 //                    server, and the returned deep link is decoded back into a
 //                    spec. Same brain, different interface — the loop robodj
 //                    plays is now literally the loop the MCP server built.
 //
-// The second mode exists so that the MCP call becomes the *chokepoint*: a single
-// place every spec robodj will ever play must pass through, carrying the thing
-// that decides the money. Cost is `cells × rentPerLoop × rentLoops`, so cost
-// lives in the arguments of that call — which means a proxy in front of it (a
-// gateway, a policy engine, a logger) can see and price every future spend
-// before a single toggle() is signed. Point MCP_URL at the proxy instead of the
-// server and robodj's code doesn't change by one line.
+// The second mode exists so that the MCP call becomes a *chokepoint*: a single
+// place a spec must pass through, carrying the thing that decides the money.
+// Cost is `cells × rentPerLoop × rentLoops`, so cost lives in the arguments of
+// that call — which means a proxy in front of it (a gateway, a policy engine, a
+// logger) can see and price the spend before a single toggle() is signed. Point
+// MCP_URL at the proxy instead of the server and robodj's code doesn't change by
+// one line.
 //
-// Two rules make the chokepoint real, and they're the whole reason this file is
-// worth its weight:
+// WHICH grooves take that path is MCP_SCOPE, and the default is `requests`:
+// a visitor's request is rendered remotely, the idle pulse is rendered locally.
+// That is a deliberate, load-bearing asymmetry, so be precise about why it isn't
+// the "second door" this file used to warn about:
 //
-//   1. EVERY groove goes through it — the idle pulse as much as a visitor's
-//      request. A chokepoint with a second door is not a chokepoint.
-//   2. It FAILS CLOSED. If the MCP call errors or times out, robodj plays
-//      nothing. It does not quietly fall back to the local renderer, because a
-//      bypass you can trigger by knocking the proxy over is not a control — it's
-//      a suggestion. Silence is the correct failure direction here, and it's the
-//      same bias the presence collector already takes.
+//   • The gateway exists to police arguments that came from OUTSIDE. A request
+//     is the only thing on this bot that qualifies. The idle pulse is robodj
+//     playing its own authored pool to itself — same trust boundary as the
+//     source file it was compiled from.
+//   • Routing by ORIGIN is not a bypass. A stranger cannot turn their request
+//     into an idle pulse; there is no input they control that selects the local
+//     path. Falling back to local ON ERROR *would* be a bypass — an attacker
+//     triggers it by knocking the proxy over — and that is the thing this brain
+//     must never do, and doesn't, in either scope.
+//   • The payoff is operational and it's the point: the gateway becomes
+//     TEARDOWN-SAFE. Kill it and robodj keeps filling cells; only requests stop.
+//     A policy plane whose outage silences the product is a policy plane nobody
+//     dares deploy.
+//
+// MCP_SCOPE=all restores the purist mode — the idle pulse goes through MCP too,
+// so 100% of spend crosses the proxy. It's the right mode for capturing a
+// gateway demo and the wrong mode to walk away from, because it couples robodj's
+// liveness to the gateway's.
+//
+// The rule that holds in BOTH scopes: it FAILS CLOSED. If the MCP call errors or
+// times out, the groove it was rendering is not played. Silence is the correct
+// failure direction, and it's the same bias the presence collector takes. What
+// happens next is the caller's business (loopbot drops the request and falls
+// back to its own rotation — which is a different groove, not a second door for
+// the same one).
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
@@ -41,14 +61,36 @@ interface BuildLoopResult {
   instruments: string[]
 }
 
+/** Where a groove came from. The only thing that decides whether it must cross
+ *  the chokepoint — and, crucially, something no visitor can choose. */
+export type GrooveOrigin = 'request' | 'idle'
+
 export class Brain {
   private client: Client | null = null
   private connecting: Promise<Client> | null = null
 
   constructor(private cfg: SeederConfig) {}
 
-  get remote(): boolean {
+  /** Is MCP wired at all? (For the boot log — routing decisions use remoteFor.) */
+  get configured(): boolean {
     return this.cfg.mcpUrl !== undefined
+  }
+
+  /** Does a groove of this origin go through MCP? A request always does, when
+   *  MCP is wired. The idle pulse only does under MCP_SCOPE=all. */
+  remoteFor(origin: GrooveOrigin): boolean {
+    if (!this.configured) return false
+    return origin === 'request' || this.cfg.mcpScope === 'all'
+  }
+
+  /** What to print at boot, so the log says exactly what is governed. */
+  get description(): string {
+    if (!this.configured) return 'local loopgen'
+    const scope = this.cfg.mcpScope === 'all' ? 'ALL grooves' : 'requests only (idle pulse stays local)'
+    const auth = Object.keys(this.cfg.mcpHeaders).length
+      ? `, authenticating with ${Object.keys(this.cfg.mcpHeaders).join(' + ')}`
+      : ''
+    return `MCP ${this.cfg.mcpUrl} — ${scope}, fails closed${auth}`
   }
 
   /** Lazy, memoised connect. A dropped connection is re-established on next use. */
@@ -58,7 +100,13 @@ export class Brain {
 
     this.connecting = (async () => {
       const client = new Client({ name: 'loopclub-seeder', version: '0.1.0' })
-      const transport = new StreamableHTTPClientTransport(new URL(this.cfg.mcpUrl!))
+      // MCP_HEADERS is what lets the chokepoint sit behind a gateway. The SDK's
+      // transport sends no headers of its own, and a policy engine authenticates
+      // its callers — so without these the call is rejected at the door, and a
+      // brain that fails closed then plays nothing at all.
+      const transport = new StreamableHTTPClientTransport(new URL(this.cfg.mcpUrl!), {
+        requestInit: { headers: this.cfg.mcpHeaders },
+      })
       await client.connect(transport)
       client.onclose = () => {
         this.client = null // next render reconnects
@@ -81,10 +129,11 @@ export class Brain {
    * `build_loop` and decodes the deep link that comes back — so what plays is
    * exactly what the MCP server (and anything proxying it) saw and approved.
    *
-   * Throws in remote mode if the call fails. The caller must NOT fall back.
+   * Throws in remote mode if the call fails. The caller must NOT retry this same
+   * groove locally — that is the bypass. (It may play a different, idle groove.)
    */
-  async render(groove: Groove): Promise<LoopSpec> {
-    if (!this.remote) return groove.spec
+  async render(groove: Groove, origin: GrooveOrigin): Promise<LoopSpec> {
+    if (!this.remoteFor(origin)) return groove.spec
 
     const client = await this.connect()
     const res = (await client.callTool(

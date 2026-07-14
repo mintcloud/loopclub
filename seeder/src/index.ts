@@ -39,11 +39,12 @@ async function main(): Promise<void> {
   const presence = new Presence(cfg, queue)
   await presence.start()
 
-  // The brain: loopgen in-process, or every groove rendered by `build_loop` on
-  // the MCP server when MCP_URL is set — which makes that call the one chokepoint
-  // every spend passes through, requests and idle pulse alike.
+  // The brain: loopgen in-process, or rendered by `build_loop` on the MCP server
+  // when MCP_URL is set — which makes that call a chokepoint every spend it
+  // governs must pass through. MCP_SCOPE says which grooves that is; by default
+  // it's requests only, so the autonomous pulse never depends on the network.
   const brain = new Brain(cfg)
-  console.log(`[seeder] brain      ${brain.remote ? `MCP ${cfg.mcpUrl} (fails closed)` : 'local loopgen'}`)
+  console.log(`[seeder] brain      ${brain.description}`)
 
   // Restart if a tick stalls for >4 control periods (mirrors the spec's 30s
   // WatchdogSec at the default 3s tick). Independent of the control loop.

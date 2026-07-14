@@ -27,6 +27,34 @@ function bool(name: string, dflt: boolean): boolean {
   return v.trim().toLowerCase() === 'true'
 }
 
+/** Which grooves the MCP brain renders. See the `mcpScope` doc below — the default
+ *  is deliberately the narrow one, because it's the one that can be torn down. */
+function mcpScope(): 'requests' | 'all' {
+  const v = (process.env.MCP_SCOPE ?? 'requests').trim().toLowerCase()
+  if (v !== 'requests' && v !== 'all') {
+    throw new Error(`env MCP_SCOPE must be requests | all, got "${v}"`)
+  }
+  return v
+}
+
+/** MCP_HEADERS: `Name: value` pairs, separated by newlines (or commas). Values may
+ *  contain colons; only the first one splits. A malformed pair is a boot error
+ *  rather than a header we silently drop — a gateway you fail to authenticate to
+ *  is a gateway that plays nothing. */
+function mcpHeaders(): Record<string, string> {
+  const raw = process.env.MCP_HEADERS?.trim()
+  if (!raw) return {}
+  const out: Record<string, string> = {}
+  for (const line of raw.split(/[\n,]/)) {
+    const pair = line.trim()
+    if (!pair) continue
+    const i = pair.indexOf(':')
+    if (i <= 0) throw new Error(`env MCP_HEADERS: expected "Name: value", got "${pair}"`)
+    out[pair.slice(0, i).trim()] = pair.slice(i + 1).trim()
+  }
+  return out
+}
+
 function poolMode(): 'genres' | 'setlist' | 'mixed' {
   const v = (process.env.POOL ?? 'mixed').trim().toLowerCase()
   if (v !== 'genres' && v !== 'setlist' && v !== 'mixed') {
@@ -121,13 +149,45 @@ export interface SeederConfig {
   requestTtlMs: number
 
   // ── The brain ──
-  /** When set, EVERY groove — requested or idle-pulse — is rendered by calling
-   *  `build_loop` on this MCP server instead of loopgen in-process, and the bot
-   *  plays what comes back. That makes the MCP call the single chokepoint every
-   *  future spend passes through, so a proxy in front of it can see and price the
-   *  spend before any toggle() is signed. Unset → local render, no network.
-   *  It fails CLOSED: if the call errors, robodj plays nothing (see brain.ts). */
+  /** When set, grooves are rendered by calling `build_loop` on this MCP server
+   *  instead of loopgen in-process, and the bot plays what comes back. That makes
+   *  the MCP call a chokepoint: a proxy in front of it (a gateway, a policy
+   *  engine, an audit log) can see and price the spend before any toggle() is
+   *  signed. Unset → local render, no network. It fails CLOSED: if the call
+   *  errors, the groove is not played (see brain.ts). */
   mcpUrl: string | undefined
+  /** WHICH grooves the brain routes through MCP, and the reason this knob exists.
+   *
+   *  `requests` (default) — only a visitor's request goes through MCP. The idle
+   *  pulse always renders locally. So the gateway governs exactly the surface
+   *  whose arguments come from outside, and **robodj's autonomous cell-filling
+   *  never depends on it**: point MCP_URL at a gateway, tear the gateway down,
+   *  and the pulse keeps playing. Requests simply stop being served — which is
+   *  the correct thing to lose when the policy plane is gone.
+   *
+   *  `all` — the idle pulse goes through MCP too, so 100% of the bot's spend
+   *  crosses the proxy. Purer to measure, and the mode to run while capturing a
+   *  gateway demo. The price is real: robodj's liveness is now coupled to the
+   *  gateway's, and because the brain fails closed, a gateway outage means
+   *  SILENCE. Never leave this on unattended.
+   *
+   *  Note what is NOT a bypass. Routing by *origin* is safe: a stranger cannot
+   *  turn their request into an idle pulse, so no untrusted argument ever reaches
+   *  the local renderer. Falling back to local *on error* would be the bypass —
+   *  an attacker triggers it by knocking the proxy over — and the brain never
+   *  does that, in either scope. */
+  mcpScope: 'requests' | 'all'
+  /** Headers to send with every MCP call, as `Name: value` pairs separated by
+   *  newlines or commas. Unset → none, which is right for talking to our own MCP
+   *  server directly.
+   *
+   *  A gateway is the reason this exists. TrustGate's MCP plane authenticates the
+   *  caller (`X-AG-Gateway-Slug` + `X-AG-API-Key`), and the SDK's HTTP transport
+   *  sends no headers unless you give it some — so without this, pointing MCP_URL
+   *  at a policy engine fails at the door and, because the brain fails closed, the
+   *  groove is simply not played. The chokepoint has to be able to *authenticate*
+   *  to the thing doing the checking. */
+  mcpHeaders: Record<string, string>
   mcpTimeoutMs: number
 
   // ── Safety / testing ──
@@ -189,6 +249,8 @@ export function loadConfig(): SeederConfig {
     requestTtlMs: num('REQUEST_TTL_MS', 120_000),
 
     mcpUrl: process.env.MCP_URL?.trim() || undefined,
+    mcpScope: mcpScope(),
+    mcpHeaders: mcpHeaders(),
     mcpTimeoutMs: num('MCP_TIMEOUT_MS', 10_000),
 
     forceActive: bool('FORCE_ACTIVE', false),
