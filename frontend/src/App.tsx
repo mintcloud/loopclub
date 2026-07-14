@@ -6,6 +6,7 @@ import { RowToolsPopover } from './RowToolsPopover'
 import { ContributorStrip } from './ContributorStrip'
 import { ProductHuntBanner } from './ProductHuntBanner'
 import { RenewStrip } from './RenewStrip'
+import { RequestStrip } from './RequestStrip'
 import { Library, type LoopRecord } from './Library'
 import { useMyCells } from './useMyCells'
 import { usePresence } from './usePresence'
@@ -1223,6 +1224,11 @@ export function App() {
           est. 2026 · onchain
         </span>
       </div>
+
+      {/* Ask robodj for a tune. Renders nothing unless the seeder says requests
+          are on, so there's no flag to keep in sync on this side. No wallet
+          needed — asking is free; robodj pays the rent. */}
+      {!playback && <RequestStrip />}
 
       {!playback && authenticated && smartAddress && (
         <RenewStrip

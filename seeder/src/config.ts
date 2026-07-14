@@ -105,6 +105,31 @@ export interface SeederConfig {
    *  link is logged and skipped rather than crashing the bot. */
   setlistLinks: string[]
 
+  // ── Requests ("play X next") ──
+  /** Off by default. When on, the presence collector also serves GET /repertoire
+   *  and POST /request, and the bot serves the queue before its own rotation. */
+  requestsEnabled: boolean
+  /** Cell budget for a requested groove. THE knob that matters: cost is
+   *  `cells × rentPerLoop × rentLoops`, so this — not the requester — decides
+   *  what a request can cost. A request names a groove; it never carries a spec. */
+  requestCells: number
+  /** How many requests may be waiting. Bounds how long robodj rotates on demand. */
+  requestQueueMax: number
+  /** One request per requester (per CF IP) per this many ms. */
+  requestCooldownMs: number
+  /** A request older than this is dropped unplayed — nobody stayed to hear it. */
+  requestTtlMs: number
+
+  // ── The brain ──
+  /** When set, EVERY groove — requested or idle-pulse — is rendered by calling
+   *  `build_loop` on this MCP server instead of loopgen in-process, and the bot
+   *  plays what comes back. That makes the MCP call the single chokepoint every
+   *  future spend passes through, so a proxy in front of it can see and price the
+   *  spend before any toggle() is signed. Unset → local render, no network.
+   *  It fails CLOSED: if the call errors, robodj plays nothing (see brain.ts). */
+  mcpUrl: string | undefined
+  mcpTimeoutMs: number
+
   // ── Safety / testing ──
   /** Bypass the presence collector and always behave as if 1 visitor is here.
    *  Build-order step 1 — proves the on-chain behaviour before the heartbeat
@@ -156,6 +181,15 @@ export function loadConfig(): SeederConfig {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
+
+    requestsEnabled: bool('REQUESTS_ENABLED', false),
+    requestCells: num('REQUEST_CELLS', 14),
+    requestQueueMax: num('REQUEST_QUEUE_MAX', 8),
+    requestCooldownMs: num('REQUEST_COOLDOWN_MS', 60_000),
+    requestTtlMs: num('REQUEST_TTL_MS', 120_000),
+
+    mcpUrl: process.env.MCP_URL?.trim() || undefined,
+    mcpTimeoutMs: num('MCP_TIMEOUT_MS', 10_000),
 
     forceActive: bool('FORCE_ACTIVE', false),
     dailyRentCapUsdm: num('DAILY_RENT_CAP_USDM', 0),

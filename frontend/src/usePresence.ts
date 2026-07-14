@@ -23,7 +23,10 @@ import { config } from './config'
 const BEAT_INTERVAL_MS = 15_000
 const SESSION_SLOT = 'loopclub.presence.sid'
 
-function sessionId(): string {
+/** The session this tab beats under. Shared with the request strip, so a request
+ *  and its beats are the same visitor — a request from a session that never beat
+ *  is not a visitor asking, it's someone poking the endpoint. */
+export function presenceSessionId(): string {
   try {
     let id = sessionStorage.getItem(SESSION_SLOT)
     if (!id) {
@@ -43,7 +46,7 @@ export function usePresence(): void {
     const url = config.presenceUrl
     if (!url) return // bot not deployed → no heartbeat, no-op
 
-    const id = sessionId()
+    const id = presenceSessionId()
     const beat = () => {
       // keepalive lets the final beat survive an unload; failures are ignored.
       void fetch(`${url.replace(/\/$/, '')}/beat`, {

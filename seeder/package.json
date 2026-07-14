@@ -21,6 +21,7 @@
     "fund:dev": "tsx src/fund.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "loopclub-loopgen": "file:../loopgen",
     "viem": "^2.47.12"
   },
