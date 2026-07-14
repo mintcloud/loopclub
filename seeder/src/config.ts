@@ -37,6 +37,24 @@ function mcpScope(): 'requests' | 'all' {
   return v
 }
 
+/** MCP_HEADERS: `Name: value` pairs, separated by newlines (or commas). Values may
+ *  contain colons; only the first one splits. A malformed pair is a boot error
+ *  rather than a header we silently drop — a gateway you fail to authenticate to
+ *  is a gateway that plays nothing. */
+function mcpHeaders(): Record<string, string> {
+  const raw = process.env.MCP_HEADERS?.trim()
+  if (!raw) return {}
+  const out: Record<string, string> = {}
+  for (const line of raw.split(/[\n,]/)) {
+    const pair = line.trim()
+    if (!pair) continue
+    const i = pair.indexOf(':')
+    if (i <= 0) throw new Error(`env MCP_HEADERS: expected "Name: value", got "${pair}"`)
+    out[pair.slice(0, i).trim()] = pair.slice(i + 1).trim()
+  }
+  return out
+}
+
 function poolMode(): 'genres' | 'setlist' | 'mixed' {
   const v = (process.env.POOL ?? 'mixed').trim().toLowerCase()
   if (v !== 'genres' && v !== 'setlist' && v !== 'mixed') {
@@ -159,6 +177,17 @@ export interface SeederConfig {
    *  an attacker triggers it by knocking the proxy over — and the brain never
    *  does that, in either scope. */
   mcpScope: 'requests' | 'all'
+  /** Headers to send with every MCP call, as `Name: value` pairs separated by
+   *  newlines or commas. Unset → none, which is right for talking to our own MCP
+   *  server directly.
+   *
+   *  A gateway is the reason this exists. TrustGate's MCP plane authenticates the
+   *  caller (`X-AG-Gateway-Slug` + `X-AG-API-Key`), and the SDK's HTTP transport
+   *  sends no headers unless you give it some — so without this, pointing MCP_URL
+   *  at a policy engine fails at the door and, because the brain fails closed, the
+   *  groove is simply not played. The chokepoint has to be able to *authenticate*
+   *  to the thing doing the checking. */
+  mcpHeaders: Record<string, string>
   mcpTimeoutMs: number
 
   // ── Safety / testing ──
@@ -221,6 +250,7 @@ export function loadConfig(): SeederConfig {
 
     mcpUrl: process.env.MCP_URL?.trim() || undefined,
     mcpScope: mcpScope(),
+    mcpHeaders: mcpHeaders(),
     mcpTimeoutMs: num('MCP_TIMEOUT_MS', 10_000),
 
     forceActive: bool('FORCE_ACTIVE', false),

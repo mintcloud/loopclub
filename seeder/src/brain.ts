@@ -87,7 +87,10 @@ export class Brain {
   get description(): string {
     if (!this.configured) return 'local loopgen'
     const scope = this.cfg.mcpScope === 'all' ? 'ALL grooves' : 'requests only (idle pulse stays local)'
-    return `MCP ${this.cfg.mcpUrl} — ${scope}, fails closed`
+    const auth = Object.keys(this.cfg.mcpHeaders).length
+      ? `, authenticating with ${Object.keys(this.cfg.mcpHeaders).join(' + ')}`
+      : ''
+    return `MCP ${this.cfg.mcpUrl} — ${scope}, fails closed${auth}`
   }
 
   /** Lazy, memoised connect. A dropped connection is re-established on next use. */
@@ -97,7 +100,13 @@ export class Brain {
 
     this.connecting = (async () => {
       const client = new Client({ name: 'loopclub-seeder', version: '0.1.0' })
-      const transport = new StreamableHTTPClientTransport(new URL(this.cfg.mcpUrl!))
+      // MCP_HEADERS is what lets the chokepoint sit behind a gateway. The SDK's
+      // transport sends no headers of its own, and a policy engine authenticates
+      // its callers — so without these the call is rejected at the door, and a
+      // brain that fails closed then plays nothing at all.
+      const transport = new StreamableHTTPClientTransport(new URL(this.cfg.mcpUrl!), {
+        requestInit: { headers: this.cfg.mcpHeaders },
+      })
       await client.connect(transport)
       client.onclose = () => {
         this.client = null // next render reconnects
