@@ -33,6 +33,17 @@ function poolMode(): 'genres' | 'setlist' | 'mixed' {
   return v
 }
 
+/** PRESENCE_ALLOW_ORIGIN is a comma-separated allowlist. Normalised the way an
+ *  Origin header arrives — lowercase, no trailing slash — so comparison is exact.
+ *  Unset keeps the single-origin default; `*` means "no check" (see presence.ts). */
+function originList(): string[] {
+  const raw = process.env.PRESENCE_ALLOW_ORIGIN?.trim() || 'https://app.loopclub.xyz'
+  return raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase().replace(/\/$/, ''))
+    .filter(Boolean)
+}
+
 function privateKey(): Hex {
   const raw = required('SEEDER_PRIVATE_KEY')
   const key = (raw.startsWith('0x') ? raw : `0x${raw}`) as Hex
@@ -55,9 +66,18 @@ export interface SeederConfig {
   // ── Presence ──
   presencePort: number
   presenceBind: string
-  presenceAllowOrigin: string
+  /** Origins allowed to beat (comma-separated in the env). Checked server-side:
+   *  CORS headers alone stop nothing, since a forger doesn't use a browser. `*`
+   *  disables the check and lets any page on the web make robodj spend. */
+  presenceAllowOrigins: string[]
   /** A session is "active" if seen within this window (ms). The hysteresis. */
   presenceTtlMs: number
+  /** Beats one IP may send per minute. A real tab beats 4×/min, so this is loose
+   *  by design — it exists to stop a flood, not to police a visitor. */
+  presenceMaxBeatsPerMin: number
+  /** Concurrent sessions one IP may hold. Bounds how big a room a single host
+   *  can fake; a household behind one NAT is still comfortably under it. */
+  presenceMaxSessionsPerIp: number
 
   // ── Jam control ──
   /** Control loop cadence (ms). */
@@ -112,8 +132,10 @@ export function loadConfig(): SeederConfig {
 
     presencePort: num('PRESENCE_PORT', 3009),
     presenceBind: process.env.PRESENCE_BIND?.trim() || '127.0.0.1',
-    presenceAllowOrigin: process.env.PRESENCE_ALLOW_ORIGIN?.trim() || 'https://app.loopclub.xyz',
+    presenceAllowOrigins: originList(),
     presenceTtlMs: num('PRESENCE_TTL_MS', 30_000),
+    presenceMaxBeatsPerMin: num('PRESENCE_MAX_BEATS_PER_MIN', 40),
+    presenceMaxSessionsPerIp: num('PRESENCE_MAX_SESSIONS_PER_IP', 8),
 
     tickMs: num('TICK_MS', 3_000),
     cellsPerGroove: num('CELLS_PER_GROOVE', 6),

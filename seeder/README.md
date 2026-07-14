@@ -71,7 +71,7 @@ so real spend is a fraction of that — but on a busy day the fraction isn't sma
 `HOURLY_RENT_CAP_USDM` is the governor: when the hour's budget is spent, the bot
 fades and sits out until the window frees.
 
-### Why it's safe by construction
+### What bounds it
 
 - **Crawlers/scrapers don't run JS** → never beat → never counted. Only real
   browsers running the SPA register as visitors.
@@ -82,6 +82,31 @@ fades and sits out until the window frees.
   within 15 s and it resumes. Silence-on-failure is the correct bias.
 - **Daily rent cap** (`DAILY_RENT_CAP_USDM`) and **dry-run** (`DRY_RUN`) bound
   the blast radius of a logic bug during rollout.
+
+### A beat is a claim, not a proof
+
+This section used to say "safe by construction," and it was wrong. `/beat` is a
+public endpoint — a static frontend can't hold a secret — so **anyone who reads
+the bundle can POST a beat**, and a beat makes robodj spend real USDm. CORS did
+not stop this: those headers are a contract the *browser* enforces, and a forger
+doesn't use a browser. One `curl` bought a fake visitor.
+
+What's there now, in order of what it actually buys:
+
+1. `PRESENCE_ALLOW_ORIGIN` — a comma-separated allowlist, **checked server-side**
+   and rejected with 403. Stops every beat from a page we don't own and every
+   naive script. A forged `Origin:` header still gets through, which is why it
+   isn't the last line.
+2. `PRESENCE_MAX_BEATS_PER_MIN` (40) and `PRESENCE_MAX_SESSIONS_PER_IP` (8), keyed
+   on `CF-Connecting-IP` — one host can't fake a crowd or flood the collector. A
+   real tab beats 4×/min, so these are loose on purpose: they bound abuse without
+   ever policing a visitor. (The socket address is useless as a key here: behind
+   the tunnel every connection arrives from 127.0.0.1.)
+3. **The rent caps are the real perimeter.** Presence decides *whether* robodj
+   plays; `HOURLY_RENT_CAP_USDM` / `DAILY_RENT_CAP_USDM` decide what that can ever
+   cost. A determined forger can still keep the bot playing to an empty room — the
+   cap is what makes that merely annoying instead of expensive. Treat presence as
+   advisory and the caps as the boundary, never the other way round.
 
 ## Layout
 
