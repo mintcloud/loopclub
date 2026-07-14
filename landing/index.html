@@ -194,5 +194,53 @@
   </footer>
 
   <script src="backdrop.js"></script>
+
+  <!-- ===== Product Hunt launch strip =====================================
+       Live for the 14 Jul launch. Blanking `url` renders nothing, so this is
+       safe to keep in main year-round — and `until` retires it on its own.
+         url    — the post URL from PH's "share" box
+         postId — the numeric post_id= inside PH's embed snippet (Promote → Embed).
+                  With it the CTA is PH's official badge; without it, a chrome
+                  "Upvote ↑" button. Optional — paste it in if you want the badge.
+         until  — ISO timestamp after which the strip removes itself. The PH day
+                  closes 11:59pm PT, i.e. 08:59 Madrid the next morning.
+       ==================================================================== -->
+  <script>
+    (function () {
+      var PH = {
+        url:    'https://www.producthunt.com/products/loopclub?launch=loopclub',
+        postId: '',
+        until:  '2026-07-15T08:59:00+02:00'
+      };
+      if (!PH.url) return;
+      if (PH.until && Date.now() > Date.parse(PH.until)) return;
+      if (localStorage.getItem('loopclub.ph.dismissed.v1') === '1') return;
+
+      var strip = document.createElement('div');
+      strip.className = 'ph-strip';
+      strip.innerHTML =
+        '<span class="ph-strip-dot"></span>' +
+        '<span class="ph-strip-text">loopclub is live on Product Hunt today.</span>' +
+        '<span class="ph-strip-text-sm">Live on Product Hunt</span>' +
+        '<a class="ph-strip-cta" href="' + PH.url + '" target="_blank" rel="noopener" ' +
+          'data-umami-event="ph-upvote-click">' +
+          (PH.postId
+            ? '<img class="ph-strip-badge" alt="loopclub on Product Hunt" width="200" height="43" ' +
+              'src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=' +
+              encodeURIComponent(PH.postId) + '&theme=dark">'
+            : '<span class="btn-chrome btn-chrome--sm">Upvote&nbsp;&uarr;</span>') +
+        '</a>' +
+        '<button class="ph-strip-close" aria-label="Dismiss">&#10005;</button>';
+
+      strip.querySelector('.ph-strip-close').addEventListener('click', function () {
+        localStorage.setItem('loopclub.ph.dismissed.v1', '1');
+        strip.remove();
+        document.body.classList.remove('has-ph-strip');
+      });
+
+      document.body.classList.add('has-ph-strip');
+      document.body.prepend(strip);
+    })();
+  </script>
 </body>
 </html>

@@ -4,6 +4,7 @@ import { Grid, type CellStatus } from './Grid'
 import { CellPopover } from './CellPopover'
 import { RowToolsPopover } from './RowToolsPopover'
 import { ContributorStrip } from './ContributorStrip'
+import { ProductHuntBanner } from './ProductHuntBanner'
 import { RenewStrip } from './RenewStrip'
 import { Library, type LoopRecord } from './Library'
 import { useMyCells } from './useMyCells'
@@ -982,6 +983,7 @@ export function App() {
 
   return (
     <div className="app">
+      <ProductHuntBanner />
       <MobileHint />
       <header className="header">
         <div className="header-left">
