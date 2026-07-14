@@ -22,6 +22,7 @@ import {
 import { loopclubAbi, usdmAbi } from './abi.js'
 import type { Clients } from './chain.js'
 import type { SeederConfig } from './config.js'
+import { SpendLedger } from './ledger.js'
 
 export interface CandidateCell {
   cellId: number
@@ -209,21 +210,29 @@ export function chooseCells(
 export class JamHand {
   private lc: { address: Address; abi: typeof loopclubAbi }
   private rentPerLoop = 0n
-  private daySpent = 0n
-  private dayKey = ''
-  /** Spend events in the last hour: [epoch ms, wei]. Pruned on read. */
-  private hourWindow: Array<[number, bigint]> = []
+  /** Durable spend windows. A dry run books to memory only (path null), so a
+   *  cost-modelling run can never eat the live bot's real budget. */
+  private ledger: SpendLedger
 
   constructor(
     private clients: Clients,
     private cfg: SeederConfig,
   ) {
     this.lc = { address: cfg.loopclubAddress, abi: loopclubAbi }
+    this.ledger = new SpendLedger(cfg.dryRun ? null : cfg.rentStatePath)
   }
 
-  /** Read current rent price and ensure the contract can pull USDm. Idempotent. */
+  /** Read current rent price, load the spend ledger, and ensure the contract can
+   *  pull USDm. Idempotent. */
   async ensureReady(): Promise<void> {
     const { publicClient } = this.clients
+
+    this.ledger.load()
+    console.log(
+      `[jam] ledger ${this.cfg.dryRun ? '(DRY_RUN — memory only)' : this.cfg.rentStatePath}: ${this.ledger.summary()}` +
+        ` — caps ${this.cfg.hourlyRentCapUsdm || '∞'}/h, ${this.cfg.dailyRentCapUsdm || '∞'}/day`,
+    )
+
     this.rentPerLoop = (await publicClient.readContract({
       ...this.lc,
       functionName: 'rentPerLoop',
@@ -267,56 +276,40 @@ export class JamHand {
     return Number(bal / 10n ** 18n)
   }
 
-  private costFor(cells: number): bigint {
+  /** The cost of a groove is `cells × rentPerLoop × rentLoops` — nothing else.
+   *  Cost lives in the *arguments*, which is why every path that reaches rent()
+   *  must pass a cell count the seeder chose, never one a caller asked for. */
+  costFor(cells: number): bigint {
     return this.rentPerLoop * BigInt(this.cfg.rentLoops) * BigInt(cells)
-  }
-
-  /** Rolls the daily spend window on UTC date change. */
-  private rollDay(): void {
-    const key = new Date().toISOString().slice(0, 10)
-    if (key !== this.dayKey) {
-      this.dayKey = key
-      this.daySpent = 0n
-    }
-  }
-
-  /** Spend inside the rolling hour, pruning anything older. */
-  private hourSpent(): bigint {
-    const cutoff = Date.now() - 3_600_000
-    this.hourWindow = this.hourWindow.filter(([t]) => t >= cutoff)
-    return this.hourWindow.reduce((sum, [, wei]) => sum + wei, 0n)
   }
 
   /** USDm spent in the rolling hour (for logging). */
   spentThisHour(): number {
-    return Number(this.hourSpent()) / 1e18
+    return Number(this.ledger.hourSpentWei()) / 1e18
   }
 
   /** True if renting `cells` would breach the daily OR the rolling-hour USDm cap.
-   *  Both windows are in-memory, so a restart forgives the spend so far — the
-   *  caps are a brake on runaway logic, not an accounting ledger. */
+   *  The windows are durable (see ledger.ts), so a restart no longer forgives the
+   *  spend: these are the seeder's only real ceiling and they now behave like one. */
   wouldExceedCap(cells: number): boolean {
     const cost = this.costFor(cells)
 
     if (this.cfg.dailyRentCapUsdm > 0) {
-      this.rollDay()
       const dayCapWei = BigInt(this.cfg.dailyRentCapUsdm) * 10n ** 18n
-      if (this.daySpent + cost > dayCapWei) return true
+      if (this.ledger.daySpentWei() + cost > dayCapWei) return true
     }
 
     if (this.cfg.hourlyRentCapUsdm > 0) {
       const hourCapWei = BigInt(this.cfg.hourlyRentCapUsdm) * 10n ** 18n
-      if (this.hourSpent() + cost > hourCapWei) return true
+      if (this.ledger.hourSpentWei() + cost > hourCapWei) return true
     }
 
     return false
   }
 
-  /** Book a spend against both windows. */
+  /** Book a spend against both windows (and flush it to disk). */
   private record(cells: number): void {
-    const cost = this.costFor(cells)
-    this.daySpent += cost
-    this.hourWindow.push([Date.now(), cost])
+    this.ledger.record(this.costFor(cells))
   }
 
   /** Rent the given cells for `rentLoops`. Sends one toggle() per cell (the
@@ -324,7 +317,6 @@ export class JamHand {
    *  the number actually sent. */
   async rent(cells: CandidateCell[]): Promise<number> {
     if (cells.length === 0) return 0
-    this.rollDay()
     const dur = this.cfg.rentLoops
 
     if (this.cfg.dryRun) {

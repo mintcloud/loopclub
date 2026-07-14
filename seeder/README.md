@@ -108,6 +108,32 @@ What's there now, in order of what it actually buys:
    cap is what makes that merely annoying instead of expensive. Treat presence as
    advisory and the caps as the boundary, never the other way round.
 
+### The caps have a memory now (`ledger.ts`)
+
+And they need one, because they are the *only* fence. The wallet isn't: the funder
+tops the seeder back up to `FUND_TARGET_USDM` whenever it drops below the low
+watermark, so the balance is a faucet. Everything that stands between a runaway
+loop and the contract's whole balance is `HOURLY_RENT_CAP_USDM`.
+
+Those windows used to live in RAM, and the unit is `Restart=always` /
+`RestartSec=5`. So every bounce forgave the hour: the watchdog fires, the process
+comes back five seconds later with `daySpent = 0`, and the cap it enforces is a cap
+on an *uptime*, not on a day. A crash-looping bot could spend its hourly budget
+twelve times a minute without ever breaking a rule — every individual rent is
+legal; only the sequence is wrong.
+
+`RENT_STATE_PATH` fixes that. One small JSON file, written after every spend
+(atomically — tmp + rename, so a `kill -9` mid-write leaves the old ledger rather
+than a truncated one), read back at boot. A restart now *remembers*.
+
+- **`DRY_RUN` never writes it.** A cost-modelling run books its imaginary spend in
+  memory only, so it can't eat the live bot's budget.
+- **A corrupt ledger doesn't wedge the bot.** It's quarantined to `.corrupt`,
+  logged loudly, and the bot starts from zero — availability over accounting, but
+  never silently.
+- The boot log tells you what it remembers: `[jam] ledger …: 12.40 USDm this hour,
+  108.00 today — caps 60/h, 400/day`.
+
 ## Layout
 
 ```
@@ -118,6 +144,7 @@ src/
   abi.ts        the Loopclub + USDm ABI subset the seeder touches
   grid.ts       on-chain ownership map (headless port of useLiveGrid.ts)
   presence.ts   in-process /beat collector + TTL active-visitor count
+  ledger.ts     durable rent-cap windows (survive Restart=always)
   jam.ts        groove selection (loopgen) + rent execution (toggle/approve)
   loopbot.ts    the presence-gated state machine
   notify.ts     internal self-watchdog (restart-on-hang, dependency-free)
