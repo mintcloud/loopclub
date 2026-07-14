@@ -30,7 +30,7 @@ import type { Grid } from './grid.js'
 import type { Presence } from './presence.js'
 import type { SeederConfig } from './config.js'
 import type { Watchdog } from './notify.js'
-import type { Brain } from './brain.js'
+import type { Brain, GrooveOrigin } from './brain.js'
 import type { RequestQueue } from './requests.js'
 
 type State = 'IDLE' | 'ACTIVE'
@@ -134,19 +134,46 @@ export class Loopbot {
   }
 
   /** Take the next groove off the rotation and put it on the grid. A queued
-   *  request jumps the rotation — that's the whole point of asking. */
+   *  request jumps the rotation — that's the whole point of asking.
+   *
+   *  A request that can't be served (unknown groove, or the brain refused//couldn't
+   *  reach the gateway) is DROPPED, and robodj falls through to its own rotation.
+   *  Two things about that fallback, in order of importance:
+   *
+   *    1. It is NOT a bypass. The stranger's groove does not get played by another
+   *       route — it is discarded. What plays instead is the bot's own next groove,
+   *       from its own authored pool, which was never the gateway's business.
+   *    2. It is the whole reason the gateway is safe to deploy. Take the policy
+   *       plane away — tear it down, let it fall over — and robodj keeps filling
+   *       cells. Only requests stop. Nothing about the autonomous pulse depends on
+   *       a service outside this process. */
   private async play(reason: 'ACTIVE' | 'rotate'): Promise<boolean> {
     const request = this.queue?.take()
-    const groove = request ? this.byName(request.groove) : pickGroove(this.pool, this.rotor++)
-    if (!groove) return false // repertoire changed under a queued request; skip it
+    if (request) {
+      const requested = this.byName(request.groove)
+      if (requested && (await this.stage(requested, this.cfg.requestCells, 'request', reason))) {
+        return true
+      }
+      // Fell through: the request is gone, the pulse goes on.
+    }
 
-    // THE clamp. A request names a groove and never carries a spec, so the cell
-    // count here is always a number the seeder chose — cost lives in the
-    // arguments, and this is the argument. If a future version ever accepts a
-    // spec (free text, an LLM, a ?jam= link), this line is the only thing between
-    // a stranger's "wall of sound" and 24× the rent. Do not route around it.
-    const budget = request ? this.cfg.requestCells : this.budgetFor(groove)
+    const groove = pickGroove(this.pool, this.rotor++)
+    if (!groove) return false
+    return this.stage(groove, this.budgetFor(groove), 'idle', reason)
+  }
 
+  /** Render one groove and put it on the grid. `budget` is THE clamp: a request
+   *  names a groove and never carries a spec, so the cell count here is always a
+   *  number the seeder chose — cost lives in the arguments, and this is the
+   *  argument. If a future version ever accepts a spec (free text, an LLM, a
+   *  `?jam=` link), this is the only thing between a stranger's "wall of sound"
+   *  and 24× the rent. Do not route around it. */
+  private async stage(
+    groove: Groove,
+    budget: number,
+    origin: GrooveOrigin,
+    reason: 'ACTIVE' | 'rotate',
+  ): Promise<boolean> {
     if (this.jam.wouldExceedCap(budget)) {
       console.log(
         `[bot] rent cap reached (${this.jam.spentThisHour().toFixed(2)} USDm this hour) — sitting out`,
@@ -155,14 +182,21 @@ export class Loopbot {
     }
 
     // The spec comes from the brain: loopgen in-process, or `build_loop` on the
-    // MCP server when MCP_URL is set. Remote mode fails CLOSED — if the call
-    // errors we play nothing rather than quietly falling back to the local
-    // renderer, because a chokepoint you can bypass by knocking it over isn't one.
+    // MCP server. Under MCP_SCOPE=requests (the default) only `origin: 'request'`
+    // takes the remote path — so a gateway can govern every argument that came
+    // from outside without ever standing between robodj and its own pulse.
+    //
+    // Remote mode fails CLOSED: if the call errors, THIS groove is not played. We
+    // never re-render it locally, because a chokepoint you can bypass by knocking
+    // it over isn't one.
     let spec
     try {
-      spec = await this.brain.render(groove)
+      spec = await this.brain.render(groove, origin)
     } catch (e) {
-      console.warn(`[bot] brain could not render ${groove.name}: ${(e as Error)?.message ?? e} — sitting out`)
+      console.warn(
+        `[bot] brain could not render ${groove.name}: ${(e as Error)?.message ?? e} — ` +
+          (origin === 'request' ? 'dropping the request' : 'sitting out'),
+      )
       return false
     }
 
@@ -187,7 +221,7 @@ export class Loopbot {
     this.grooveCells = cells
     this.held = new Set(pick.map((c) => c.cellId))
     this.grooveStartedAt = Date.now()
-    const how = request ? `REQUEST (queue ${this.queue?.depth ?? 0} left)` : reason
+    const how = origin === 'request' ? `REQUEST (queue ${this.queue?.depth ?? 0} left)` : reason
     console.log(`[bot] ${how} — ${groove.name} (${groove.kind}), rented ${sent}/${pick.length} cells`)
     return true
   }
