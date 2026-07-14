@@ -8,6 +8,7 @@ import { RenewStrip } from './RenewStrip'
 import { Library, type LoopRecord } from './Library'
 import { useMyCells } from './useMyCells'
 import { usePresence } from './usePresence'
+import { useIsPhone } from './useIsPhone'
 import {
   config,
   LOOP_DURATION_SECONDS,
@@ -46,6 +47,10 @@ export function App() {
   // Heartbeat the cold-start loopbot's presence collector (no-op until the
   // seeder is deployed and VITE_PRESENCE_URL is set). See usePresence.ts.
   usePresence()
+
+  // Drives the short-copy variants of banners that would otherwise eat a phone
+  // screen. Layout stays in CSS; this only picks the wording.
+  const isPhone = useIsPhone()
 
   const [usdmBalance, setUsdmBalance] = useState<bigint>(0n)
   // Native ETH balance — needed for gas (users pay their own unless sponsored).
@@ -948,13 +953,22 @@ export function App() {
   // real count of cells lit on chain right now so the claim is always true. Both
   // states glow green and invite the visitor to connect and join the jam; a
   // truly empty grid drops to an amber "be the first" prompt.
+  // On a phone the banner sits directly under an already-stacked header, so it
+  // gets the short form: one line of liveness + CTA, and the explanatory
+  // sentence below is dropped entirely (CSS). Desktop keeps the full copy.
   const liveCellCount = litCells({ pattern: grid.pattern, synthData: grid.synthData }).length
   const gridIsLive = config.botLive || liveCellCount > 0
   const connectNudgeNote = config.botLive
-    ? 'robodj is jamming the grid live right now, connect your wallet and join the jam'
+    ? isPhone
+      ? 'robodj is live — connect to jam'
+      : 'robodj is jamming the grid live right now, connect your wallet and join the jam'
     : liveCellCount > 0
-      ? `${liveCellCount} cell${liveCellCount === 1 ? '' : 's'} jamming on the grid right now, connect your wallet and join the jam`
-      : 'the grid is quiet — connect your wallet to lay down a beat'
+      ? isPhone
+        ? `${liveCellCount} cell${liveCellCount === 1 ? '' : 's'} live — connect to jam`
+        : `${liveCellCount} cell${liveCellCount === 1 ? '' : 's'} jamming on the grid right now, connect your wallet and join the jam`
+      : isPhone
+        ? 'quiet grid — connect to lay down a beat'
+        : 'the grid is quiet — connect your wallet to lay down a beat'
 
   const basePriceStr = fmtUsdm(basePrice)
 
@@ -1057,19 +1071,22 @@ export function App() {
 
       {showConnectNudge && (
         <div className="playback-banner connect-banner">
+          {/* Dismiss lives outside .pb-status: that row stacks to a column on
+              phones, which used to stretch the ✕ across the banner and park it
+              mid-panel. Pinned to the banner's top-right corner instead. */}
+          <button
+            className="connect-dismiss"
+            onClick={dismissConnectNudge}
+            aria-label="Dismiss"
+            title="Dismiss this prompt"
+          >
+            ✕
+          </button>
           <div className="pb-status">
             <span className={`connect-live${gridIsLive ? '' : ' quiet'}`}>
               <span className="connect-live-dot" />
               {connectNudgeNote}
             </span>
-            <button
-              className="connect-dismiss"
-              onClick={dismissConnectNudge}
-              aria-label="Dismiss"
-              title="Dismiss this prompt"
-            >
-              ✕
-            </button>
           </div>
           <p className="connect-sub">
             Auditioning is free — tap any cell to hear it. Connect your wallet to rent cells, lay
