@@ -27,21 +27,49 @@ One process, two halves:
   ```
   shouldJam = (activeVisitors >= 1) AND (humanCells == 0)
 
-  IDLE   → if shouldJam: pick a groove, rent ~6 free cells for 8 loops (~32 s)
+  IDLE   → if shouldJam: take the next groove off the rotation, rent its cells
   ACTIVE → human joins (humanCells > 0) → stop renewing (cede the floor)
            room empties (activeVisitors == 0) → stop renewing (fade out)
-           else → renew cells nearing expiry; swap groove every 4th cycle
+           groove held for GROOVE_HOLD_MS → rotate to the next one
+           else → renew the current groove's cells as they near expiry
   ```
 
   "Stop renewing" needs no teardown — the short rentals expire on their own
   within a loop or two, so the bot always **fades musically** rather than
   vanishing. If conditions return it re-activates on the next tick.
 
-Grooves come from `loopclub-loopgen`'s genre templates (house / boom-bap /
-techno / dnb) — the same musical brain the MCP server and frontend use — so the
-bot plays idiomatic loops, not random cells. Every groove keeps 1–2 synth notes
-(melody) and biases **off the kick row**, so a newcomer's first tap always has
-room and never collides with the bot.
+### The rotation
+
+The bot walks a flat pool with a monotonic counter (`POOL=genres|setlist|mixed`):
+
+- **genres** — `loopgen`'s procedural templates (house / boom-bap / techno / dnb).
+  Sparse and drum-led: 1–2 synth notes for melody, biased **off the kick row** so
+  a newcomer's first tap never collides with the bot.
+- **setlist** — `loopgen`'s hand-authored tunes: Seven Nation Army, We Will Rock
+  You, Thunder Clap, Olé Olé Olé, Batucada, Ode to Joy, La Marseillaise. Plus
+  anything you paste into `SETLIST_LINKS` as a `?jam=` deep link (the MCP
+  `build_loop` output). A tune is **melody-first**: its synth row is rendered
+  whole and drums are dropped before notes, because Seven Nation Army without its
+  riff is not Seven Nation Army.
+
+Both come from `loopclub-loopgen` — the same musical brain the MCP server and the
+frontend use — so the bot plays idiomatic loops, not random cells.
+
+The rotation counter is **monotonic and clock-seeded**, deliberately. The first
+version indexed the genre list by `cycle % 4` while firing the swap on
+`cycle % 4 === 0`: with four genres the two moduli aliased and *every* swap landed
+on `pool[0]`. The bot played house, only house, forever.
+
+### What it costs
+
+Rent is charged per cell per loop, so a lit cell costs `rentPerLoop` (0.004 USDm)
+every 4-second loop — **0.001 USDm/second**. Burn is `cells lit × seconds held`
+and nothing else; renting for longer isn't cheaper, it just pays further ahead.
+Per hour of *continuous* jamming: a 6-cell genre groove ≈ 22 USDm, a 14-cell tune
+≈ 50 USDm. The bot only jams while a visitor is present and no human holds a cell,
+so real spend is a fraction of that — but on a busy day the fraction isn't small.
+`HOURLY_RENT_CAP_USDM` is the governor: when the hour's budget is spent, the bot
+fades and sits out until the window frees.
 
 ### Why it's safe by construction
 
