@@ -650,6 +650,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   flex-shrink: 0;
 }
 .ph-strip-text { letter-spacing: 0.01em; }
+/* Phone-length version of the same sentence. Swapped in below. */
+.ph-strip-text-sm { display: none; letter-spacing: 0.01em; white-space: nowrap; }
 .ph-strip-cta { display: inline-flex; align-items: center; text-decoration: none; }
 .ph-strip-badge { width: 200px; height: 43px; display: block; }
 .ph-strip-close {
@@ -666,9 +668,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .ph-strip-close:hover { color: var(--text); }
 
 @media (max-width: 640px) {
-  /* On a phone the grid is the whole point — keep the strip to one line. */
+  /* On a phone the grid is the whole point — keep the strip to one line. The
+     full sentence doesn't fit, but a bare "Upvote ↑" asks people to vote for
+     nothing, so swap in the short line instead of dropping the words entirely. */
   .ph-strip { gap: 8px; font-size: 12px; padding: 6px 32px 6px 10px; }
   .ph-strip-text { display: none; }
+  .ph-strip-text-sm { display: inline; }
+  /* PH's badge already says "Product Hunt" — no need to say it twice. */
+  .ph-strip:has(.ph-strip-badge) .ph-strip-text-sm { display: none; }
   .ph-strip-badge { width: 170px; height: 37px; }
 }
 

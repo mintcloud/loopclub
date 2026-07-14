@@ -196,19 +196,21 @@
   <script src="backdrop.js"></script>
 
   <!-- ===== Product Hunt launch strip =====================================
-       Fill in `url` and `postId` on launch day and push; leaving `url` blank
-       renders nothing, so this is safe to keep in main year-round.
+       Live for the 14 Jul launch. Blanking `url` renders nothing, so this is
+       safe to keep in main year-round — and `until` retires it on its own.
          url    — the post URL from PH's "share" box
-         postId — the numeric post_id= inside PH's embed snippet (Promote → Embed)
+         postId — the numeric post_id= inside PH's embed snippet (Promote → Embed).
+                  With it the CTA is PH's official badge; without it, a chrome
+                  "Upvote ↑" button. Optional — paste it in if you want the badge.
          until  — ISO timestamp after which the strip removes itself. The PH day
                   closes 11:59pm PT, i.e. 08:59 Madrid the next morning.
        ==================================================================== -->
   <script>
     (function () {
       var PH = {
-        url:    '',
+        url:    'https://www.producthunt.com/products/loopclub?launch=loopclub',
         postId: '',
-        until:  ''
+        until:  '2026-07-15T08:59:00+02:00'
       };
       if (!PH.url) return;
       if (PH.until && Date.now() > Date.parse(PH.until)) return;
@@ -219,6 +221,7 @@
       strip.innerHTML =
         '<span class="ph-strip-dot"></span>' +
         '<span class="ph-strip-text">loopclub is live on Product Hunt today.</span>' +
+        '<span class="ph-strip-text-sm">Live on Product Hunt</span>' +
         '<a class="ph-strip-cta" href="' + PH.url + '" target="_blank" rel="noopener" ' +
           'data-umami-event="ph-upvote-click">' +
           (PH.postId
