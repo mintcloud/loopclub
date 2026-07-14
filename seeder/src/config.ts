@@ -3,6 +3,8 @@
 // it is read here and never logged. All other knobs have sane defaults so a
 // minimal env (key + RPC + address) boots a working bot.
 
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { type Address, type Hex, getAddress, isHex } from 'viem'
 
 function required(name: string): string {
@@ -115,7 +117,13 @@ export interface SeederConfig {
    *  scales with (cells lit × time held). When the hour's budget is spent the bot
    *  fades and sits out until the window frees — bursty, but solvent. */
   hourlyRentCapUsdm: number
-  /** When true, run the full control loop but never send a tx (log instead). */
+  /** Where the spend windows are persisted. The caps are the seeder's only real
+   *  ceiling (the wallet is refilled by the funder, so its balance is a faucet,
+   *  not a fence) — and `Restart=always` used to reset them every five seconds.
+   *  This file is what makes them a budget instead of a brake. */
+  rentStatePath: string
+  /** When true, run the full control loop but never send a tx (log instead).
+   *  Dry-run spend is booked in memory only and never touches the ledger file. */
   dryRun: boolean
 }
 
@@ -152,6 +160,8 @@ export function loadConfig(): SeederConfig {
     forceActive: bool('FORCE_ACTIVE', false),
     dailyRentCapUsdm: num('DAILY_RENT_CAP_USDM', 0),
     hourlyRentCapUsdm: num('HOURLY_RENT_CAP_USDM', 0),
+    rentStatePath:
+      process.env.RENT_STATE_PATH?.trim() || join(homedir(), '.config', 'loopclub', 'rent-state.json'),
     dryRun: bool('DRY_RUN', false),
   }
 }
