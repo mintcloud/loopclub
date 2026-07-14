@@ -360,9 +360,12 @@ body {
   box-shadow: none;
 }
 .connect-banner {
+  position: relative;                      /* the dismiss ✕ is absolute — keep its containing block */
   border-color: rgba(92, 255, 198, .28);  /* mint hairline — live on chain */
   box-shadow: none;
 }
+/* Keep the liveness line clear of the corner ✕ at every width. */
+.connect-banner .pb-status { padding-right: 1.6rem; }
 /* Liveness pill — a green dot + the live-status line (count of cells on chain,
  * the bot once it ships, or the quiet-grid connect prompt). Deliberate pick of
  * font; nudged up a touch from 10px now that it carries the CTA. */
@@ -416,14 +419,19 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.5; transform: scale(0.8); }
 }
-/* Quiet dismiss ✕ — a nudge, not a wall; never competes with the connect CTA. */
+/* Quiet dismiss ✕ — a nudge, not a wall; never competes with the connect CTA.
+ * Pinned to the banner's top-right corner (not laid out in the status row) so
+ * it stays there when narrow viewports stack that row into a column. */
 .connect-dismiss {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.35rem;
   background: transparent;
   border: none;
   color: var(--muted);
   font-size: 13px;
   line-height: 1;
-  padding: 0.2rem 0.35rem;
+  padding: 0.35rem 0.45rem;
   cursor: pointer;
   border-radius: var(--r-sm, 4px);
   transition: color 0.1s ease, background 0.1s ease;
@@ -561,6 +569,12 @@ body {
 @media (max-width: 560px) {
   .pb-status { flex-direction: column; align-items: stretch; }
   .pb-cta { flex-direction: column; align-items: stretch; }
+  /* Connect nudge on a phone: the liveness line alone (App.tsx serves its short
+     form at this width). The explanatory sentence is desktop-only — on a phone
+     it turned a nudge into a wall of text above the grid. */
+  .connect-sub { display: none; }
+  .connect-banner { padding: 0.55rem 0.7rem; }
+  .connect-live { font-size: 10.5px; }
   /* Full-width, but the DS sets white-space: nowrap which lets a long label
      (✦ Press Edition #N · price USDm) spill past the button on narrow phones.
      Scale the label down with the viewport and allow it to wrap as a final
@@ -644,6 +658,62 @@ body {
     flex-shrink: 0;
   }
   .mobile-hint .mh-x:hover { color: var(--text); border-color: transparent; }
+}
+
+/* ------------------------------------------------------------
+   Product Hunt launch strip (ProductHuntBanner.tsx)
+   Sits above the header on launch day only. Rendered as a normal
+   in-flow block, not fixed — it must not add a second sticky layer
+   over the grid.
+   ------------------------------------------------------------ */
+.ph-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 40px 8px 12px;
+  position: relative;
+  background: linear-gradient(90deg, var(--panel) 0%, var(--panel-2) 100%);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+.ph-strip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #da552f; /* Product Hunt orange — a foreign brand, not a token */
+  box-shadow: 0 0 8px #da552f;
+  flex-shrink: 0;
+}
+.ph-strip-text { letter-spacing: 0.01em; }
+/* Phone-length version of the same sentence. Swapped in below. */
+.ph-strip-text-sm { display: none; letter-spacing: 0.01em; white-space: nowrap; }
+.ph-strip-cta { display: inline-flex; align-items: center; text-decoration: none; }
+.ph-strip-badge { width: 200px; height: 43px; display: block; }
+.ph-strip-close {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+}
+.ph-strip-close:hover { color: var(--text); }
+
+@media (max-width: 640px) {
+  /* On a phone the grid is the whole point — keep the strip to one line. The
+     full sentence doesn't fit, but a bare "Upvote ↑" asks people to vote for
+     nothing, so swap in the short line instead of dropping the words entirely. */
+  .ph-strip { gap: 8px; font-size: 12px; padding: 6px 32px 6px 10px; }
+  .ph-strip-text { display: none; }
+  .ph-strip-text-sm { display: inline; }
+  /* PH's badge already says "Product Hunt" — no need to say it twice. */
+  .ph-strip:has(.ph-strip-badge) .ph-strip-text-sm { display: none; }
+  .ph-strip-badge { width: 170px; height: 37px; }
 }
 
 /* ============================================================

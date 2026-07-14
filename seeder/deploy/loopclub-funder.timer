@@ -1,7 +1,6 @@
 # Fires loopclub-funder.service on a schedule so the seeder is topped up
 # automatically once its balance dips below the low watermark. The funder is a
-# cheap no-op when the balance is fine, so running it often is harmless — every
-# 6 hours is a comfortable default. Tune OnCalendar to taste.
+# cheap no-op when the balance is fine, so running it often is harmless.
 #
 #   systemctl --user enable --now loopclub-funder.timer
 #   systemctl --user list-timers loopclub-funder.timer   # confirm next run
@@ -10,13 +9,17 @@
 Description=Periodic loopclub seeder top-up
 
 [Timer]
-# Every 6 hours, plus once shortly after boot. Persistent=true makes a missed
-# run (machine asleep) fire on the next wake.
-OnBootSec=10min
-OnUnitActiveSec=6h
+# The cadence must beat the bot's burn rate, or the top-up arrives at a corpse.
+# A 14-cell tune costs ~50 USDm/hour of continuous jamming, so from a 50 USDm
+# target the seeder can cross the low watermark and hit zero inside ONE hour. A
+# 6-hour cadence (the old default) therefore let robodj sit dead for up to five
+# hours with a contract full of sweepable rent — which is exactly what happened
+# on 2026-07-14. 15 minutes keeps the check well inside the drain time.
+OnBootSec=2min
+OnUnitActiveSec=15min
 Persistent=true
-# Spread the wake so it doesn't land exactly on the hour with everything else.
-RandomizedDelaySec=5min
+# Small jitter so it doesn't land on the quarter-hour with everything else.
+RandomizedDelaySec=1min
 Unit=loopclub-funder.service
 
 [Install]

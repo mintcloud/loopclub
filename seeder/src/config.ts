@@ -25,6 +25,14 @@ function bool(name: string, dflt: boolean): boolean {
   return v.trim().toLowerCase() === 'true'
 }
 
+function poolMode(): 'genres' | 'setlist' | 'mixed' {
+  const v = (process.env.POOL ?? 'mixed').trim().toLowerCase()
+  if (v !== 'genres' && v !== 'setlist' && v !== 'mixed') {
+    throw new Error(`env POOL must be genres | setlist | mixed, got "${v}"`)
+  }
+  return v
+}
+
 function privateKey(): Hex {
   const raw = required('SEEDER_PRIVATE_KEY')
   const key = (raw.startsWith('0x') ? raw : `0x${raw}`) as Hex
@@ -60,8 +68,20 @@ export interface SeederConfig {
   rentLoops: number
   /** Renew when a held cell has fewer than this many loops left. */
   renewThresholdLoops: number
-  /** Swap groove every Nth activation cycle for variety. */
-  grooveSwapEveryCycles: number
+  /** Hold a groove this long before rotating to the next one (ms). Renewals keep
+   *  it alive until then. Time-based, so it can't alias against the pool size. */
+  grooveHoldMs: number
+  /** Which pool the bot rotates through: the procedural GENRES, the hand-authored
+   *  SETLIST (Seven Nation Army, anthems, terrace chants), or both interleaved. */
+  pool: 'genres' | 'setlist' | 'mixed'
+  /** Cell budget for a setlist groove. Higher than cellsPerGroove because a tune
+   *  needs its melody: trimming a setlist loop to 6 cells leaves an unrecognisable
+   *  stub. Drums are dropped before synth notes when the budget bites. */
+  setlistCells: number
+  /** Extra loops for the rotation, as `?jam=` deep links (comma-separated) — the
+   *  ones you built with the MCP `build_loop` tool. Decoded at boot; a malformed
+   *  link is logged and skipped rather than crashing the bot. */
+  setlistLinks: string[]
 
   // ── Safety / testing ──
   /** Bypass the presence collector and always behave as if 1 visitor is here.
@@ -70,6 +90,11 @@ export interface SeederConfig {
   forceActive: boolean
   /** Hard ceiling on USDm spent per UTC day (whole USDm). 0 = unlimited. */
   dailyRentCapUsdm: number
+  /** Ceiling on USDm spent in any rolling hour. 0 = unlimited. This is the knob
+   *  that actually governs burn: a held cell costs rentPerLoop per loop, so cost
+   *  scales with (cells lit × time held). When the hour's budget is spent the bot
+   *  fades and sits out until the window frees — bursty, but solvent. */
+  hourlyRentCapUsdm: number
   /** When true, run the full control loop but never send a tx (log instead). */
   dryRun: boolean
 }
@@ -94,10 +119,17 @@ export function loadConfig(): SeederConfig {
     cellsPerGroove: num('CELLS_PER_GROOVE', 6),
     rentLoops: num('RENT_LOOPS', 8),
     renewThresholdLoops: num('RENEW_THRESHOLD_LOOPS', 3),
-    grooveSwapEveryCycles: num('GROOVE_SWAP_EVERY_CYCLES', 4),
+    grooveHoldMs: num('GROOVE_HOLD_MS', 30_000),
+    pool: poolMode(),
+    setlistCells: num('SETLIST_CELLS', 14),
+    setlistLinks: (process.env.SETLIST_LINKS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
 
     forceActive: bool('FORCE_ACTIVE', false),
     dailyRentCapUsdm: num('DAILY_RENT_CAP_USDM', 0),
+    hourlyRentCapUsdm: num('HOURLY_RENT_CAP_USDM', 0),
     dryRun: bool('DRY_RUN', false),
   }
 }
