@@ -134,6 +134,65 @@ than a truncated one), read back at boot. A restart now *remembers*.
 - The boot log tells you what it remembers: `[jam] ledger …: 12.40 USDm this hour,
   108.00 today — caps 60/h, 400/day`.
 
+## Requests — "play Seven Nation Army next"
+
+`REQUESTS_ENABLED=true` turns the presence collector into a request desk as well:
+`GET /repertoire` (the chips the frontend renders) and `POST /request { id, groove }`.
+A queued request jumps the rotation and plays within a tick or two; the frontend's
+`RequestStrip` renders nothing at all unless `/repertoire` says the feature is on,
+so there's no flag to keep in sync on the web side. Asking is free — robodj pays.
+
+**A request names a groove. It never carries a spec.** That sentence is the whole
+security model, and it's worth being precise about why.
+
+A groove's cost is `cells × rentPerLoop × rentLoops` — so **cost lives in the
+arguments**. If a visitor could hand robodj a *spec* (free text via an LLM, a
+`?jam=` link, a raw track list), then "make it a wall of sound" is one request that
+lights 144 cells instead of 6: same call, same shape, same schema, **24× the
+rent**. Nothing in a rate limiter or a JSON schema would notice, because neither of
+them reads the arguments for money.
+
+So the vocabulary is closed: a request may only name a groove already in the
+rotation pool, and the cell count is `REQUEST_CELLS` — a number *you* set, applied
+through the same `chooseCells` trim every other groove goes through
+(`loopbot.play()`). The requester picks the tune; the seeder picks the price.
+
+The rest are rate bounds, because requests change how *often* robodj rents:
+
+| knob | default | what it stops |
+|---|---|---|
+| `REQUEST_QUEUE_MAX` | 8 | continuous rotation-on-demand |
+| `REQUEST_COOLDOWN_MS` | 60 000 | one visitor holding the floor (keyed on `CF-Connecting-IP` — a session id is free to mint, an address isn't) |
+| `REQUEST_TTL_MS` | 120 000 | paying for a request nobody stayed to hear |
+
+And the rent caps remain the ceiling above all of it. This is a rate limiter, not a
+budget: it decides how often robodj is *asked*, not how much it can ever spend.
+
+## The brain — `MCP_URL` and the chokepoint
+
+Unset, `loopgen` renders grooves in-process, as it always has. Set, **every groove
+— a visitor's request and the idle pulse alike — is rendered by calling
+`build_loop` on the MCP server**, and the bot plays the loop that comes back
+(decoded from the returned deep link, so if something in the path rewrote the loop,
+we play the version that was approved rather than the one we asked for).
+
+Why route an encode call over the network at all? Because it makes the MCP call a
+**chokepoint**: one place every spec robodj will ever play must pass through,
+carrying the argument that decides the money. Put a proxy in front of it — a
+gateway, a policy engine, an audit log — and it can see and price every future
+spend *before* a single `toggle()` is signed. Point `MCP_URL` at the proxy instead
+of the server and robodj's code doesn't change by one line.
+
+Two rules make it real, and both are in `brain.ts`:
+
+1. **Everything goes through it.** The idle pulse too, not just requests. A
+   chokepoint with a second door is not a chokepoint — it's a suggestion with good
+   PR.
+2. **It fails closed.** If the call errors or times out, robodj plays *nothing*. It
+   does not fall back to the local renderer, because a control you can bypass by
+   knocking the proxy over isn't one. Silence is the right failure direction, and
+   it's the same bias the presence collector already takes.
+
 ## Layout
 
 ```
@@ -143,7 +202,11 @@ src/
   chain.ts      viem public/event/wallet clients for MegaETH
   abi.ts        the Loopclub + USDm ABI subset the seeder touches
   grid.ts       on-chain ownership map (headless port of useLiveGrid.ts)
-  presence.ts   in-process /beat collector + TTL active-visitor count
+  presence.ts   in-process /beat collector + TTL active-visitor count (+ the
+                request desk: GET /repertoire, POST /request)
+  requests.ts   the request queue — the closed vocabulary and the rate bounds
+  brain.ts      where a spec comes from: loopgen in-process, or build_loop over
+                MCP (the chokepoint — fails closed)
   ledger.ts     durable rent-cap windows (survive Restart=always)
   jam.ts        groove selection (loopgen) + rent execution (toggle/approve)
   loopbot.ts    the presence-gated state machine

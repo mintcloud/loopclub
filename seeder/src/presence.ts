@@ -27,6 +27,7 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { SeederConfig } from './config.js'
+import type { RequestQueue } from './requests.js'
 
 const MAX_BODY_BYTES = 2 * 1024 // a beat is ~50 bytes; bound the parser anyway
 const MAX_TRACKED = 50_000 // hard cap on the map so a flood can't OOM us
@@ -49,7 +50,12 @@ export class Presence {
   private rejected = { origin: 0, throttled: 0 }
   private lastRejectLog = 0
 
-  constructor(private cfg: SeederConfig) {}
+  /** Present only when REQUESTS_ENABLED — the collector then also serves
+   *  GET /repertoire and POST /request behind the same origin gate. */
+  constructor(
+    private cfg: SeederConfig,
+    private queue?: RequestQueue,
+  ) {}
 
   /** Count of sessions seen within the TTL window. Prunes on read. */
   activeVisitors(): number {
@@ -145,6 +151,67 @@ export class Presence {
     this.rejected = { origin: 0, throttled: 0 }
   }
 
+  /** POST /request { id, groove } — a visitor asking for something off the
+   *  repertoire. Unlike a beat, this one answers honestly (the UI needs to say
+   *  "queued" or "in a minute"), but it says nothing a forger could learn from:
+   *  the reasons are about the queue, never about who else is in it. */
+  private handleRequest(req: IncomingMessage, res: ServerResponse, ip: string | undefined): void {
+    const queue = this.queue
+    if (!queue) {
+      res.writeHead(404, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ ok: false, reason: 'requests are off' }))
+      return
+    }
+
+    // A request costs more than a beat, so it gets the same per-IP budget: a
+    // requester who is flooding /request is already out of beats, and a session
+    // that never beats is not a visitor.
+    let body = ''
+    let tooBig = false
+    req.on('data', (chunk: Buffer) => {
+      body += chunk
+      if (body.length > MAX_BODY_BYTES) {
+        tooBig = true
+        req.destroy()
+      }
+    })
+    req.on('end', () => {
+      if (tooBig) return
+      let id: unknown
+      let groove: unknown
+      try {
+        ;({ id, groove } = JSON.parse(body || '{}') as { id?: unknown; groove?: unknown })
+      } catch {
+        res.writeHead(400, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, reason: 'malformed request' }))
+        return
+      }
+      if (typeof id !== 'string' || id.length === 0 || id.length > 128) {
+        res.writeHead(400, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, reason: 'no session' }))
+        return
+      }
+
+      const out = queue.submit(groove, id, ip)
+      if (out.ok) {
+        console.log(`[request] "${groove}" queued (depth ${out.queued})`)
+        res.writeHead(202, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: true, queued: out.queued }))
+      } else {
+        res.writeHead(out.status, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, reason: out.reason }))
+      }
+    })
+    req.on('error', () => {
+      try {
+        res.writeHead(400)
+        res.end()
+      } catch {
+        /* socket already gone */
+      }
+    })
+  }
+
   private cors(res: ServerResponse, origin: string | undefined): void {
     // Echo the caller's Origin (already allowlisted) rather than the configured
     // one, so a multi-origin allowlist works. Vary, because the answer differs.
@@ -185,13 +252,30 @@ export class Presence {
       return
     }
 
-    if (req.method !== 'POST' || !url.startsWith('/beat')) {
+    // The repertoire — the closed vocabulary a request may name. The frontend
+    // renders it as chips; an empty list (or no queue at all) means the feature
+    // is off and the UI hides itself. Behind the same origin gate as /beat.
+    if (req.method === 'GET' && url.startsWith('/repertoire')) {
+      if (!this.originAllowed(origin)) {
+        this.noteReject('origin')
+        res.writeHead(403)
+        res.end()
+        return
+      }
+      this.cors(res, origin)
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ enabled: this.queue !== undefined, grooves: this.queue?.names() ?? [] }))
+      return
+    }
+
+    const isRequest = req.method === 'POST' && url.startsWith('/request')
+    if (!isRequest && !(req.method === 'POST' && url.startsWith('/beat'))) {
       res.writeHead(404)
       res.end()
       return
     }
 
-    // The gate. A beat from a page we don't own is not a visitor of ours.
+    // The gate. A beat — or a request — from a page we don't own is not ours.
     if (!this.originAllowed(origin)) {
       this.noteReject('origin')
       res.writeHead(403)
@@ -201,6 +285,12 @@ export class Presence {
 
     this.cors(res, origin)
     const ip = this.clientIp(req)
+
+    if (isRequest) {
+      this.handleRequest(req, res, ip)
+      return
+    }
+
     let body = ''
     let tooBig = false
     req.on('data', (chunk: Buffer) => {
@@ -236,9 +326,16 @@ export class Presence {
   }
 
   async start(): Promise<void> {
-    if (this.cfg.forceActive) {
+    // FORCE_ACTIVE fakes the visitor count, so the collector has nothing to do —
+    // unless requests are on, in which case the server is also the request desk
+    // and must still listen. (Without this, REQUESTS_ENABLED + FORCE_ACTIVE is a
+    // silently dead endpoint, which is exactly the combination a test run uses.)
+    if (this.cfg.forceActive && !this.queue) {
       console.log('[presence] FORCE_ACTIVE set — heartbeat collector NOT started (always treats 1 visitor present)')
       return
+    }
+    if (this.cfg.forceActive) {
+      console.log('[presence] FORCE_ACTIVE set — beats ignored, but listening for requests')
     }
     if (this.cfg.presenceAllowOrigins.includes('*')) {
       console.warn('[presence] PRESENCE_ALLOW_ORIGIN=* — origin check DISABLED; any page on the web can make robodj spend')

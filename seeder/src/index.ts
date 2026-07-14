@@ -12,6 +12,8 @@ import { Presence } from './presence.js'
 import { JamHand } from './jam.js'
 import { Loopbot } from './loopbot.js'
 import { Watchdog } from './notify.js'
+import { Brain } from './brain.js'
+import { RequestQueue } from './requests.js'
 
 async function main(): Promise<void> {
   const cfg = loadConfig()
@@ -31,15 +33,24 @@ async function main(): Promise<void> {
   const stopGrid = grid.watch()
   console.log(`[seeder] grid       synced @ loop ${grid.currentLoop()} (${grid.freeCells().length} free cells)`)
 
-  const presence = new Presence(cfg)
+  // Requests are off unless asked for. When on, the presence collector grows two
+  // routes (GET /repertoire, POST /request) behind the origin gate it already has.
+  const queue = cfg.requestsEnabled ? new RequestQueue(cfg) : undefined
+  const presence = new Presence(cfg, queue)
   await presence.start()
+
+  // The brain: loopgen in-process, or every groove rendered by `build_loop` on
+  // the MCP server when MCP_URL is set — which makes that call the one chokepoint
+  // every spend passes through, requests and idle pulse alike.
+  const brain = new Brain(cfg)
+  console.log(`[seeder] brain      ${brain.remote ? `MCP ${cfg.mcpUrl} (fails closed)` : 'local loopgen'}`)
 
   // Restart if a tick stalls for >4 control periods (mirrors the spec's 30s
   // WatchdogSec at the default 3s tick). Independent of the control loop.
   const watchdog = new Watchdog(Math.max(30_000, cfg.tickMs * 10))
   watchdog.start()
 
-  const bot = new Loopbot(cfg, grid, presence, jam, watchdog)
+  const bot = new Loopbot(cfg, grid, presence, jam, watchdog, brain, queue)
   bot.start()
   console.log(`[seeder] control    ticking every ${cfg.tickMs}ms`)
   console.log('[seeder] ready')
@@ -50,6 +61,7 @@ async function main(): Promise<void> {
     bot.stop()
     stopGrid()
     await presence.stop()
+    await brain.close()
     process.exit(0)
   }
   process.on('SIGTERM', () => void shutdown('SIGTERM'))

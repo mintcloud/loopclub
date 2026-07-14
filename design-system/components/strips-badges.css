@@ -162,3 +162,27 @@
   font-size: 11px;
   padding: 0.35rem 0.75rem;
 }
+
+/* ── Request strip — ask robodj for something off its repertoire. The chips are
+   its rotation, verbatim: you pick a loop it already knows rather than describing
+   one, which is what keeps a request from carrying a spec (and therefore a cost)
+   of its own. Asking is free — robodj pays the rent. */
+.request-strip {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  font-family: var(--font-body); font-size: 11px;
+  min-height: 1.6rem;
+  margin-top: 0.35rem;
+}
+.request-chip {
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+.request-chip:hover:not(:disabled) { border-color: var(--accent); }
+.request-chip:disabled { cursor: default; opacity: 0.55; }
+.request-chip.pending { border-color: var(--accent); opacity: 1; }
+.request-note {
+  color: var(--muted);
+  font-family: var(--font-tech); font-size: var(--fs-tech-small);
+  letter-spacing: var(--ls-tech); text-transform: uppercase;
+}
