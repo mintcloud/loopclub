@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mintcloud/loopclub",
+  "title": "loopclub — Jam with Claude",
+  "description": "Describe a beat, get a playable link to loopclub — the drum machine the internet plays together.",
+  "version": "0.1.0",
+  "websiteUrl": "https://loopclub.xyz",
+  "repository": {
+    "url": "https://github.com/mintcloud/loopclub",
+    "source": "github",
+    "subfolder": "mcp"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "loopclub-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LOOPCLUB_ORIGIN",
+          "description": "Origin baked into the ?jam= links the server emits. Defaults to the live app; point it at a preview deployment to test.",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "https://app.loopclub.xyz"
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.tg-itsavibe.com/mcp"
+    }
+  ]
+}
