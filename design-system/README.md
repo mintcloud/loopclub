@@ -53,6 +53,9 @@ design-system/
 - **Black stage** (`--bg: #020205`) so the chrome wordmark reflects.
 - **Liquid-chrome wordmark** is the brand mark. **Always the PNG, never a recreation.** Mood is Daft Punk *Discovery* — polished mercury, rainbow rim, slightly molten contours.
 - **Chrome surfaces** (`var(--chrome-surface-button)` + `background-blend-mode: var(--chrome-blend)`) for primary actions. Every chrome fill carries a raster liquid-metal texture over its gradient — a perfectly even vector gradient is the tell of machine-made chrome. Flat printed-legend text, dark band at ~75% so labels stay legible. Reads like a TR-808 pad / cassette deck button.
+- **Chrome discipline — chrome is a verb.** Silver means "pressing this touches the machine": the deck transport, the one money CTA in a given context, a modal's single primary. At most ONE chrome control per context. Status chips, tabs and navigation are NOT chrome — when everything is chrome, nothing is.
+- **The silkscreen pill** is the one quiet chip material: `--pill-bg` panel, `--pill-border` hairline, pill radius, Michroma legend. Sync badge, fast-mode, contributor chips, renew counts, role badges, the jam affordance — all the same chip, distinguished only by an LED dot or tinted legend.
+- **Semantic LED code** — a colour means ONE thing: violet `--accent` = you · mint `--go` = live/on-chain/contributor · gold `--owned` = ownership/money/expiring · red `--hot` = urgent · sky `--claude` = Claude. Track LEDs colour sound, never UI state. Banners share one graphite shell and are coded by their LED dot + hairline, never by a private tinted background.
 - **Prismatic rim is the signature.** The wordmark's oil-slick refraction rides every engaged/hover state: chrome button hover (`--rainbow-glow`), the active library tab, the playhead column (`--prism-halo`), the playing loop card. Violet `--accent` is demoted to one job: marking *your* cells.
 - **The grid is a faceplate, not flat cells on black.** `.grid-wrap` is a brushed-metal plate with corner screws; cells are its LED windows.
 - **Committed imperfections** (components/flair.css): film grain over the whole stage, one hand-placed glint on the faceplate, one rotated holo sticker in the header. Deliberate asymmetry — don't tidy them.
@@ -70,7 +73,7 @@ design-system/
 <link rel="stylesheet" href="design-system/index.css">
 <img class="wordmark" src="design-system/assets/loopclub-logo.png" alt="loop club">
 <button class="btn-chrome">✦ press · 1 USDm</button>
-<span class="chrome-pill">⚡ fast · 47m</span>
+<span class="chrome-pill">⚡ fast · 47m</span> <!-- silkscreen pill (legacy class name) -->
 ```
 
 ## Quick usage (from the loopclub `frontend/`)
@@ -91,9 +94,9 @@ import logoUrl from 'design-system/assets/loopclub-logo.png';
 | `.btn`                         | ghost / default / cancel                  |
 | `.btn-chrome`                  | primary CTA — silver chrome               |
 | `.btn-hot`                     | urgent CTA — LED red                      |
-| `.chrome-pill`                 | static chrome status chip                 |
-| `.sync-badge` + `.sync-dot`    | block-pulse heartbeat                     |
-| `.fastmode-btn` / `.fastmode-badge` | session-key fast mode (chrome chip)  |
+| `.chrome-pill`                 | silkscreen status pill (legacy name — no longer chrome) |
+| `.sync-badge` + `.sync-dot`    | block-pulse heartbeat (mint LED)          |
+| `.fastmode-btn` / `.fastmode-badge` | session-key fast mode (silkscreen pill; armed = mint) |
 | `.cell` + `.cell.on.<track>`   | LED grid cell                             |
 | `.cell.playing`                | white outline + prismatic halo on the current step |
 | `.cell.preview`                | dashed silver outline on hovered fills    |
@@ -105,7 +108,10 @@ import logoUrl from 'design-system/assets/loopclub-logo.png';
 | `.row-tools`                   | per-row fill popover (4·on·4 / euclid)    |
 | `.keyboard`                    | synth-row pitch picker (white/black keys) |
 | `.loop-card` + role variants   | library card (default / owned / contrib / playing) |
-| `.role-badge.owned/.contrib`   | NFT / contributor badge                   |
+| `.tab` / `.tab.active`         | library tabs — silkscreen pills; active = pressed graphite + prism rim |
+| `.role-badge.owned/.contrib`   | NFT / contributor badge (silkscreen pill, LED-tinted) |
+| `.card-actions` + `.nft-link`  | card chips — quiet silkscreen; the gold NFT chip is the card's one metal |
+| `.pb-back`                     | banner secondary nav — silkscreen pill (pair with `.btn`) |
 | `.contrib-strip` + `.contrib-chip` | per-wallet colour key under the grid   |
 | `.renew-strip` + `.rc.*`       | recent cells + one-click renew            |
 | `.deck-controls` + `.deck-btn` | header deck-pad tray (Play / Audition / Press) |
@@ -136,8 +142,12 @@ intent. Read those files directly when you need detail.
 /* Instrument LEDs */
 --kick --snare --hat --synth --clap --open-hat --cowbell --crash --ride
 
-/* Role / state */
---owned --contrib --danger --hot
+/* Role / state — the semantic LED code (one meaning per colour) */
+--accent (you) --go (live) --owned (ownership/money) --hot (urgent) --claude (jam)
+--contrib --danger --ok
+
+/* Silkscreen pill — the one quiet chip material */
+--pill-bg --pill-border
 
 /* Chrome system */
 --chrome-fill --chrome-fill-button --chrome-fill-pressed --chrome-border --chrome-shadow

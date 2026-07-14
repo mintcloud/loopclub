@@ -27,50 +27,36 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* Bare <button> fallback. The design system styles buttons as
-   classes (.btn / .btn-chrome / .btn-hot), but a number of app
-   buttons are still bare <button> elements (modal "close", card
-   "play"/"stop"/"share", playback "back to live jam"). This keeps
-   them on the ghost style they had before the migration. */
-button {
-  background: var(--panel-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  padding: 0.5rem 0.9rem;
-  border-radius: var(--r-md);
-  font-family: var(--font-body);
-  font-size: var(--fs-ui);
-  cursor: pointer;
-}
-button:hover { border-color: #7d8696; }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Bare <button> elements are covered by the design system's zero-specificity
+   :where(button) fallback (design-system/components/buttons.css) — the app
+   no longer carries a parallel copy. */
 
-/* ───── App shell ───── */
+/* ───── App shell — on the 4px scale ───── */
 .app {
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--space-5);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.75rem;
+  padding-bottom: var(--space-3);
 }
 .header .right {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
   flex-wrap: wrap;
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: var(--space-3);
 }
 .muted { color: var(--muted); font-size: 12px; }
 
@@ -107,22 +93,24 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   animation: fund-pulse 2.2s ease-in-out infinite;
 }
 /* Keep the chrome metal bevel (the same inset highlights as the deck pads /
-   .btn-chrome) and only pulse an orange ring ON TOP. Pulsing box-shadow alone
-   would overwrite the bevel and flatten the marbled surface to a plain pill. */
+   .btn-chrome) and only pulse a ring ON TOP. Pulsing box-shadow alone
+   would overwrite the bevel and flatten the marbled surface to a plain pill.
+   The ring is --owned gold — money wears the money colour, not a bespoke
+   orange (the old #FF6521 was a sixth accent nothing else used). */
 @keyframes fund-pulse {
   0%, 100% {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.55),
       inset 0 -1px 0 rgba(0, 0, 0, 0.4),
       0 2px 5px rgba(0, 0, 0, 0.55),
-      0 0 0 0 rgba(255, 101, 33, 0);
+      0 0 0 0 rgba(255, 194, 75, 0);
   }
   50% {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.55),
       inset 0 -1px 0 rgba(0, 0, 0, 0.4),
       0 2px 5px rgba(0, 0, 0, 0.55),
-      0 0 0 4px rgba(255, 101, 33, 0.18);
+      0 0 0 4px rgba(255, 194, 75, 0.22);
   }
 }
 .fund-balances {
@@ -131,13 +119,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   margin: 0.2rem 0 0.7rem;
 }
 .fund-bal {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono); /* true readout — never the raw coder stack */
   font-size: 12px;
   padding: 0.18rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md, 8px);
-  background: var(--panel-2);
+  border: 1px solid var(--pill-border);
+  border-radius: var(--r-pill);
+  background: var(--pill-bg);
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 .fund-bridge {
   margin: 0.9rem 0;
@@ -146,7 +135,18 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border-radius: var(--r-md, 8px);
   background: var(--panel-2);
 }
-.fund-bridge h4 { margin: 0 0 0.3rem; font-size: 13px; }
+/* Modal sub-headings speak the instrument voice — Michroma silkscreen,
+   matching the design system's .modal h3. Gilroy 13px here was the old
+   default-web voice creeping back. */
+.fund-bridge h4 {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-tech);
+  font-size: var(--fs-tech-small);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
+  color: var(--text);
+}
 .fund-bridge-links {
   display: flex;
   align-items: center;
@@ -161,7 +161,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border-bottom: 1px dotted var(--border);
 }
 .fund-docs-link:hover { color: var(--text); }
-.fund-deposit-h { margin: 0.9rem 0 0.3rem; font-size: 13px; }
+.fund-deposit-h {
+  margin: 0.9rem 0 0.3rem;
+  font-family: var(--font-tech);
+  font-size: var(--fs-tech-small);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-tech);
+  color: var(--text);
+}
 
 /* ───── Withdraw modal — select-asset → recipient → amount, then send.
    .modal label/input/select base styles already apply; these add the
@@ -177,7 +185,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   font-size: 11px;
 }
 .withdraw-input { width: 100%; box-sizing: border-box; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.mono { font-family: var(--font-mono); }
 .withdraw-amount-row {
   display: flex;
   gap: 0.4rem;
@@ -191,8 +199,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   word-break: break-word;
 }
 .withdraw-status.err { color: var(--danger); }
-.withdraw-status.ok { color: var(--ok, #6ee7a8); }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.withdraw-status.ok { color: var(--ok); }
 
 /* "Connecting" sync state — the design system always pulses .sync-dot;
    this dims it instead while we have no block yet. */
@@ -269,7 +276,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono); /* address = true readout */
   font-size: 12px;
 }
 .claimed-dot {
@@ -339,23 +346,23 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   pointer-events: none;
 }
 
-/* Jam banner — same shell as the playback banner, tinted toward the loopclub
- * blue/teal so a Claude-jammed loop reads distinctly from a loop playback. */
+/* ───── Banner discipline ─────
+ * ONE banner shell — the playback banner's brushed graphite band (design
+ * system). Feature identity comes from the status LED dot + a coloured
+ * hairline, never from a private tinted background. The old green connect
+ * gradient and blue-teal jam gradient were two more accents in an app that
+ * already had a full LED palette — tint soup. LED code:
+ *   mint = live/on-chain · sky = Claude · red = hot · gold = quiet.
+ * The prismatic rim stays exclusive to the playback banner (prism = playing,
+ * same grammar as .loop-card.playing and the playhead). */
 .jam-banner {
-  background: linear-gradient(90deg, rgba(92, 182, 255, .18), rgba(100, 220, 200, .16));
+  border-color: rgba(92, 182, 255, .3);   /* sky hairline — Claude's lamp */
+  box-shadow: none;
 }
-
-/* ───── "Connect first" nudge (shipping sequence Part 1).
- * Built on the playback-banner shell but stripped back: no headline, no button
- * (the header's own connect pill is the single connect affordance), no brushed
- * faceplate. Just the liveness line + one sentence of copy. A near-transparent
- * panel with a thin green rim — the same soft-green identity as the live dot,
- * so the nudge sits lightly over the grid instead of competing with it. ───── */
 .connect-banner {
-  position: relative;
-  background: linear-gradient(180deg, rgba(60, 200, 140, .12) 0%, rgba(60, 200, 140, .02) 100%);
-  border: 1px solid rgba(60, 200, 140, .35);
-  box-shadow: 0 0 16px rgba(60, 200, 140, .10);
+  position: relative;                      /* the dismiss ✕ is absolute — keep its containing block */
+  border-color: rgba(92, 255, 198, .28);  /* mint hairline — live on chain */
+  box-shadow: none;
 }
 /* Keep the liveness line clear of the corner ✕ at every width. */
 .connect-banner .pb-status { padding-right: 1.6rem; }
@@ -385,23 +392,28 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3ce08c;
-  box-shadow: 0 0 7px rgba(60, 224, 140, .85);
+  background: var(--go);   /* the same "live" mint lamp as the sync badge */
+  box-shadow: 0 0 7px rgba(92, 255, 198, .8);
   animation: connectLivePulse 1.6s ease-in-out infinite;
 }
 /* "Grab this loop before it gets hot" → red dot, still pulsing: the playback
-   CTA reuses the connect-nudge pill format, swapping the green liveness dot for
-   a hot-red one so the bonding-curve urgency reads at a glance. */
+   CTA reuses the connect-nudge pill format, swapping the mint liveness dot for
+   the hot lamp so the bonding-curve urgency reads at a glance. */
 .connect-live.hot .connect-live-dot {
-  background: #ff6b4a;
-  box-shadow: 0 0 7px rgba(255, 107, 74, .85);
+  background: var(--hot);
+  box-shadow: 0 0 7px rgba(255, 45, 31, .8);
 }
-/* Empty grid → amber, no pulse: an honest "quiet" state, not a fake heartbeat. */
+/* Empty grid → gold, no pulse: an honest "quiet" state, not a fake heartbeat. */
 .connect-live.quiet { color: var(--muted); }
 .connect-live.quiet .connect-live-dot {
-  background: var(--owned, #ffc24b);
+  background: var(--owned);
   box-shadow: 0 0 6px rgba(255, 194, 75, .6);
   animation: none;
+}
+/* Claude's lamp — sky, for the jam banner's liveness pill if/when it carries one. */
+.jam-banner .connect-live-dot {
+  background: var(--claude);
+  box-shadow: 0 0 7px rgba(92, 182, 255, .8);
 }
 @keyframes connectLivePulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -427,23 +439,24 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .connect-dismiss:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
 
-/* "Jam with Claude" header affordance — a quiet pill next to the wordmark, the
- * blue/teal jam tint so it reads as the same feature as the jam banner. */
+/* "Jam with Claude" header affordance — the standard silkscreen pill with
+ * Claude's sky hairline, tying it to the jam banner through the LED code
+ * (not a private gradient). */
 .jam-claude-btn {
-  background: linear-gradient(90deg, rgba(92, 182, 255, .14), rgba(100, 220, 200, .12));
+  background: var(--pill-bg);
   color: var(--text);
-  border: 1px solid #3a4150;
-  border-radius: 999px;
-  padding: 0.24rem 0.55rem;
+  border: 1px solid rgba(92, 182, 255, .35);
+  border-radius: var(--r-pill);
+  padding: 0.24rem 0.6rem;
   font-family: var(--font-tech);
-  font-size: 9px;
+  font-size: var(--fs-tech-small);
   text-transform: uppercase;
   letter-spacing: var(--ls-tech);
   cursor: pointer;
   white-space: nowrap;
-  transition: filter 0.1s ease, transform 0.06s ease;
+  transition: border-color 0.1s ease, transform 0.06s ease;
 }
-.jam-claude-btn:hover  { filter: brightness(1.12); }
+.jam-claude-btn:hover  { border-color: rgba(92, 182, 255, .7); }
 .jam-claude-btn:active { transform: translateY(1px); }
 @media (max-width: 720px) {
   /* Drop the label to its glyph on phones so the header doesn't wrap badly. */
@@ -565,12 +578,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   /* Full-width, but the DS sets white-space: nowrap which lets a long label
      (✦ Press Edition #N · price USDm) spill past the button on narrow phones.
      Scale the label down with the viewport and allow it to wrap as a final
-     safety net so it can never overflow. */
+     safety net so it can never overflow. When it DOES wrap, the second line
+     lands in the button gradient's dark band and drowns — so on phones the
+     press CTA wears the chip chrome (midline-safe, never darker than mid
+     silver) instead of the full-contrast button gradient. Legend ink stays
+     printed at every line count. */
   .pb-press {
     width: 100%;
     white-space: normal;
     font-size: clamp(11px, 3.4vw, 13px);
     line-height: 1.3;
+  }
+  /* (Scoped to the silver variant — .btn-hot's white-on-red ink survives its
+     own gradient at any line count.) */
+  .btn-chrome.pb-press {
+    background: var(--chrome-surface-chip);
+    background-blend-mode: var(--chrome-blend);
   }
 }
 
@@ -759,26 +782,26 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .tier-row.tier-toggle:hover:not(.disabled) { border-color: #7d8696; }
 .tier-row.tier-max:hover:not(.disabled) {
-  border-color: var(--hot, #ff7849);
-  background: rgba(255, 120, 73, 0.08);
+  border-color: var(--hot);
+  background: rgba(255, 45, 31, 0.07);
 }
 .tier-row.tier-try:hover:not(.disabled) {
-  border-color: rgba(120, 220, 160, 0.5);
+  border-color: rgba(92, 255, 198, 0.45); /* --go mint — try is free/live */
 }
 
-/* 1-click 'try' flash: a brief mint-green pulse on the cell when the
-   user previews a sound without renting. NB: the cell must stay
-   interactive through the flash — pointer-events:none here would
-   swallow follow-up clicks in a 2/3-click gesture (and block the
-   mouseenter/mousemove that arms the hover popover). */
+/* 1-click 'try' flash: a brief mint pulse (--go, the same lamp as every
+   other "live/free" state) on the cell when the user previews a sound
+   without renting. NB: the cell must stay interactive through the flash —
+   pointer-events:none here would swallow follow-up clicks in a 2/3-click
+   gesture (and block the mouseenter/mousemove that arms the hover popover). */
 .cell.auditioning {
   animation: auditionFlash 0.55s ease-out;
   z-index: 2;
 }
 @keyframes auditionFlash {
-  0%   { box-shadow: 0 0 0 0 rgba(120, 220, 160, 0.0); }
-  20%  { box-shadow: 0 0 0 4px rgba(120, 220, 160, 0.55); background: rgba(120, 220, 160, 0.22); }
-  100% { box-shadow: 0 0 0 0 rgba(120, 220, 160, 0.0); }
+  0%   { box-shadow: 0 0 0 0 rgba(92, 255, 198, 0.0); }
+  20%  { box-shadow: 0 0 0 4px rgba(92, 255, 198, 0.5); background: rgba(92, 255, 198, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(92, 255, 198, 0.0); }
 }
 
 /* The design system only styles the arrow for the "above" placement.

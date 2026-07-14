@@ -148,8 +148,9 @@ Run `npm run dev` and verify:
 - Header shows the chrome wordmark (not text)
 - Background is pure black (not navy)
 - Primary buttons look like silver metal — bright top, dark trough in the lower third, flat label
+- Chrome appears at most ONCE per context (the deck transport, the money CTA, a modal's primary) — tabs, chips and badges must NOT be chrome
 - Grid cells: off cells look recessed (subtle inner shadow); on cells halate in their track colour
-- Sync badge / fast mode pill / role badges look like silver chrome chips
+- Sync badge / fast mode pill / role badges are quiet silkscreen pills (dark hairline chips with LED dots/tints), NOT silver chrome — see the chip vocabulary in components/strips-badges.css
 - Body font is Space Mono (rounder than the previous JetBrains)
 - Track labels show a `⋯` glyph on hover (row-tools affordance)
 

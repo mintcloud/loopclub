@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>loopclub — design system gallery</title>
+<link rel="stylesheet" href="index.css">
+<!-- The frontend's own app-level overrides, loaded AFTER the design system in
+     the exact order main.tsx uses — so this gallery mirrors the real cascade
+     (banners, jam tints, tier rows, fund pulse all live in this file). -->
+<link rel="stylesheet" href="../frontend/src/index.css">
+<style>
+  /* Gallery chrome only — deliberately neutral so it never competes with the
+     system under review. NOT part of the design system. */
+  .gx-wrap { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+  .gx-title { font-family: var(--font-tech); text-transform: uppercase; letter-spacing: .14em;
+    font-size: 12px; color: var(--muted); margin: 0 0 .4rem; }
+  .gx-sec { margin: 2.6rem 0 0; }
+  .gx-sec > h3 { font-family: var(--font-tech); text-transform: uppercase; letter-spacing: .1em;
+    font-size: 10px; color: #6b6b86; border-bottom: 1px solid var(--border); padding-bottom: .4rem; margin: 0 0 1rem; }
+  .gx-row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: .8rem; }
+  .gx-stage { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; }
+  .gx-note { font-family: var(--font-mono); font-size: 10px; color: #55556e; margin: .2rem 0 .8rem; }
+</style>
+</head>
+<body>
+<div class="gx-wrap">
+  <p class="gx-title">loopclub design system — kitchen sink</p>
+  <div class="gx-note">every component on one stage · rendered from the real design-system CSS</div>
+
+  <!-- ───────── HEADER ───────── -->
+  <section class="gx-sec">
+    <h3>header · wordmark · deck · account</h3>
+    <div class="gx-stage">
+      <div class="header" style="border-bottom:1px solid var(--border)">
+        <div class="header-left">
+          <a class="wordmark-link"><img class="wordmark" src="assets/loopclub-logo.png" alt="loop club"></a>
+          <span class="holo-sticker">on-chain ✦ megaeth</span>
+          <button class="jam-claude-btn">✦ jam with claude</button>
+        </div>
+        <div class="right">
+          <div class="deck-controls">
+            <button class="deck-btn"><span class="deck-label">▶ play</span></button>
+            <button class="deck-btn active"><span class="deck-label">◼ stop</span></button>
+            <button class="deck-btn"><span class="deck-label">✦ press</span></button>
+          </div>
+          <span class="fastmode-badge">⚡ fast · 47m</span>
+          <div class="account-group">
+            <span class="balance">0x8f…2c1 · <span class="balance-funds">12.40 USDm</span></span>
+            <button class="btn wallet-btn">▾</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── GRID FACEPLATE ───────── -->
+  <section class="gx-sec">
+    <h3>grid faceplate · LED cells</h3>
+    <div class="gx-stage">
+      <div class="grid-wrap">
+        <div class="grid" id="gx-grid"></div>
+      </div>
+      <div class="grid-status" style="margin-top:.7rem">
+        <div class="contrib-strip">
+          <span class="contrib-label">on the grid</span>
+          <div class="contrib-list">
+            <span class="contrib-chip mine"><span class="contrib-dot" style="background:var(--accent)"></span>you<span class="contrib-count">6</span></span>
+            <span class="contrib-chip"><span class="contrib-dot" style="background:var(--kick)"></span>0x3a…f1<span class="contrib-count">3</span></span>
+            <span class="contrib-chip"><span class="contrib-dot" style="background:var(--synth)"></span>0x9c…04<span class="contrib-count">2</span></span>
+          </div>
+        </div>
+        <span class="sync-badge"><span class="sync-dot"></span>block 17,085,145</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── BANNERS ───────── -->
+  <section class="gx-sec">
+    <h3>banners</h3>
+    <div class="gx-stage" style="display:flex;flex-direction:column;gap:.9rem">
+      <div class="playback-banner">
+        <div class="pb-status">
+          <span><strong>edition #14</strong> — playing this loop</span>
+          <button class="btn pb-back">↩ back to live jam</button>
+        </div>
+        <div class="pb-cta">
+          <div class="pb-cta-copy">
+            <span class="pb-headline">grab this loop before it gets hot</span>
+            <span class="pb-sub">bonding curve · next edition 3.20 USDm</span>
+          </div>
+          <button class="btn-chrome pb-press">✦ press edition #15 · 3.20 USDm</button>
+        </div>
+      </div>
+      <div class="playback-banner connect-banner">
+        <div class="pb-status">
+          <span class="connect-live"><span class="connect-live-dot"></span>11 cells live on chain</span>
+        </div>
+        <p class="connect-sub">connect a wallet to record your first cell — it costs a fraction of a cent on megaeth.</p>
+      </div>
+      <div class="playback-banner jam-banner">
+        <div class="pb-status">
+          <span class="connect-live"><span class="connect-live-dot"></span>claude jammed 4 cells into this loop</span>
+        </div>
+        <p class="connect-sub">a proposed pattern from claude — press to keep it, or clear and start your own.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── BUTTONS + CHIPS ───────── -->
+  <section class="gx-sec">
+    <h3>buttons · pills · badges</h3>
+    <div class="gx-stage">
+      <div class="gx-row">
+        <button class="btn">ghost / cancel</button>
+        <button class="btn-chrome">✦ press · 1 USDm</button>
+        <button class="btn-hot">✦ press now</button>
+        <button class="btn-chrome connect-btn">connect</button>
+        <button class="btn-chrome fund-btn">fund</button>
+      </div>
+      <div class="gx-row">
+        <span class="chrome-pill">⚡ fast · 47m</span>
+        <button class="fastmode-btn">⚡ arm fast mode</button>
+        <span class="sync-badge"><span class="sync-dot"></span>block 17,085,145</span>
+        <span class="role-badge owned">owned</span>
+        <span class="role-badge contrib">contributor</span>
+      </div>
+      <div class="gx-row">
+        <span class="rc live">6 live</span>
+        <span class="rc expiring">2 expiring</span>
+        <span class="rc expired">1 expired</span>
+        <span class="rc taken">1 taken</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── LIBRARY CARDS ───────── -->
+  <section class="gx-sec">
+    <h3>library · loop cards</h3>
+    <div class="gx-stage">
+      <div class="library" style="border-top:none;padding-top:0">
+        <div class="library-header">
+          <h2>library</h2>
+          <div class="tabs">
+            <button class="tab active">recent</button>
+            <button class="tab">most collab</button>
+            <button class="tab">my loops</button>
+          </div>
+        </div>
+        <div class="library-grid" id="gx-cards"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── POPOVERS ───────── -->
+  <section class="gx-sec">
+    <h3>popovers</h3>
+    <div class="gx-stage" style="display:flex;gap:1.4rem;flex-wrap:wrap;align-items:flex-start">
+      <div class="cell-popover above" style="position:relative">
+        <div class="popover-head">
+          <span class="popover-title">kick · step 5</span>
+          <button class="popover-x">✕</button>
+        </div>
+        <div class="tier-list">
+          <button class="tier-row tier-try"><div class="tier-main"><span class="tier-label">try it</span><span class="tier-sub muted">hear it — no rent</span></div><div class="tier-gesture"><span class="tier-gesture-text">1 click</span></div></button>
+          <button class="tier-row tier-toggle"><div class="tier-main"><span class="tier-label">record · 1h</span><span class="tier-sub muted">0.004 USDm</span></div><div class="tier-gesture"><span class="tier-gesture-text">2 click</span></div></button>
+          <button class="tier-row tier-max"><div class="tier-main"><span class="tier-label">max rent · 24h</span><span class="tier-sub muted">0.09 USDm</span></div><div class="tier-gesture"><span class="tier-gesture-text">3 click</span></div></button>
+        </div>
+      </div>
+      <div class="row-tools" style="position:relative">
+        <span class="popover-title">fill · snare row</span>
+        <div class="row-tools-grid">
+          <button><span class="rt-label">4 · on · 4</span><span class="rt-cost">0.02 USDm</span></button>
+          <button><span class="rt-label">offbeat</span><span class="rt-cost">0.02 USDm</span></button>
+          <button><span class="rt-label">8ths</span><span class="rt-cost">0.03 USDm</span></button>
+          <button><span class="rt-label">full</span><span class="rt-cost">0.06 USDm</span></button>
+        </div>
+        <div class="row-tools-euclid">
+          <span class="muted">euclid</span>
+          <div class="popover-duration"><input value="5"></div>
+          <button>fill</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── MODAL ───────── -->
+  <section class="gx-sec">
+    <h3>modal · share</h3>
+    <div class="gx-stage">
+      <div class="modal" style="position:relative;margin:0">
+        <h3>share this loop</h3>
+        <p>anyone with the link can hear it and jam on the live grid.</p>
+        <div class="share-url"><input value="https://app.loopclub.xyz/?loop=14" readonly><button class="btn-chrome">copy</button></div>
+        <!-- One chrome per context: Copy is this modal's primary; everything else is quiet. -->
+        <div class="row"><button class="btn">close</button><button class="btn">↗ open on 𝕏</button></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ── Build a representative lit grid (9 tracks × 16 steps). ──
+  const TRACKS = ['kick','snare','hat','synth','clap','open-hat','cowbell','crash','ride'];
+  const PATTERNS = {
+    kick:     [0,4,8,12], snare: [4,12], hat: [2,6,10,14], synth: [0,3,7,10,14],
+    clap:     [8], 'open-hat':[6,14], cowbell:[5], crash:[0], ride:[2,6,10,14],
+  };
+  const OWNER = { kick:'other', snare:'mine', hat:'', synth:'mine', clap:'', 'open-hat':'', cowbell:'', crash:'', ride:'' };
+  const grid = document.getElementById('gx-grid');
+  // step-number header row
+  const corner = document.createElement('div'); corner.className='label'; grid.appendChild(corner);
+  for (let s=0;s<16;s++){ const n=document.createElement('div'); n.className='step-num'+(s%4===0?' downbeat':'')+(s===4?' playing':''); n.textContent=s+1; grid.appendChild(n); }
+  for (const t of TRACKS){
+    const label=document.createElement('div'); label.className='label track-tools';
+    label.innerHTML='<span class="track-dot '+t+'"></span>'+t.replace('-',' ');
+    grid.appendChild(label);
+    for (let s=0;s<16;s++){
+      const c=document.createElement('div');
+      const on=PATTERNS[t].includes(s);
+      c.className='cell'+(s%4===0?' beat-1':'')+(on?' on '+t+(OWNER[t]?' '+OWNER[t]:''):'')+(s===4?' playing':'');
+      grid.appendChild(c);
+    }
+  }
+
+  // ── Loop cards, one per role variant. ──
+  function miniGrid(seed){
+    const tr=['kick','snare','hat','synth'];
+    let h='<div class="mini-grid">';
+    for(const t of tr){ h+='<div class="mini-row">';
+      for(let s=0;s<16;s++){ const on=((s*7+seed+t.length)%5===0); h+='<div class="mini-cell'+(s%4===0?' beat-1':'')+(on?' on '+t:'')+'"></div>'; }
+      h+='</div>'; }
+    return h+'</div>';
+  }
+  const CARDS=[
+    {id:14, cls:'', owner:'0x3a…f1', badges:''},
+    {id:12, cls:'role-owned', owner:'you', badges:'<span class="role-badge owned">owned</span>'},
+    {id:9,  cls:'role-contrib', owner:'0x9c…04', badges:'<span class="role-badge contrib">contributor</span>'},
+    {id:7,  cls:'playing', owner:'0x11…aa', badges:''},
+  ];
+  document.getElementById('gx-cards').innerHTML = CARDS.map(c=>`
+    <div class="loop-card ${c.cls}">
+      <div class="loop-card-head"><span class="token-id">edition #${c.id}</span><span class="owner">${c.owner}</span></div>
+      ${miniGrid(c.id)}
+      <div class="role-badges">${c.badges}</div>
+      <div class="loop-card-foot">
+        <div class="card-actions">
+          <button>▶ play</button>
+          ${c.cls==='role-owned'?'<a class="nft-link">✦ see edition nft</a>':''}
+          <button>↗ share</button>
+        </div>
+      </div>
+    </div>`).join('');
+</script>
+</body>
+</html>

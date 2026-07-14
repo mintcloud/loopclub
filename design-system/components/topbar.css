@@ -167,8 +167,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.03);
-  border-color: #3a4150;
+  background: var(--pill-bg);
+  border-color: var(--pill-border);
   border-radius: var(--r-pill);
   /* The ▾ triangle only fills ~half its em box — 16px here lands it at a
      legible size inside the 24px pill, where 10px read as a speck. */

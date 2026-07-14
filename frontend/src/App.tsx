@@ -1105,7 +1105,7 @@ export function App() {
               {playback.holders.length} contributor{playback.holders.length === 1 ? '' : 's'} ·{' '}
               {playback.nextEdition - 1} edition{playback.nextEdition - 1 === 1 ? '' : 's'} pressed
             </span>
-            <button className="btn-chrome pb-back" onClick={exitPlayback}>◼ back to live jam</button>
+            <button className="btn pb-back" onClick={exitPlayback}>◼ back to live jam</button>
           </div>
           {/* Same format as the first-load connect nudge: liveness pill + one
               full-contrast sentence, so the two banners read as one family. */}
@@ -1155,7 +1155,7 @@ export function App() {
               <strong>{jamFree.length}</strong> of {jamCells.length} cell
               {jamCells.length === 1 ? '' : 's'} free right now
             </span>
-            <button className="btn-chrome pb-back" onClick={exitJam}>◼ back to live jam</button>
+            <button className="btn pb-back" onClick={exitJam}>◼ back to live jam</button>
           </div>
           <div className="pb-cta">
             <div className="pb-cta-copy">
