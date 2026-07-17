@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { config } from './config'
 import { presenceSessionId } from './usePresence'
+import { track } from './analytics'
 
 // Ask robodj for something. The strip renders the bot's repertoire as chips —
 // the same rotation it plays from — and a click puts that groove at the front of
@@ -50,6 +51,7 @@ export function RequestStrip() {
   const request = async (groove: string) => {
     if (pending) return
     setPending(groove)
+    track('robodj_requested', { groove })
     try {
       const res = await fetch(`${url}/request`, {
         method: 'POST',

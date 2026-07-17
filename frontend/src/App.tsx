@@ -29,6 +29,7 @@ import { useWallet, type Call } from './wallet'
 import { fromLink, litCells, synthPitches, LinkError } from 'loopclub-loopgen'
 import type { ClickPhase } from './useClickTier'
 import { startAudio, stopAudio, setLiveState, setSnapshot, onStep, previewCell } from './audio'
+import { track, identifyWallet, resetAnalytics } from './analytics'
 
 // The live grid streams from chain events; only wallet/price state is polled.
 const WALLET_POLL_MS = 5000
@@ -43,6 +44,18 @@ export function App() {
   // `Call` (a single batched call) is re-exported from ./wallet.
   const wallet = useWallet()
   const { ready, authenticated, login, logout } = wallet
+
+  // `location` names the funnel entry point (header connect, the "press"
+  // banner, the "rent" banner) so drop-off by surface is visible in PostHog.
+  const handleLogin = (location: string) => {
+    track('wallet_connect_started', { location })
+    login()
+  }
+  const handleLogout = () => {
+    track('wallet_disconnected')
+    resetAnalytics()
+    logout()
+  }
 
   const grid = useLiveGrid()
 
@@ -214,6 +227,15 @@ export function App() {
   // the loaded flag so the pre-flight guards wait for a fresh read.
   useEffect(() => {
     setBalanceLoaded(false)
+  }, [smartAddress])
+
+  // Fires once per resolved wallet address — ties the rest of the session's
+  // events to a PostHog person and marks the activation moment (connect
+  // started → wallet actually usable) for the funnel.
+  useEffect(() => {
+    if (!smartAddress) return
+    identifyWallet(smartAddress)
+    track('wallet_connected', { address: smartAddress })
   }, [smartAddress])
 
   // Feed the audio engine the live grid whenever it changes (unless replaying a
@@ -439,6 +461,7 @@ export function App() {
     }
 
     setOpenCell(null)
+    track('cell_rent_attempted', { cellId, durationLoops, cost: formatUnits(cost, 18) })
     // Optimistic paint is owned by handleCellTier (so a double-click can pulse
     // purple ~420ms before this commit fires); only paint here if the caller
     // hasn't already lit the cell — e.g. an explicit popover-button click.
@@ -490,6 +513,7 @@ export function App() {
         : wallet.sendCalls(calls)
     submit
       .then(async (txHash) => {
+        track('cell_rented', { cellId, durationLoops, cost: formatUnits(cost, 18) })
         try {
           await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
         } catch {
@@ -499,6 +523,7 @@ export function App() {
         void refreshWallet()
       })
       .catch((e: unknown) => {
+        track('cell_rent_failed', { cellId, reason: (e as Error).message })
         flash((e as Error).message ?? 'rent failed', true)
         // Roll the optimistic cell back to on-chain truth.
         void grid.refreshCell(cellId)
@@ -537,6 +562,12 @@ export function App() {
     for (const id of cellIds) grid.applyOptimistic(id, smartAddress, duration, pitchOf(id))
     remember(cellIds)
     flash(`${verb} ${cellIds.length} cell${cellIds.length === 1 ? '' : 's'}…`)
+    track('cell_rent_batch_attempted', {
+      verb,
+      cellCount: cellIds.length,
+      duration,
+      cost: formatUnits(cost, 18),
+    })
 
     const actions: Call[] = cellIds.map((id) => ({
       to: config.loopclubAddress,
@@ -578,10 +609,12 @@ export function App() {
         : fast
           ? session.sendBatch(calls).catch(() => wallet.sendCalls(calls))
           : wallet.sendCalls(calls))
+      track('cell_rent_batch_completed', { verb, cellCount: cellIds.length, duration })
       await publicClient
         .waitForTransactionReceipt({ hash: txHash as `0x${string}` })
         .catch(() => {})
     } catch (e: unknown) {
+      track('cell_rent_batch_failed', { verb, cellCount: cellIds.length, reason: (e as Error).message })
       flash((e as Error).message ?? `${verb.toLowerCase()} failed`, true)
     } finally {
       // Reconcile every touched cell against on-chain truth (confirm or roll back).
@@ -618,6 +651,7 @@ export function App() {
     }
     try {
       setBusy('Pressing Edition 001…')
+      track('loop_record_attempted', { price: formatUnits(basePrice, 18) })
       const calls = withApproval(basePrice, {
         to: config.loopclubAddress,
         data: encodeFunctionData({ abi: loopclubAbi, functionName: 'record', args: [] }),
@@ -657,11 +691,13 @@ export function App() {
       }
 
       setBusy(null)
+      track('loop_recorded', { seriesId: newSeriesId?.toString() })
       if (newSeriesId !== null) setShareSeriesId(newSeriesId)
       else flash('Recorded!')
       setLibraryRefresh((n) => n + 1)
       refreshWallet()
     } catch (e: unknown) {
+      track('loop_record_failed', { reason: (e as Error).message })
       flash((e as Error).message ?? 'record failed', true)
     }
   }
@@ -729,6 +765,11 @@ export function App() {
     try {
       setPressingSeriesId(record.seriesId)
       setBusy(`Pressing Edition ${fmtEdition(record.nextEdition)}…`)
+      track('edition_press_attempted', {
+        seriesId: record.seriesId.toString(),
+        edition: record.nextEdition,
+        price: formatUnits(record.nextPressPrice, 18),
+      })
       const calls = withApproval(record.nextPressPrice, {
         to: config.loopclubAddress,
         data: encodeFunctionData({
@@ -748,6 +789,11 @@ export function App() {
         : fast
           ? session.send(calls[0]).catch(() => wallet.sendCalls(calls))
           : wallet.sendCalls(calls))
+      track('edition_pressed', {
+        seriesId: record.seriesId.toString(),
+        edition: record.nextEdition,
+        price: formatUnits(record.nextPressPrice, 18),
+      })
       flash(`Pressed Edition ${fmtEdition(record.nextEdition)} of Loop #${record.seriesId}`)
       if (playbackRef.current?.seriesId === record.seriesId) {
         void refreshPlayback(record.seriesId)
@@ -755,6 +801,7 @@ export function App() {
       setLibraryRefresh((n) => n + 1)
       refreshWallet()
     } catch (e: unknown) {
+      track('edition_press_failed', { seriesId: record.seriesId.toString(), reason: (e as Error).message })
       flash((e as Error).message ?? 'press failed', true)
     } finally {
       setPressingSeriesId(null)
@@ -1031,7 +1078,7 @@ export function App() {
             )}
           </div>
           {!ready ? null : !authenticated ? (
-            <button className="btn-chrome connect-btn" onClick={login}>
+            <button className="btn-chrome connect-btn" onClick={() => handleLogin('header')}>
               Connect
             </button>
           ) : (
@@ -1122,7 +1169,7 @@ export function App() {
               </p>
             </div>
             {!authenticated ? (
-              <button className="btn-chrome pb-press" onClick={login}>
+              <button className="btn-chrome pb-press" onClick={() => handleLogin('press_banner')}>
                 Connect to press
               </button>
             ) : (
@@ -1178,7 +1225,7 @@ export function App() {
               </label>
             </div>
             {!authenticated ? (
-              <button className="btn-chrome pb-press" onClick={login}>
+              <button className="btn-chrome pb-press" onClick={() => handleLogin('rent_banner')}>
                 Connect to rent
               </button>
             ) : (
@@ -1319,7 +1366,7 @@ export function App() {
           }}
           onDisconnect={() => {
             setShowFund(false)
-            logout()
+            handleLogout()
           }}
         />
       )}

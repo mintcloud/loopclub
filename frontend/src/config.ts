@@ -86,6 +86,13 @@ export const config = {
   // is on the site and jams the grid live. Unset → no heartbeat (the hook is a
   // no-op), which is the correct default until the seeder is deployed.
   presenceUrl: (import.meta.env.VITE_PRESENCE_URL as string | undefined) || undefined,
+  // PostHog project key (funnel/retention analytics — see src/analytics.ts).
+  // Self-erasing like presenceUrl: unset → analytics.ts no-ops, no env var to
+  // forget. EU host by default (loopclub's audience skews EU/crypto-native;
+  // matches the GDPR posture used for Domani's PostHog setup).
+  posthogKey: (import.meta.env.VITE_POSTHOG_KEY as string | undefined) || undefined,
+  posthogHost:
+    (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://eu.i.posthog.com',
 }
 
 // Multicall3 — same deterministic CREATE2 address on MegaETH mainnet as every

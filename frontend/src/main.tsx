@@ -2,8 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { WalletProvider } from './wallet'
+import { initAnalytics } from './analytics'
 import '../../design-system/index.css'
 import './index.css'
+
+initAnalytics()
 
 // WalletProvider is whichever backend VITE_WALLET_PROVIDER selected (Privy by
 // default, MOSS when set to 'moss') — see src/wallet/index.ts. The App below is

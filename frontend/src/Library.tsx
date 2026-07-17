@@ -4,6 +4,7 @@ import { config } from './config'
 import { loopclubAbi } from './abi'
 import { publicClient } from './viemClient'
 import { MiniGrid } from './MiniGrid'
+import { track } from './analytics'
 
 const POLL_MS = 5000
 
@@ -424,7 +425,13 @@ function ShareButton({ record, editionsMinted }: { record: LoopRecord; editionsM
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button onClick={() => setOpen(true)} title="share this loop">
+      <button
+        onClick={() => {
+          track('share_opened', { seriesId: record.seriesId.toString() })
+          setOpen(true)
+        }}
+        title="share this loop"
+      >
         ↗ share
       </button>
       {open && (
@@ -452,6 +459,7 @@ function SharePopover({
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(url)}`
   const [copied, setCopied] = useState(false)
   const copy = async () => {
+    track('share_clicked', { seriesId: record.seriesId.toString(), channel: 'copy' })
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
@@ -483,7 +491,13 @@ function SharePopover({
           <button className="btn-chrome" onClick={copy}>{copied ? 'Copied!' : 'Copy'}</button>
         </div>
         <div className="row share-actions">
-          <a href={twitterUrl} target="_blank" rel="noreferrer" className="share-action">
+          <a
+            href={twitterUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="share-action"
+            onClick={() => track('share_clicked', { seriesId: record.seriesId.toString(), channel: 'x' })}
+          >
             𝕏 Share on X
           </a>
           <a href={url} target="_blank" rel="noreferrer" className="share-action">

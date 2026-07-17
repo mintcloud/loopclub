@@ -22,6 +22,7 @@
     "loopclub-loopgen": "file:../loopgen",
     "ox": "^0.8.9",
     "permissionless": "^0.2.57",
+    "posthog-js": "^1.404.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tone": "^15.1.22",
