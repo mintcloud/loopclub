@@ -1,8 +1,23 @@
 {
   "name": "loopclub-loopgen",
   "version": "0.1.0",
-  "description": "loopclub's shared musical brain — pure TS codec between a LoopSpec, the on-chain wire format (pattern + synthData), and a shareable deep-link. Zero runtime deps.",
-  "private": true,
+  "description": "loopclub's shared musical brain \u2014 pure TS codec between a LoopSpec, the on-chain wire format (pattern + synthData), and a shareable deep-link. Zero runtime deps.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mintcloud/loopclub.git",
+    "directory": "loopgen"
+  },
+  "homepage": "https://loopclub.xyz",
+  "keywords": [
+    "loopclub",
+    "codec",
+    "music",
+    "drum-machine",
+    "megaeth",
+    "onchain",
+    "zero-dependency"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -17,7 +32,9 @@
   "files": [
     "dist",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
